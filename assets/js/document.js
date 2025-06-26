@@ -56,7 +56,7 @@
     }
 })();
 
-// Xử lý form trả lời
+// Xử lý bình luận và trả lời
 document.addEventListener('DOMContentLoaded', function() {
     const commentsContainer = document.getElementById('comments-container');
     const isLoggedIn = commentsContainer.dataset.isLoggedIn === 'true';
@@ -67,6 +67,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (event.target.classList.contains('reply-comment')) {
             event.preventDefault();
             const commentId = event.target.dataset.commentId;
+            const userId = event.target.dataset.userId;
+            const userName = event.target.dataset.userName;
             const commentItem = event.target.closest('.comment-item, .reply-item');
             const replyForm = commentItem.querySelector('.reply-form');
 
@@ -75,14 +77,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 form.classList.add('d-none');
             });
 
-            // Hiển thị form trả lời
+            // Kiểm tra xem bình luận là cấp 2 hay cấp 3
+            const isLevelTwo = commentItem.classList.contains('reply-item') && !commentItem.classList.contains('reply-level-3');
+            replyForm.querySelector('input[name="tagged_user_id"]').value = isLevelTwo ? userId : 0;
+            const textarea = replyForm.querySelector('textarea[name="comment_text"]');
+            textarea.placeholder = `Trả lời ${userName}...`;
+
+            // Hiển thị form trả lời và cuộn đến đó
             replyForm.classList.remove('d-none');
+            replyForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         if (event.target.classList.contains('cancel-reply')) {
             event.preventDefault();
             const replyForm = event.target.closest('.reply-form');
             replyForm.classList.add('d-none');
+            replyForm.querySelector('textarea[name="comment_text"]').placeholder = 'Trả lời bình luận...';
         }
 
         if (event.target.classList.contains('delete-comment')) {
@@ -138,12 +148,14 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.disabled = true;
             spinner.classList.remove('d-none');
             const formData = new FormData(form);
+            console.log('Form data:', Object.fromEntries(formData));
             fetch('/study_sharing/document/replyComment', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
+                console.log('Reply response:', data);
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `alert alert-${data.success ? 'success' : 'danger'} mt-2`;
                 messageDiv.textContent = data.message;
@@ -155,6 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 const messageDiv = document.createElement('div');
                 messageDiv.className = 'alert alert-danger mt-2';
                 messageDiv.textContent = 'Lỗi server, vui lòng thử lại!';
@@ -208,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <i class="bi bi-three-dots"></i>
                                     </button>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item reply-comment" href="#" data-comment-id="${comment.comment_id}">Trả lời</a></li>
+                                        <li><a class="dropdown-item reply-comment" href="#" data-comment-id="${comment.comment_id}" data-user-id="${comment.account_id}" data-user-name="${comment.user.full_name || 'Ẩn danh'}">Trả lời</a></li>
                                         ${
                                             comment.account_id === currentUserId && withinOneHour
                                             ? `<li><a class="dropdown-item delete-comment" href="#" data-comment-id="${comment.comment_id}">Xóa</a></li>`
@@ -219,48 +232,68 @@ document.addEventListener('DOMContentLoaded', function() {
                             `;
                         }
 
-                        let repliesHtml = '';
-                        if (comment.replies && comment.replies.length > 0) {
-                            repliesHtml = '<div class="replies mt-3 ms-4">';
-                            comment.replies.forEach(reply => {
-                                let replyDropdownHtml = '';
-                                if (isLoggedIn) {
-                                    const replyTime = new Date(reply.comment_date).getTime();
-                                    const currentTime = new Date().getTime();
-                                    const replyWithinOneHour = (currentTime - replyTime) / 1000 <= 3600;
+                        // Hàm đệ quy để hiển thị các bình luận trả lời
+                        function generateRepliesHtml(replies, documentId, level = 1) {
+                            console.log(`Rendering replies at level ${level}:`, replies);
+                            let repliesHtml = '';
+                            if (replies && Object.keys(replies).length > 0) {
+                                repliesHtml = `<div class="replies mt-3 ms-${level * 4}">`;
+                                Object.values(replies).forEach(reply => {
+                                    let replyDropdownHtml = '';
+                                    if (isLoggedIn) {
+                                        const replyTime = new Date(reply.comment_date).getTime();
+                                        const currentTime = new Date().getTime();
+                                        const replyWithinOneHour = (currentTime - replyTime) / 1000 <= 3600;
 
-                                    replyDropdownHtml = `
-                                        <div class="dropdown ms-auto">
-                                            <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <i class="bi bi-three-dots"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item reply-comment" href="#" data-comment-id="${reply.comment_id}">Trả lời</a></li>
-                                                ${
-                                                    reply.account_id === currentUserId && replyWithinOneHour
-                                                    ? `<li><a class="dropdown-item delete-comment" href="#" data-comment-id="${reply.comment_id}">Xóa</a></li>`
-                                                    : ''
-                                                }
-                                            </ul>
+                                        replyDropdownHtml = `
+                                            <div class="dropdown ms-auto">
+                                                <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="bi bi-three-dots"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item reply-comment" href="#" data-comment-id="${reply.comment_id}" data-user-id="${reply.account_id}" data-user-name="${reply.user.full_name || 'Ẩn danh'}">Trả lời</a></li>
+                                                    ${
+                                                        reply.account_id === currentUserId && replyWithinOneHour
+                                                        ? `<li><a class="dropdown-item delete-comment" href="#" data-comment-id="${reply.comment_id}">Xóa</a></li>`
+                                                        : ''
+                                                    }
+                                                </ul>
+                                            </div>
+                                        `;
+                                    }
+
+                                    repliesHtml += `
+                                        <div class="border-bottom mb-2 pb-2 reply-item reply-level-${level}" data-comment-id="${reply.comment_id}">
+                                            <div class="d-flex align-items-center mb-1 position-relative">
+                                                <img src="/study_sharing/assets/images/${reply.user.avatar || 'profile.png'}" alt="Avatar" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                                <div>
+                                                    <strong>${reply.user.full_name || 'Ẩn danh'}</strong>
+                                                    <small class="text-muted ms-2">${reply.comment_date}</small>
+                                                </div>
+                                                ${replyDropdownHtml}
+                                            </div>
+                                            <p class="mb-0">${reply.comment_text}</p>
+                                            <form class="reply-form mt-3 d-none" data-parent-comment-id="${reply.comment_id}">
+                                                <input type="hidden" name="document_id" value="${documentId}">
+                                                <input type="hidden" name="parent_comment_id" value="${reply.comment_id}">
+                                                <input type="hidden" name="tagged_user_id" value="${reply.account_id}">
+                                                <div class="mb-3">
+                                                    <textarea class="form-control" name="comment_text" rows="3" required placeholder="Trả lời ${reply.user.full_name || 'Ẩn danh'}..."></textarea>
+                                                    <div class="invalid-feedback">Vui lòng nhập nội dung trả lời.</div>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                                    Gửi trả lời
+                                                </button>
+                                                <button type="button" class="btn btn-secondary btn-sm cancel-reply">Hủy</button>
+                                            </form>
+                                            ${generateRepliesHtml(reply.replies, documentId, level + 1)}
                                         </div>
                                     `;
-                                }
-
-                                repliesHtml += `
-                                    <div class="border-bottom mb-2 pb-2 reply-item" data-comment-id="${reply.comment_id}">
-                                        <div class="d-flex align-items-center mb-1 position-relative">
-                                            <img src="/study_sharing/assets/images/${reply.user.avatar || 'profile.png'}" alt="Avatar" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                                            <div>
-                                                <strong>${reply.user.full_name || 'Ẩn danh'}</strong>
-                                                <small class="text-muted ms-2">${reply.comment_date}</small>
-                                            </div>
-                                            ${replyDropdownHtml}
-                                        </div>
-                                        <p class="mb-0">${reply.comment_text}</p>
-                                    </div>
-                                `;
-                            });
-                            repliesHtml += '</div>';
+                                });
+                                repliesHtml += '</div>';
+                            }
+                            return repliesHtml;
                         }
 
                         commentDiv.innerHTML = `
@@ -276,8 +309,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             <form class="reply-form mt-3 d-none" data-parent-comment-id="${comment.comment_id}">
                                 <input type="hidden" name="document_id" value="${documentId}">
                                 <input type="hidden" name="parent_comment_id" value="${comment.comment_id}">
+                                <input type="hidden" name="tagged_user_id" value="${comment.account_id}">
                                 <div class="mb-3">
-                                    <textarea class="form-control" name="comment_text" rows="3" required placeholder="Trả lời bình luận..."></textarea>
+                                    <textarea class="form-control" name="comment_text" rows="3" required placeholder="Trả lời ${comment.user.full_name || 'Ẩn danh'}..."></textarea>
                                     <div class="invalid-feedback">Vui lòng nhập nội dung trả lời.</div>
                                 </div>
                                 <button type="submit" class="btn btn-primary btn-sm">
@@ -286,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </button>
                                 <button type="button" class="btn btn-secondary btn-sm cancel-reply">Hủy</button>
                             </form>
-                            ${repliesHtml}
+                            ${generateRepliesHtml(comment.replies, documentId)}
                         `;
                         commentsContainer.appendChild(commentDiv);
                     });
@@ -390,7 +424,7 @@ function resetStars(userRating) {
         for (let i = 0; i < userRating; i++) {
             stars[i].classList.add('filled');
         }
-    };
+    }
 }
 
 function submitRating(documentId, ratingValue) {

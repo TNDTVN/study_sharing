@@ -3,6 +3,7 @@
 namespace App;
 
 use PDO;
+use Exception;
 
 class DocumentController
 {
@@ -197,11 +198,24 @@ class DocumentController
         $commentData = $this->comment->getCommentsByDocumentId($document_id, 5, 0);
         $comments = $commentData['comments'];
         $totalComments = $commentData['total'];
-        foreach ($comments as &$comment) {
-            $comment['user'] = $this->user->getUserById($comment['account_id']);
-            error_log("Comment ID: " . $comment['comment_id'] . ", Account ID: " . $comment['account_id'] . ", Full Name: " . ($comment['user']['full_name'] ?? 'Unknown'));
+
+        // Hàm đệ quy để gắn thông tin người dùng cho bình luận và trả lời
+        function attachUserInfo(&$comments, $userModel)
+        {
+            foreach ($comments as &$comment) {
+                $comment['user'] = $userModel->getUserById($comment['account_id']);
+                if (!$comment['user']) {
+                    $comment['user'] = ['avatar' => null, 'full_name' => 'Ẩn danh'];
+                    error_log("User not found for comment ID: " . $comment['comment_id'] . ", Account ID: " . $comment['account_id']);
+                }
+                if (!empty($comment['replies'])) {
+                    attachUserInfo($comment['replies'], $userModel);
+                }
+            }
+            unset($comment);
         }
-        unset($comment);
+
+        attachUserInfo($comments, $this->user);
 
         // Lấy các version của tài liệu
         $documentVersion = new DocumentVersion($this->db);
@@ -254,45 +268,81 @@ class DocumentController
     public function replyComment()
     {
         header('Content-Type: application/json');
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Method not allowed']);
-            exit;
-        }
+        try {
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('Method not allowed', 405);
+            }
 
-        if (!isset($_SESSION['account_id'])) {
-            echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập để trả lời']);
-            exit;
-        }
+            if (!isset($_SESSION['account_id'])) {
+                throw new Exception('Vui lòng đăng nhập để trả lời', 401);
+            }
 
-        $document_id = isset($_POST['document_id']) ? (int)$_POST['document_id'] : 0;
-        $parent_comment_id = isset($_POST['parent_comment_id']) ? (int)$_POST['parent_comment_id'] : 0;
-        $comment_text = isset($_POST['comment_text']) ? trim($_POST['comment_text']) : '';
+            $document_id = isset($_POST['document_id']) ? (int)$_POST['document_id'] : 0;
+            $parent_comment_id = isset($_POST['parent_comment_id']) ? (int)$_POST['parent_comment_id'] : 0;
+            $comment_text = isset($_POST['comment_text']) ? trim($_POST['comment_text']) : '';
+            $tagged_user_id = isset($_POST['tagged_user_id']) ? (int)$_POST['tagged_user_id'] : 0;
 
-        if ($document_id <= 0 || $parent_comment_id <= 0 || empty($comment_text)) {
-            echo json_encode(['success' => false, 'message' => 'Dữ liệu không hợp lệ']);
-            exit;
-        }
+            if ($document_id <= 0 || $parent_comment_id <= 0 || empty($comment_text)) {
+                throw new Exception('Dữ liệu không hợp lệ', 400);
+            }
 
-        $document = $this->document->getDocumentById($document_id);
-        if (!$document) {
-            echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại']);
-            exit;
-        }
+            $document = $this->document->getDocumentById($document_id);
+            if (!$document) {
+                throw new Exception('Tài liệu không tồn tại', 404);
+            }
 
-        $parentComment = $this->comment->getCommentById($parent_comment_id);
-        if (!$parentComment || $parentComment['document_id'] != $document_id) {
-            echo json_encode(['success' => false, 'message' => 'Bình luận cha không tồn tại']);
-            exit;
-        }
+            $parentComment = $this->comment->getCommentById($parent_comment_id);
+            if (!$parentComment || $parentComment['document_id'] != $document_id) {
+                throw new Exception('Bình luận cha không tồn tại hoặc không thuộc tài liệu này', 404);
+            }
 
-        $success = $this->comment->createComment($document_id, $_SESSION['account_id'], $comment_text, $parent_comment_id);
-        if ($success) {
-            echo json_encode(['success' => true, 'message' => 'Trả lời đã được gửi']);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Lỗi khi gửi trả lời']);
+            // Xác định parent_comment_id cho bình luận mới
+            $final_parent_comment_id = $parent_comment_id;
+
+            // Kiểm tra cấp độ của bình luận cha
+            if ($parentComment['parent_comment_id'] !== null) {
+                // Nếu bình luận cha là cấp 2 hoặc cấp 3
+                $grandParentComment = $this->comment->getCommentById($parentComment['parent_comment_id']);
+                if ($grandParentComment && $grandParentComment['parent_comment_id'] === null) {
+                    // Trả lời bình luận cấp 2, giữ nguyên parent_comment_id
+                    $final_parent_comment_id = $parent_comment_id;
+                } else {
+                    // Trả lời bình luận cấp 3, dùng parent_comment_id của cấp 2
+                    $final_parent_comment_id = $parentComment['parent_comment_id'];
+                    if ($tagged_user_id > 0) {
+                        $taggedUser = $this->user->getUserById($tagged_user_id);
+                        if ($taggedUser) {
+                            // Thêm thẻ <span> vào đầu comment_text
+                            $comment_text = '<span class="tagged-user">@' . htmlspecialchars($taggedUser['full_name'], ENT_QUOTES, 'UTF-8') . '</span> ' . htmlspecialchars($comment_text, ENT_QUOTES, 'UTF-8');
+                        }
+                    }
+                }
+            } else {
+                // Trả lời bình luận cấp 1, giữ nguyên parent_comment_id
+                $final_parent_comment_id = $parent_comment_id;
+                if ($tagged_user_id > 0) {
+                    $taggedUser = $this->user->getUserById($tagged_user_id);
+                    if ($taggedUser) {
+                        // Thêm thẻ <span> cho bình luận cấp 1 nếu có tagged_user_id
+                        $comment_text = '<span class="tagged-user">@' . htmlspecialchars($taggedUser['full_name'], ENT_QUOTES, 'UTF-8') . '</span> ' . htmlspecialchars($comment_text, ENT_QUOTES, 'UTF-8');
+                    }
+                }
+            }
+
+            // Debug: Ghi log để kiểm tra
+            error_log("Final parent_comment_id: $final_parent_comment_id, Comment text: $comment_text");
+
+            $success = $this->comment->createComment($document_id, $_SESSION['account_id'], $comment_text, $final_parent_comment_id);
+            if ($success) {
+                echo json_encode(['success' => true, 'message' => 'Trả lời đã được gửi']);
+            } else {
+                throw new Exception('Lỗi khi gửi trả lời', 500);
+            }
+        } catch (Exception $e) {
+            http_response_code($e->getCode() ?: 500);
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
     }
-
     public function deleteComment()
     {
         header('Content-Type: application/json');
@@ -439,34 +489,20 @@ class DocumentController
 
         $document_id = isset($_POST['document_id']) ? (int)$_POST['document_id'] : 0;
         $offset = isset($_POST['offset']) ? (int)$_POST['offset'] : 0;
-        $limit = 5;
 
         if ($document_id <= 0) {
             echo json_encode(['success' => false, 'message' => 'Dữ liệu không hợp lệ']);
             exit;
         }
 
-        $document = $this->document->getDocumentById($document_id);
-        if (!$document || ($document['visibility'] !== 'public' && (!isset($_SESSION['account_id']) || $_SESSION['account_id'] != $document['account_id']))) {
-            echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại hoặc không có quyền truy cập']);
-            exit;
-        }
-
-        $commentData = $this->comment->getCommentsByDocumentId($document_id, $limit, $offset);
-        $comments = $commentData['comments'];
-        $totalComments = $commentData['total'];
-
-        // Lấy thông tin người dùng cho từng bình luận
-        foreach ($comments as &$comment) {
-            $comment['user'] = $this->user->getUserById($comment['account_id']);
-            $comment['comment_date'] = date('d/m/Y H:i', strtotime($comment['comment_date']));
-        }
-        unset($comment);
+        $result = $this->comment->getCommentsByDocumentId($document_id, 5, $offset);
+        $comments = $result['comments'];
+        $totalComments = $result['total'];
 
         echo json_encode([
             'success' => true,
             'comments' => $comments,
-            'hasMore' => ($offset + count($comments)) < $totalComments
+            'hasMore' => $offset + count($comments) < $totalComments
         ]);
     }
 }
