@@ -73,7 +73,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             <i class="bi bi-book-fill"></i> Khóa học
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/study_sharing/courses/list"><i class="bi bi-collection"></i> Xem tất cả</a></li>
+                            <li><a class="dropdown-item" href="/study_sharing/course/list"><i class="bi bi-collection"></i> Xem tất cả</a></li>
                             <?php if ($role === 'teacher'): ?>
                                 <li><a class="dropdown-item" href="/study_sharing/course/create"><i class="bi bi-plus-circle"></i> Tạo khóa học</a></li>
                                 <li><a class="dropdown-item" href="/study_sharing/course/manage"><i class="bi bi-gear"></i> Quản lý khóa học</a></li>

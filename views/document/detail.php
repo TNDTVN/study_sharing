@@ -7,6 +7,9 @@
         <div class="card-body">
             <p><strong>Mô tả:</strong> <?php echo htmlspecialchars($document['description'] ?? 'Không có mô tả'); ?></p>
             <p><strong>Danh mục:</strong> <?php echo htmlspecialchars($category['category_name'] ?? 'Không có'); ?></p>
+            <?php if (!empty($document['course_name'])): ?>
+                <p><strong>Khóa học:</strong> <a class="text-decoration-none" href="/study_sharing/course/detail/<?php echo $document['course_id']; ?>"><?php echo htmlspecialchars($document['course_name']); ?></a></p>
+            <?php endif; ?>
             <p><strong>Người tải lên:</strong> <?php echo htmlspecialchars($uploader['full_name'] ?? 'Ẩn danh'); ?></p>
             <p><strong>Ngày tải:</strong> <?php echo date('d/m/Y H:i', strtotime($document['upload_date'])); ?></p>
             <p><strong>Thẻ:</strong>
@@ -101,10 +104,8 @@
                     <p class="text-muted">Chưa có bình luận nào.</p>
                 <?php else: ?>
                     <?php
-                    // Ghi log để debug dữ liệu bình luận
                     error_log("Comments data: " . json_encode($comments));
 
-                    // Hàm đệ quy để hiển thị bình luận và các trả lời
                     function renderReplies($replies, $document, $level = 1)
                     {
                         if (empty($replies)) return '';
@@ -114,10 +115,8 @@
                             $currentTime = time();
                             $replyWithinOneHour = ($currentTime - $replyTime) <= 3600;
 
-                            // Kiểm tra sự tồn tại của $reply['user']
                             $replyUser = isset($reply['user']) && is_array($reply['user']) ? $reply['user'] : ['avatar' => null, 'full_name' => 'Ẩn danh'];
 
-                            // Ghi log để debug
                             error_log("Rendering reply ID: " . $reply['comment_id'] . ", User: " . json_encode($replyUser));
 
                             $html .= '
@@ -172,7 +171,6 @@
                     ?>
                     <?php foreach ($comments as $comment): ?>
                         <div class="border-bottom mb-3 pb-3 comment-item" data-comment-id="<?php echo $comment['comment_id']; ?>">
-                            <!-- Kiểm tra sự tồn tại của $comment['user'] -->
                             <?php $commentUser = isset($comment['user']) && is_array($comment['user']) ? $comment['user'] : ['avatar' => null, 'full_name' => 'Ẩn danh']; ?>
                             <div class="d-flex align-items-center mb-2 position-relative">
                                 <img src="/study_sharing/assets/images/<?php echo $commentUser['avatar'] ?: 'profile.png'; ?>" alt="Avatar" class="rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
@@ -226,7 +224,6 @@
             </div>
         </div>
     </div>
-
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="/study_sharing/assets/js/document.js"></script>

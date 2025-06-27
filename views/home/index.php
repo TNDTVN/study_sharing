@@ -60,7 +60,7 @@
                             <div class="card h-100">
                                 <div class="card-body">
                                     <h5 class="card-title text-primary">
-                                        <a href="/study_sharing/course/<?php echo $course['course_id']; ?>" class="text-decoration-none">
+                                        <a href="/study_sharing/course/detail/<?php echo $course['course_id']; ?>" class="text-decoration-none">
                                             <?php echo htmlspecialchars($course['course_name']); ?>
                                         </a>
                                     </h5>

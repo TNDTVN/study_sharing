@@ -68,6 +68,9 @@ $totalPages = $totalPages ?? 1;
                             </h5>
                             <p class="card-text"><?php echo htmlspecialchars(substr($doc['description'] ?? '', 0, 100)); ?>...</p>
                             <p class="card-text"><small class="text-muted">Danh mục: <?php echo htmlspecialchars($doc['category_name'] ?? 'Không có'); ?></small></p>
+                            <?php if (!empty($doc['course_name'])): ?>
+                                <p class="card-text"><small class="text-muted">Khóa học: <?php echo htmlspecialchars($doc['course_name']); ?></small></p>
+                            <?php endif; ?>
                             <p class="card-text"><small class="text-muted">Người tải lên: <?php echo htmlspecialchars($doc['full_name'] ?? 'Ẩn danh'); ?></small></p>
                             <p class="card-text"><small class="text-muted">Ngày tải: <?php echo date('d/m/Y', strtotime($doc['upload_date'])); ?></small></p>
                             <p class="card-text">
