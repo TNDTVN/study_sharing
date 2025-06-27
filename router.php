@@ -13,6 +13,7 @@ use App\HomeController;
 use App\HomeAdminController;
 use App\AuthController;
 use App\CourseController;
+use App\CategoryController;
 // thêm controller khác nếu cần
 
 session_start();
@@ -43,6 +44,7 @@ $allowedControllers = [
     'HomeAdminController' => HomeAdminController::class,
     'AuthController' => AuthController::class,
     'CourseController' => CourseController::class,
+    'CategoryController' => CategoryController::class,
     // Thêm các controller khác nếu cần
 ];
 

@@ -70,7 +70,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/user/manage_users') !== false ? 'active' : ''; ?>" href="/user/manage_users">
                 <i class="bi bi-people"></i> Quản lý người dùng
             </a>
-            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/category/manage') !== false ? 'active' : ''; ?>" href="/category/manage">
+            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/category/manage') !== false ? 'active' : ''; ?>" href="/study_sharing/category/manage">
                 <i class="bi bi-folder"></i> Quản lý danh mục
             </a>
             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/tag/manage') !== false ? 'active' : ''; ?>" href="/tag/manage">
