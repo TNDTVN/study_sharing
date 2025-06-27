@@ -74,7 +74,7 @@
                 <span class="star" data-value="5">★</span>
             </div>
             <?php if (!isset($_SESSION['account_id'])): ?>
-                <p class="text-muted mt-2"><a href="#" class="show-login-modal" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng nhập</a> để đánh giá tài liệu.</p>
+                <p class="text-muted mt-2"><a href="#" class="show-login-modal text-decoration-none" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng nhập</a> để đánh giá tài liệu.</p>
             <?php endif; ?>
         </div>
     </div>
@@ -96,7 +96,7 @@
                     </button>
                 </form>
             <?php else: ?>
-                <p class="text-muted mt-4">Vui lòng <a href="#" class="show-login-modal" data-bs-toggle="modal" data-bs-target="#loginModal">đăng nhập</a> để bình luận.</p>
+                <p class="text-muted mt-4">Vui lòng <a href="#" class="show-login-modal text-decoration-none" data-bs-toggle="modal" data-bs-target="#loginModal">đăng nhập</a> để bình luận.</p>
             <?php endif; ?>
             <div id="comments-container" class="mt-5" data-is-logged-in="<?php echo isset($_SESSION['account_id']) ? 'true' : 'false'; ?>" data-current-user-id="<?php echo isset($_SESSION['account_id']) ? $_SESSION['account_id'] : 0; ?>">
                 <h4>Bình luận</h4>

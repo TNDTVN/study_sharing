@@ -30,7 +30,7 @@ $courses = $courses ?? [];
                     <div class="card h-100">
                         <div class="card-body">
                             <h5 class="card-title">
-                                <a href="/study_sharing/course/detail/<?php echo $course['course_id']; ?>">
+                                <a class="text-decoration-none" href="/study_sharing/course/detail/<?php echo $course['course_id']; ?>">
                                     <?php echo htmlspecialchars($course['course_name']); ?>
                                 </a>
                             </h5>

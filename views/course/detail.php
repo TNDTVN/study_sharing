@@ -19,7 +19,7 @@
             <p><strong>Ngày tạo:</strong> <?php echo date('d/m/Y H:i', strtotime($course['created_at'])); ?></p>
             <p><strong>Link học tập:</strong>
                 <?php if ($course['learn_link']): ?>
-                    <a href="<?php echo htmlspecialchars($course['learn_link']); ?>" target="_blank"><?php echo htmlspecialchars($course['learn_link']); ?></a>
+                    <a class="text-decoration-none" href="<?php echo htmlspecialchars($course['learn_link']); ?>" target="_blank"><?php echo htmlspecialchars($course['learn_link']); ?></a>
                 <?php else: ?>
                     Chưa có link
                 <?php endif; ?>
@@ -39,7 +39,7 @@
                     Tham gia khóa học
                 </button>
             <?php else: ?>
-                <p class="text-muted mt-2"><a href="#" class="show-login-modal" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng nhập</a> để tham gia khóa học.</p>
+                <p class="text-muted mt-2"><a href="#" class="show-login-modal text-decoration-none" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng nhập</a> để tham gia khóa học.</p>
             <?php endif; ?>
         </div>
     </div>
@@ -57,7 +57,7 @@
                             <div class="card h-100">
                                 <div class="card-body">
                                     <h5 class="card-title">
-                                        <a href="/study_sharing/document/detail/<?php echo $doc['document_id']; ?>">
+                                        <a class="text-decoration-none" href="/study_sharing/document/detail/<?php echo $doc['document_id']; ?>">
                                             <?php echo htmlspecialchars($doc['title']); ?>
                                         </a>
                                     </h5>

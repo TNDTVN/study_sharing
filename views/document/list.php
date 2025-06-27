@@ -62,7 +62,7 @@ $totalPages = $totalPages ?? 1;
                     <div class="card h-100">
                         <div class="card-body">
                             <h5 class="card-title">
-                                <a href="/study_sharing/document/detail/<?php echo $doc['document_id']; ?>">
+                                <a class="text-decoration-none" href="/study_sharing/document/detail/<?php echo $doc['document_id']; ?>">
                                     <?php echo htmlspecialchars($doc['title']); ?>
                                 </a>
                             </h5>
