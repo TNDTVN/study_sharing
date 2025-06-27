@@ -79,8 +79,15 @@ class CategoryController
     public function addCategory()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $category_name = $_POST['category_name'] ?? '';
-            $description = $_POST['description'] ?? '';
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
+            // Ghi log để debug
+            error_log('POST data: ' . print_r($_POST, true));
+
+            $category_name = trim($_POST['category_name'] ?? '');
+            $description = trim($_POST['description'] ?? '');
 
             if (empty($category_name)) {
                 $_SESSION['message'] = 'Tên danh mục là bắt buộc!';
@@ -90,10 +97,12 @@ class CategoryController
             }
 
             try {
+                // Kiểm tra trùng tên
                 $query = "SELECT * FROM categories WHERE category_name = :category_name";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindParam(':category_name', $category_name, PDO::PARAM_STR);
                 $stmt->execute();
+
                 if ($stmt->fetch()) {
                     $_SESSION['message'] = 'Tên danh mục đã tồn tại!';
                     $_SESSION['message_type'] = 'danger';
@@ -101,14 +110,25 @@ class CategoryController
                     exit;
                 }
 
-                $query = "INSERT INTO categories (category_name, description) VALUES (:category_name, :description)";
-                $stmt = $this->pdo->prepare($query);
-                $stmt->bindParam(':category_name', $category_name, PDO::PARAM_STR);
-                $stmt->bindParam(':description', $description, PDO::PARAM_STR);
-                $stmt->execute();
+                // Thêm danh mục
+                $insertQuery = "INSERT INTO categories (category_name, description) VALUES (:category_name, :description)";
+                $insertStmt = $this->pdo->prepare($insertQuery);
+                $insertStmt->bindParam(':category_name', $category_name, PDO::PARAM_STR);
+                $insertStmt->bindParam(':description', $description, PDO::PARAM_STR);
+                $insertStmt->execute();
 
-                $_SESSION['message'] = 'Thêm danh mục thành công!';
-                $_SESSION['message_type'] = 'success';
+                // Kiểm tra xem có thực sự thêm thành công
+                $affected = $insertStmt->rowCount();
+                error_log("Rows affected: $affected");
+
+                if ($affected > 0) {
+                    $_SESSION['message'] = 'Thêm danh mục thành công!';
+                    $_SESSION['message_type'] = 'success';
+                } else {
+                    $_SESSION['message'] = 'Không thể thêm danh mục. Hãy thử lại.';
+                    $_SESSION['message_type'] = 'danger';
+                }
+
                 header('Location: /study_sharing/category/manage');
             } catch (PDOException $e) {
                 error_log("Add category error: " . $e->getMessage());
@@ -119,6 +139,7 @@ class CategoryController
             exit;
         }
     }
+
 
     public function editCategory()
     {
@@ -180,7 +201,7 @@ class CategoryController
             }
 
             try {
-                // Kiểm tra tài liệu liên quan
+                // Check for related documents
                 $query = "SELECT COUNT(*) as count FROM documents WHERE category_id = :category_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
