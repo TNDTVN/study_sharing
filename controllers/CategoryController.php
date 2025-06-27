@@ -21,6 +21,9 @@ class CategoryController
             session_start();
         }
 
+        // Debug: In thông tin session
+        error_log('Session data: ' . print_r($_SESSION, true));
+
         // Kiểm tra quyền admin
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             error_log("Access denied: Not an admin or session not set. Account ID: " . ($_SESSION['account_id'] ?? 'none') . ", Role: " . ($_SESSION['role'] ?? 'none'));
@@ -41,25 +44,21 @@ class CategoryController
                 throw new PDOException("Kết nối cơ sở dữ liệu không hợp lệ");
             }
 
-            $searchTerm = "%$keyword%";
-            $query = "SELECT * FROM categories WHERE category_name LIKE :keyword OR description LIKE :keyword ORDER BY category_name LIMIT $offset, $this->itemsPerPage";
+            // Truy vấn đơn giản để kiểm tra
+            $query = "SELECT * FROM categories ORDER BY category_name LIMIT :offset, :itemsPerPage";
             $stmt = $this->pdo->prepare($query);
-            $stmt->bindParam(':keyword', $searchTerm, PDO::PARAM_STR);
+            $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindParam(':itemsPerPage', $this->itemsPerPage, PDO::PARAM_INT);
             $stmt->execute();
             $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Debug: Ghi log dữ liệu lấy được
+            // Debug: In số lượng và dữ liệu
+            error_log('Number of categories fetched: ' . count($categories));
             error_log('Categories: ' . print_r($categories, true));
 
-            // In ra view để kiểm tra (chỉ dùng tạm để debug, sau đó xóa đi)
-            echo '<pre style="color:red;background:#fff;z-index:9999;position:relative;">';
-            var_dump($categories);
-            echo '</pre>';
-
             // Tính tổng số trang
-            $countQuery = "SELECT COUNT(*) as total FROM categories WHERE category_name LIKE :keyword OR description LIKE :keyword";
+            $countQuery = "SELECT COUNT(*) as total FROM categories";
             $countStmt = $this->pdo->prepare($countQuery);
-            $countStmt->bindParam(':keyword', $searchTerm, PDO::PARAM_STR);
             $countStmt->execute();
             $totalCategories = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
             $totalPages = ceil($totalCategories / $this->itemsPerPage);
@@ -69,7 +68,6 @@ class CategoryController
         }
 
         $title = 'Quản lý danh mục';
-        // Truyền $pdo vào scope của view
         $pdo = $this->pdo;
         ob_start();
         require __DIR__ . '/../views/category/manage.php';
