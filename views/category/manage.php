@@ -177,17 +177,21 @@ $title = "Quản lý danh mục";
                             method: 'POST',
                             body: formData
                         })
-                        .then(response => response.json())
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Phản hồi mạng không thành công: ' + response.status);
+                            }
+                            return response.json();
+                        })
                         .then(data => {
+                            alert(data.message); // Hiển thị thông báo từ server
                             if (data.success) {
-                                window.location.reload();
-                            } else {
-                                alert(data.message);
+                                window.location.reload(); // Tải lại trang nếu xóa thành công
                             }
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            alert('Lỗi server!');
+                            alert('Lỗi server: ' + error.message);
                         });
                 }
             });

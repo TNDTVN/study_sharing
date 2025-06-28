@@ -44,11 +44,21 @@ class CategoryController
                 throw new PDOException("Kết nối cơ sở dữ liệu không hợp lệ");
             }
 
-            // Truy vấn đơn giản để kiểm tra
-            $query = "SELECT * FROM categories ORDER BY category_name LIMIT :offset, :itemsPerPage";
+            // Truy vấn danh mục với tìm kiếm
+            $query = "SELECT * FROM categories WHERE 1=1";
+            $params = [];
+            if (!empty($keyword)) {
+                $query .= " AND (category_name LIKE :keyword OR description LIKE :keyword)";
+                $params[':keyword'] = '%' . $keyword . '%';
+            }
+            $query .= " ORDER BY category_name LIMIT :offset, :itemsPerPage";
+
             $stmt = $this->pdo->prepare($query);
-            $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
-            $stmt->bindParam(':itemsPerPage', $this->itemsPerPage, PDO::PARAM_INT);
+            if (!empty($keyword)) {
+                $stmt->bindValue(':keyword', $params[':keyword'], PDO::PARAM_STR);
+            }
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':itemsPerPage', $this->itemsPerPage, PDO::PARAM_INT);
             $stmt->execute();
             $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -56,9 +66,21 @@ class CategoryController
             error_log('Number of categories fetched: ' . count($categories));
             error_log('Categories: ' . print_r($categories, true));
 
-            // Tính tổng số trang
-            $countQuery = "SELECT COUNT(*) as total FROM categories";
+            // Tính tổng số trang với tìm kiếm
+            $countQuery = "SELECT COUNT(*) as total FROM categories WHERE 1=1";
+            $params = [];
+
+            if (!empty($keyword)) {
+                $countQuery .= " AND (category_name LIKE :keyword OR description LIKE :keyword)";
+                $params[':keyword'] = '%' . $keyword . '%';
+            }
+
             $countStmt = $this->pdo->prepare($countQuery);
+
+            if (!empty($keyword)) {
+                $countStmt->bindValue(':keyword', $params[':keyword'], PDO::PARAM_STR);
+            }
+
             $countStmt->execute();
             $totalCategories = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
             $totalPages = ceil($totalCategories / $this->itemsPerPage);
@@ -66,6 +88,7 @@ class CategoryController
             error_log("Manage categories error: " . $e->getMessage() . " at line " . $e->getLine());
             $errorMessage = 'Lỗi server khi tải danh mục: ' . $e->getMessage();
         }
+        $keyword = $keyword; // hoặc compact nếu bạn muốn: compact('keyword', 'categories', ...)
 
         $title = 'Quản lý danh mục';
         $pdo = $this->pdo;
@@ -191,17 +214,27 @@ class CategoryController
     public function deleteCategory()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Đặt header để trả về JSON
+            header('Content-Type: application/json');
+
+            // Kiểm tra session và quyền admin
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xóa danh mục!']);
+                exit;
+            }
+
             $category_id = $_POST['category_id'] ?? '';
 
             if (empty($category_id)) {
-                $_SESSION['message'] = 'Vui lòng cung cấp ID danh mục!';
-                $_SESSION['message_type'] = 'danger';
-                header('Location: /study_sharing/category/manage');
+                echo json_encode(['success' => false, 'message' => 'Vui lòng cung cấp ID danh mục!']);
                 exit;
             }
 
             try {
-                // Check for related documents
+                // Kiểm tra tài liệu liên quan
                 $query = "SELECT COUNT(*) as count FROM documents WHERE category_id = :category_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
@@ -209,25 +242,26 @@ class CategoryController
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
                 if ($result['count'] > 0) {
-                    $_SESSION['message'] = 'Không thể xóa danh mục vì có tài liệu liên quan!';
-                    $_SESSION['message_type'] = 'danger';
-                    header('Location: /study_sharing/category/manage');
+                    echo json_encode(['success' => false, 'message' => 'Không thể xóa danh mục vì có tài liệu liên quan!']);
                     exit;
                 }
 
+                // Xóa danh mục
                 $query = "DELETE FROM categories WHERE category_id = :category_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
                 $stmt->execute();
 
-                $_SESSION['message'] = 'Xóa danh mục thành công!';
-                $_SESSION['message_type'] = 'success';
-                header('Location: /study_sharing/category/manage');
+                // Kiểm tra xem có xóa thành công không
+                $affected = $stmt->rowCount();
+                if ($affected > 0) {
+                    echo json_encode(['success' => true, 'message' => 'Xóa danh mục thành công!']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Không tìm thấy danh mục để xóa!']);
+                }
             } catch (PDOException $e) {
                 error_log("Delete category error: " . $e->getMessage());
-                $_SESSION['message'] = 'Lỗi server: ' . $e->getMessage();
-                $_SESSION['message_type'] = 'danger';
-                header('Location: /study_sharing/category/manage');
+                echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
             }
             exit;
         }
