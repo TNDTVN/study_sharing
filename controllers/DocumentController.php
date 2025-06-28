@@ -459,4 +459,109 @@ class DocumentController
             'hasMore' => $offset + count($comments) < $totalComments
         ]);
     }
+
+    public function downloadHistory()
+    {
+        if (!isset($_SESSION['account_id'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập để xem lịch sử tải tài liệu']);
+            exit;
+        }
+
+        $query = isset($_GET['query']) ? trim($_GET['query']) : '';
+        $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
+        $file_type = isset($_GET['file_type']) && in_array(trim($_GET['file_type']), ['pdf', 'doc', 'docx', 'ppt', 'pptx']) ? trim($_GET['file_type']) : '';
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 10;
+
+        $sql = "SELECT d.*, c.category_name, u.full_name, co.course_name, dl.download_date
+                FROM documents d
+                LEFT JOIN categories c ON d.category_id = c.category_id
+                LEFT JOIN users u ON d.account_id = u.account_id
+                LEFT JOIN courses co ON d.course_id = co.course_id
+                JOIN downloads dl ON d.document_id = dl.document_id
+                WHERE dl.account_id = :account_id";
+        $bindParams = [':account_id' => $_SESSION['account_id']];
+        $hasWhere = true;
+
+        if ($query !== '') {
+            $sql .= " AND (d.title LIKE :query1 OR d.description LIKE :query2)";
+            $bindParams[':query1'] = "%$query%";
+            $bindParams[':query2'] = "%$query%";
+        }
+
+        if ($category_id > 0) {
+            $sql .= " AND d.category_id = :category_id";
+            $bindParams[':category_id'] = $category_id;
+        }
+
+        if ($file_type !== '') {
+            $sql .= " AND d.file_path LIKE :file_type";
+            $bindParams[':file_type'] = "%.$file_type";
+        }
+
+        $countSql = "SELECT COUNT(*)
+                    FROM documents d
+                    JOIN downloads dl ON d.document_id = dl.document_id
+                    WHERE dl.account_id = :account_id";
+        $countBindParams = [':account_id' => $_SESSION['account_id']];
+        if ($query !== '') {
+            $countSql .= " AND (d.title LIKE :query1 OR d.description LIKE :query2)";
+            $countBindParams[':query1'] = "%$query%";
+            $countBindParams[':query2'] = "%$query%";
+        }
+
+        if ($category_id > 0) {
+            $countSql .= " AND d.category_id = :category_id";
+            $countBindParams[':category_id'] = $category_id;
+        }
+
+        if ($file_type !== '') {
+            $countSql .= " AND d.file_path LIKE :file_type";
+            $countBindParams[':file_type'] = "%.$file_type";
+        }
+
+        $countStmt = $this->db->prepare($countSql);
+        foreach ($countBindParams as $key => $value) {
+            $countStmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $countStmt->execute();
+        $total = $countStmt->fetchColumn();
+
+        $sql .= " ORDER BY dl.download_date DESC LIMIT :offset, :perPage";
+        $stmt = $this->db->prepare($sql);
+        foreach ($bindParams as $key => $value) {
+            $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':offset', ($page - 1) * $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
+        $stmt->execute();
+        $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $categories = $this->category->getAllCategories();
+
+        foreach ($documents as &$doc) {
+            $tagsStmt = $this->db->prepare("SELECT t.tag_name FROM document_tags dt JOIN tags t ON dt.tag_id = t.tag_id WHERE dt.document_id = :document_id");
+            $tagsStmt->bindValue(':document_id', $doc['document_id'], PDO::PARAM_INT);
+            $tagsStmt->execute();
+            $doc['tags'] = $tagsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $ratingStmt = $this->db->prepare("SELECT AVG(rating_value) as avg_rating FROM ratings WHERE document_id = :document_id");
+            $ratingStmt->bindValue(':document_id', $doc['document_id'], PDO::PARAM_INT);
+            $ratingStmt->execute();
+            $rating = $ratingStmt->fetch(PDO::FETCH_ASSOC);
+            $doc['avg_rating'] = $rating['avg_rating'] ? round($rating['avg_rating'], 1) : 0;
+        }
+        unset($doc);
+
+        $totalPages = ceil($total / $perPage);
+
+        $title = 'Lịch sử tải tài liệu';
+        $layout = 'layout.php';
+        ob_start();
+        require __DIR__ . '/../views/document/download_history.php';
+        $content = ob_get_clean();
+        $pdo = $this->db;
+        require __DIR__ . '/../views/layouts/' . $layout;
+    }
 }

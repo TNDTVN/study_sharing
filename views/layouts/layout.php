@@ -61,9 +61,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             <?php if ($user && in_array($role, ['teacher', 'student'])): ?>
                                 <li><a class="dropdown-item" href="/study_sharing/document/upload"><i class="bi bi-upload"></i> Tải lên</a></li>
                                 <li><a class="dropdown-item" href="/study_sharing/document/delete"><i class="bi bi-trash"></i> Quản lý</a></li>
-                            <?php endif; ?>
-                            <?php if ($role === 'student'): ?>
-                                <li><a class="dropdown-item" href="/study_sharing/document/my_documents"><i class="bi bi-journal-bookmark"></i> Tài liệu của tôi</a></li>
+                                <li><a class="dropdown-item" href="/study_sharing/document/downloadHistory"><i class="bi bi-download"></i> Lịch sử tải tài liệu</a></li>
                             <?php endif; ?>
                         </ul>
                     </li>
@@ -79,7 +77,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <li><a class="dropdown-item" href="/study_sharing/course/manage"><i class="bi bi-gear"></i> Quản lý khóa học</a></li>
                             <?php endif; ?>
                             <?php if ($role === 'student'): ?>
-                                <li><a class="dropdown-item" href="/study_sharing/course/my_courses"><i class="bi bi-journal-text"></i> Khóa học của tôi</a></li>
+                                <li><a class="dropdown-item" href="/study_sharing/course/myCourses"><i class="bi bi-journal-text"></i> Khóa học của tôi</a></li>
                             <?php endif; ?>
                         </ul>
                     </li>

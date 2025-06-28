@@ -189,4 +189,69 @@ class CourseController
             echo json_encode(['success' => false, 'message' => 'Lỗi khi tham gia khóa học']);
         }
     }
+
+    public function myCourses()
+    {
+        if (!isset($_SESSION['account_id'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập để xem khóa học của bạn']);
+            exit;
+        }
+
+        $query = isset($_GET['query']) ? trim($_GET['query']) : '';
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 10;
+
+        $sql = "SELECT c.*, u.full_name
+                FROM courses c
+                LEFT JOIN users u ON c.creator_id = u.account_id
+                JOIN course_members cm ON c.course_id = cm.course_id
+                WHERE cm.account_id = :account_id";
+        $bindParams = [':account_id' => $_SESSION['account_id']];
+        $hasWhere = true;
+
+        if ($query !== '') {
+            $sql .= " AND (c.course_name LIKE :query1 OR c.description LIKE :query2)";
+            $bindParams[':query1'] = "%$query%";
+            $bindParams[':query2'] = "%$query%";
+        }
+
+        $countSql = "SELECT COUNT(*)
+                    FROM courses c
+                    JOIN course_members cm ON c.course_id = cm.course_id
+                    WHERE cm.account_id = :account_id";
+        $countBindParams = [':account_id' => $_SESSION['account_id']];
+        if ($query !== '') {
+            $countSql .= " AND (c.course_name LIKE :query1 OR c.description LIKE :query2)";
+            $countBindParams[':query1'] = "%$query%";
+            $countBindParams[':query2'] = "%$query%";
+        }
+
+        $countStmt = $this->db->prepare($countSql);
+        foreach ($countBindParams as $key => $value) {
+            $countStmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $countStmt->execute();
+        $total = $countStmt->fetchColumn();
+
+        $sql .= " ORDER BY c.created_at DESC LIMIT :offset, :perPage";
+        $stmt = $this->db->prepare($sql);
+        foreach ($bindParams as $key => $value) {
+            $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->bindValue(':offset', ($page - 1) * $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':perPage', $perPage, PDO::PARAM_INT);
+        $stmt->execute();
+        $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $totalPages = ceil($total / $perPage);
+
+        $title = 'Khóa học của tôi';
+        $layout = 'layout.php';
+        ob_start();
+        require __DIR__ . '/../views/course/my_courses.php';
+        $content = ob_get_clean();
+        $pdo = $this->db;
+        require __DIR__ . '/../views/layouts/' . $layout;
+    }
 }

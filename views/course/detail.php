@@ -41,6 +41,7 @@
             <?php else: ?>
                 <p class="text-muted mt-2"><a href="#" class="show-login-modal text-decoration-none" data-bs-toggle="modal" data-bs-target="#loginModal">Đăng nhập</a> để tham gia khóa học.</p>
             <?php endif; ?>
+            <a href="#" id="backButton" class="btn btn-secondary">Trở về</a>
         </div>
     </div>
 
@@ -115,3 +116,13 @@
 </div>
 
 <script src="/study_sharing/assets/js/course_detail.js"></script>
+<script>
+    document.getElementById('backButton').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (document.referrer && document.referrer.includes('/study_sharing/')) {
+            window.history.back();
+        } else {
+            window.location.href = '/study_sharing/';
+        }
+    });
+</script>

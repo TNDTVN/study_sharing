@@ -17,7 +17,10 @@
                     <span class="badge bg-secondary"><?php echo htmlspecialchars($tag); ?></span>
                 <?php endforeach; ?>
             </p>
-            <a href="#" id="downloadLink" class="btn btn-primary" onclick="recordDownload(<?php echo $document['document_id']; ?>, event)">Tải xuống</a>
+            <div class="d-flex gap-2">
+                <a href="#" id="backButton" class="btn btn-secondary">Trở về</a>
+                <a href="#" id="downloadLink" class="btn btn-primary" onclick="recordDownload(<?php echo $document['document_id']; ?>, event)">Tải xuống</a>
+            </div>
         </div>
     </div>
 
@@ -227,3 +230,13 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="/study_sharing/assets/js/document.js"></script>
+    <script>
+        document.getElementById('backButton').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (document.referrer && document.referrer.includes('/study_sharing/')) {
+                window.history.back();
+            } else {
+                window.location.href = '/study_sharing';
+            }
+        });
+    </script>
