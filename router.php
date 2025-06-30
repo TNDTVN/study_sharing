@@ -23,9 +23,6 @@ $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = trim(str_replace('/study_sharing', '', $uri), '/');
 $method = $_SERVER['REQUEST_METHOD'];
 
-// Debug: Ghi log URI và method
-error_log("URI: $uri, Method: $method");
-
 // Định nghĩa các tuyến đường tĩnh
 $staticRoutes = [
     // 'auth/reset_password' => [
@@ -74,9 +71,6 @@ function handleRoute($uri, $method, $pdo, $staticRoutes, $allowedControllers)
     $controllerName = !empty($parts[0]) ? ucfirst($parts[0]) . 'Controller' : 'HomeController';
     $action = !empty($parts[1]) ? $parts[1] : 'index';
     $params = array_slice($parts, 2);
-
-    // Debug: Ghi log controller và action
-    error_log("Controller: $controllerName, Action: $action");
 
     if (array_key_exists($controllerName, $allowedControllers)) {
         $controllerClass = $allowedControllers[$controllerName];

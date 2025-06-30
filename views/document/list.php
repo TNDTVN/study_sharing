@@ -73,14 +73,20 @@ $totalPages = $totalPages ?? 1;
                             <?php endif; ?>
                             <p class="card-text"><small class="text-muted">Người tải lên: <?php echo htmlspecialchars($doc['full_name'] ?? 'Ẩn danh'); ?></small></p>
                             <p class="card-text"><small class="text-muted">Ngày tải: <?php echo date('d/m/Y', strtotime($doc['upload_date'])); ?></small></p>
-                            <p class="card-text">
-                                Rating: <?php echo $doc['avg_rating'] ? number_format($doc['avg_rating'], 1) . '/5' : 'Chưa có đánh giá'; ?>
-                                <span class="rating-stars">
-                                    <?php for ($i = 1; $i <= 5; $i++): ?>
-                                        <span class="star <?php echo ($i <= round($doc['avg_rating'])) ? 'filled' : ''; ?>">★</span>
-                                    <?php endfor; ?>
-                                </span>
-                            </p>
+                            <?php if (!empty($doc['avg_rating'])): ?>
+                                <p class="card-text">
+                                    Rating: <?php echo number_format($doc['avg_rating'], 1) . '/5'; ?>
+                                    <span class="rating-stars">
+                                        <?php for ($i = 1; $i <= 5; $i++): ?>
+                                            <span class="star <?php echo ($i <= round($doc['avg_rating'])) ? 'filled' : ''; ?>">★</span>
+                                        <?php endfor; ?>
+                                    </span>
+                                </p>
+                            <?php else: ?>
+                                <p class="card-text">
+                                    Rating: Chưa có đánh giá
+                                </p>
+                            <?php endif; ?>
                             <p class="card-text">
                                 <?php foreach ($doc['tags'] as $tag): ?>
                                     <span class="badge bg-secondary"><?php echo htmlspecialchars($tag); ?></span>
