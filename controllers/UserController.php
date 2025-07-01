@@ -28,7 +28,8 @@ class UserController
 
         if (!isset($_SESSION['account_id'])) {
             error_log("Access denied: No account_id in session");
-            header('Location: /study_sharing/auth/login');
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập để truy cập hồ sơ!', 'redirect' => '/study_sharing']);
             exit;
         }
 
