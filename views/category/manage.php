@@ -7,8 +7,8 @@ $title = "Quản lý danh mục";
 
     <!-- Search and Add New Category -->
     <div class="d-flex justify-content-between mb-4">
-        <form class="input-group w-50" method="GET" action="/study_sharing/category/manage">
-            <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm danh mục..." value="<?php echo htmlspecialchars($keyword ?? ''); ?>" aria-label="Tìm kiếm danh mục">
+        <form class="input-group w-50" method="GET" action="/study_sharing/category/searchCategoriesWithDocuments">
+            <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm theo tên danh mục hoặc mô tả..." value="<?php echo htmlspecialchars($keyword ?? ''); ?>" aria-label="Tìm kiếm danh mục">
             <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
         </form>
         <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCategoryModal"><i class="bi bi-plus-circle"></i> Thêm danh mục</button>
@@ -65,19 +65,19 @@ $title = "Quản lý danh mục";
                 </tbody>
             </table>
 
-            <!-- Pagination -->
+            <!-- Trong file manage.php, sửa phần pagination -->
             <nav aria-label="Category pagination">
                 <ul class="pagination justify-content-center">
                     <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="/study_sharing/category/manage?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
+                        <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
                     </li>
                     <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                         <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                            <a class="page-link" href="/study_sharing/category/manage?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
+                            <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
                         </li>
                     <?php endfor; ?>
                     <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                        <a class="page-link" href="/study_sharing/category/manage?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
+                        <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
                     </li>
                 </ul>
             </nav>

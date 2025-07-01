@@ -15,6 +15,106 @@ class CategoryController
         $this->pdo = $pdo;
     }
 
+    public function searchCategoriesWithDocuments()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Kiểm tra quyền admin
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            header('Location: /study_sharing');
+            exit;
+        }
+
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
+        $offset = ($page - 1) * $this->itemsPerPage;
+        $categories = [];
+        $totalPages = 1;
+
+        try {
+            if (!$this->pdo) {
+                throw new PDOException("Kết nối cơ sở dữ liệu không hợp lệ");
+            }
+
+            // Truy vấn chính
+            $query = "
+            SELECT DISTINCT c.*
+            FROM categories c
+            LEFT JOIN documents d ON c.category_id = d.category_id
+            WHERE 1=1
+        ";
+            $params = [];
+
+            // Tìm theo tên và mô tả
+            if (!empty($keyword)) {
+                $query .= " AND (
+                c.category_name LIKE :keyword1 OR 
+                COALESCE(c.description, '') LIKE :keyword2
+            )";
+                $params[':keyword1'] = '%' . $keyword . '%';
+                $params[':keyword2'] = '%' . $keyword . '%';
+            }
+
+            $query .= " ORDER BY c.category_name LIMIT :offset, :itemsPerPage";
+
+            $stmt = $this->pdo->prepare($query);
+            if (!empty($keyword)) {
+                $stmt->bindValue(':keyword1', $params[':keyword1'], PDO::PARAM_STR);
+                $stmt->bindValue(':keyword2', $params[':keyword2'], PDO::PARAM_STR);
+            }
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':itemsPerPage', $this->itemsPerPage, PDO::PARAM_INT);
+            $stmt->execute();
+            $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Truy vấn đếm tổng số danh mục
+            $countQuery = "
+            SELECT COUNT(DISTINCT c.category_id) as total
+            FROM categories c
+            LEFT JOIN documents d ON c.category_id = d.category_id
+            WHERE 1=1
+        ";
+
+            if (!empty($keyword)) {
+                $countQuery .= " AND (
+                c.category_name LIKE :keyword1 OR 
+                COALESCE(c.description, '') LIKE :keyword2
+            )";
+            }
+
+            $countStmt = $this->pdo->prepare($countQuery);
+            if (!empty($keyword)) {
+                $countStmt->bindValue(':keyword1', $params[':keyword1'], PDO::PARAM_STR);
+                $countStmt->bindValue(':keyword2', $params[':keyword2'], PDO::PARAM_STR);
+            }
+            $countStmt->execute();
+            $totalCategories = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $totalPages = ceil($totalCategories / $this->itemsPerPage);
+
+            if (empty($categories) && !empty($keyword)) {
+                $_SESSION['message'] = 'Không tìm thấy danh mục nào khớp với từ khóa: ' . htmlspecialchars($keyword);
+                $_SESSION['message_type'] = 'warning';
+            }
+        } catch (PDOException $e) {
+            error_log("Search categories error: " . $e->getMessage());
+            $_SESSION['message'] = 'Lỗi server khi tìm kiếm: ' . $e->getMessage();
+            $_SESSION['message_type'] = 'danger';
+        }
+
+        $keyword = htmlspecialchars($keyword ?? '');
+        $title = 'Tìm kiếm danh mục';
+        $pdo = $this->pdo;
+
+        ob_start();
+        require __DIR__ . '/../views/category/manage.php';
+        $content = ob_get_clean();
+        require __DIR__ . '/../views/layouts/admin_layout.php';
+        exit;
+    }
+
+
     public function manage()
     {
         if (session_status() === PHP_SESSION_NONE) {
