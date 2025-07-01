@@ -8,7 +8,7 @@
                 <i class="bi bi-people card-icon"></i>
                 <h5 class="card-title">Người dùng</h5>
                 <p class="card-text"><?php echo $totalUsers; ?></p>
-                <a href="/user/manage_users" class="quick-link">Quản lý người dùng</a>
+                <a href="/Account/manage" class="quick-link">Quản lý người dùng</a>
             </div>
         </div>
     </div>
@@ -49,7 +49,7 @@
     <div class="col-12">
         <h3 class="mb-3 text-primary">Hành động nhanh</h3>
         <div class="d-flex flex-wrap gap-3">
-            <a href="/user/manage_users" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-people me-2"></i> Quản lý người dùng</a>
+            <a href="/Account/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-people me-2"></i> Quản lý người dùng</a>
             <a href="/category/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-folder me-2"></i> Quản lý danh mục</a>
             <a href="/tag/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-tag me-2"></i> Quản lý thẻ</a>
             <a href="/document/delete" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-file-earmark-text me-2"></i> Quản lý tài liệu</a>

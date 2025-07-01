@@ -67,7 +67,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/HomeAdmin/index') !== false ? 'active' : ''; ?>" href="/study_sharing/HomeAdmin/index">
                 <i class="bi bi-speedometer2"></i> Dashboard
             </a>
-            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/user/manage_users') !== false ? 'active' : ''; ?>" href="/user/manage_users">
+            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/Account/manage') !== false ? 'active' : ''; ?>" href="/study_sharing/Account/manage">
                 <i class="bi bi-people"></i> Quản lý người dùng
             </a>
             <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/category/manage') !== false ? 'active' : ''; ?>" href="/study_sharing/category/manage">
