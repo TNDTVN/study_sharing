@@ -10,7 +10,7 @@
     border: none;
 }
 
-.card-header {
+.profile-container .card-header {
     background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
     color: white;
     padding: 1.5rem;
@@ -23,7 +23,7 @@
     min-height: 100%;
 }
 
-.avatar-section {
+.profile-container .avatar-section {
     background-color: #f8f9fc;
     padding: 2rem 1.5rem;
     display: flex;
@@ -34,7 +34,7 @@
     min-height: 100%;
 }
 
-.avatar-img {
+.profile-container .avatar-img {
     width: 180px;
     height: 180px;
     object-fit: cover;
@@ -43,7 +43,7 @@
     margin-bottom: 1.5rem;
 }
 
-.custom-file-upload {
+.profile-container .custom-file-upload {
     display: inline-block;
     padding: 8px 16px;
     cursor: pointer;
@@ -56,12 +56,12 @@
     margin-bottom: 1rem;
 }
 
-.custom-file-upload:hover {
+.profile-container .custom-file-upload:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.info-item {
+.profile-container .info-item {
     margin-bottom: 1.25rem;
     width: 100%;
     padding: 0.75rem;
@@ -71,29 +71,29 @@
     text-align: center;
 }
 
-.info-item strong {
+.profile-container .info-item strong {
     color: #5a5c69;
 }
 
-.form-section {
+.profile-container .form-section {
     padding: 2rem;
     flex: 1;
 }
 
-.form-control,
-.form-select {
+.profile-container .form-control,
+.profile-container .form-select {
     border-radius: 6px;
     padding: 10px 15px;
     border: 1px solid #d1d3e2;
 }
 
-.form-control:focus,
-.form-select:focus {
+.profile-container .form-control:focus,
+.profile-container .form-select:focus {
     border-color: #bac8f3;
     box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
 }
 
-.btn-primary {
+.profile-container .btn-primary {
     background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
     border: none;
     padding: 10px 20px;
@@ -103,22 +103,22 @@
     transition: all 0.3s;
 }
 
-.btn-primary:hover {
+.profile-container .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.form-text {
+.profile-container .form-text {
     color: #858796;
     font-size: 0.85rem;
 }
 
-.invalid-feedback {
+.profile-container .invalid-feedback {
     font-size: 0.85rem;
 }
 
 /* Tùy chỉnh flatpickr */
-.flatpickr-input {
+.profile-container .flatpickr-input {
     background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar" viewBox="0 0 16 16"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>') no-repeat right 0.75rem center/16px 16px;
     cursor: pointer;
 }
@@ -128,13 +128,13 @@
         flex-direction: column;
     }
 
-    .avatar-section {
+    .profile-container .avatar-section {
         border-right: none;
         border-bottom: 1px solid #e3e6f0;
         min-height: auto;
     }
 
-    .form-section {
+    .profile-container .form-section {
         padding: 1.5rem;
     }
 }
