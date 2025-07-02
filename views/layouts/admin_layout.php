@@ -81,7 +81,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <i class="bi bi-file-earmark-text"></i> Quản lý tài liệu
             </a>
             <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="/document/delete"><i class="bi bi-trash"></i> Quản lý tài liệu</a></li>
+                <li><a class="dropdown-item" href="/study_sharing/AdminDocument/admin_manage"><i class="bi bi-folder"></i> Quản lý tài liệu</a></li>
                 <li><a class="dropdown-item" href="/document/approve"><i class="bi bi-check-circle"></i> Phê duyệt tài liệu</a></li>
                 <li><a class="dropdown-item" href="/document/statistics"><i class="bi bi-bar-chart"></i> Thống kê tài liệu</a></li>
             </ul>
@@ -92,7 +92,7 @@ if (session_status() === PHP_SESSION_NONE) {
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="/course/manage"><i class="bi bi-gear"></i> Quản lý khóa học</a></li>
                 <li><a class="dropdown-item" href="/course/approve"><i class="bi bi-check-circle"></i> Phê duyệt khóa học</a></li>
-                <li><a class="dropdown-item" href="/course/statistics"><i class="bi bi-bar"></i> Thống kê khóa học</a></li>
+                <li><a class="dropdown-item" href="/course/statistics"><i class="bi bi-bar-chart"></i> Thống kê khóa học</a></li>
             </ul>
         </nav>
     </div>
