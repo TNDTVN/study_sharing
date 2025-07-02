@@ -1,0 +1,141 @@
+.content {
+    padding-top: 0px;
+}
+
+.admin-profile-container {
+    width: 100%;
+    margin: 0;
+}
+
+.profile-header {
+    background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
+    /* Màu đỏ cho admin */
+    color: white;
+    padding: 1.5rem;
+    border-bottom: none;
+}
+
+.profile-row {
+    display: flex;
+    flex-wrap: wrap;
+    min-height: 100%;
+}
+
+.admin-profile-container .avatar-section {
+    background-color: #f8f9fc;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-right: 1px solid #e3e6f0;
+    flex: 1;
+    min-height: 100%;
+}
+
+.admin-profile-container .avatar-img {
+    width: 180px;
+    height: 180px;
+    object-fit: cover;
+    border: 5px solid white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+}
+
+.admin-profile-container .custom-file-upload {
+    display: inline-block;
+    padding: 8px 16px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
+    color: white;
+    border-radius: 6px;
+    transition: all 0.3s;
+    font-weight: 500;
+    border: none;
+    margin-bottom: 1rem;
+}
+
+.admin-profile-container .custom-file-upload:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.admin-profile-container .info-item {
+    margin-bottom: 1.25rem;
+    width: 100%;
+    padding: 0.75rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    text-align: center;
+}
+
+.admin-profile-container .info-item strong {
+    color: #5a5c69;
+}
+
+.admin-profile-container .form-section {
+    padding: 2rem;
+    flex: 1;
+}
+
+.admin-profile-container .form-control,
+.admin-profile-container .form-select {
+    border-radius: 6px;
+    padding: 10px 15px;
+    border: 1px solid #d1d3e2;
+}
+
+.admin-profile-container .form-control:focus,
+.admin-profile-container .form-select:focus {
+    border-color: #bac8f3;
+    box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+}
+
+.admin-profile-container .btn-primary {
+    background: linear-gradient(135deg, #dc3545 0%, #a71d2a 100%);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s;
+}
+
+.admin-profile-container .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.admin-profile-container .form-text {
+    color: #858796;
+    font-size: 0.85rem;
+}
+
+.admin-profile-container .invalid-feedback {
+    font-size: 0.85rem;
+}
+
+.admin-profile-container .flatpickr-input {
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar" viewBox="0 0 16 16"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>') no-repeat right 0.75rem center/16px 16px;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    .admin-profile-container .profile-row {
+        flex-direction: column;
+    }
+
+    .admin-profile-container .avatar-section {
+        border-right: none;
+        border-bottom: 1px solid #e3e6f0;
+        min-height: auto;
+    }
+
+    .admin-profile-container .form-section {
+        padding: 1.5rem;
+    }
+}
+
+.container {
+    padding: 0% !important;
+}
