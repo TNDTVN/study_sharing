@@ -157,7 +157,7 @@ class AdminDocumentController
             $category_id = (int)($_POST['category_id'] ?? 0);
             $course_id = !empty($_POST['course_id']) ? (int)$_POST['course_id'] : null;
             $visibility = in_array($_POST['visibility'] ?? '', ['public', 'private']) ? $_POST['visibility'] : 'public';
-            $tags = isset($_POST['tags']) && is_array($_POST['tags']) ? array_map('trim', $_POST['tags']) : [];
+            $tags = !empty($_POST['tags']) ? explode(',', trim($_POST['tags'])) : [];
 
             if (empty($title) || empty($_FILES['file']['name'])) {
                 $_SESSION['message'] = 'Tiêu đề và tệp tài liệu là bắt buộc!';
@@ -211,6 +211,7 @@ class AdminDocumentController
 
                 // Thêm thẻ (tags)
                 foreach ($tags as $tag_name) {
+                    $tag_name = trim($tag_name);
                     if (!empty($tag_name)) {
                         $tagStmt = $this->pdo->prepare("SELECT tag_id FROM tags WHERE tag_name = :tag_name");
                         $tagStmt->bindValue(':tag_name', $tag_name, PDO::PARAM_STR);
@@ -266,7 +267,7 @@ class AdminDocumentController
             $category_id = (int)($_POST['category_id'] ?? 0);
             $course_id = !empty($_POST['course_id']) ? (int)$_POST['course_id'] : null;
             $visibility = in_array($_POST['visibility'] ?? '', ['public', 'private']) ? $_POST['visibility'] : 'public';
-            $tags = isset($_POST['tags']) && is_array($_POST['tags']) ? array_map('trim', $_POST['tags']) : [];
+            $tags = !empty($_POST['tags']) ? explode(',', trim($_POST['tags'])) : [];
 
             if ($document_id <= 0 || empty($title)) {
                 $_SESSION['message'] = 'ID tài liệu và tiêu đề là bắt buộc!';
@@ -346,6 +347,7 @@ class AdminDocumentController
 
                 // Thêm thẻ mới
                 foreach ($tags as $tag_name) {
+                    $tag_name = trim($tag_name);
                     if (!empty($tag_name)) {
                         $tagStmt = $this->pdo->prepare("SELECT tag_id FROM tags WHERE tag_name = :tag_name");
                         $tagStmt->bindValue(':tag_name', $tag_name, PDO::PARAM_STR);

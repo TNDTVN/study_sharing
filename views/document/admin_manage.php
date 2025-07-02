@@ -15,6 +15,79 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
     .form-select {
         max-width: 200px;
     }
+
+    .autocomplete-container {
+        position: relative;
+    }
+
+    .autocomplete-dropdown {
+        position: absolute;
+        z-index: 1000;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        margin-top: 5px;
+        display: none;
+        /* Ẩn mặc định */
+    }
+
+    .autocomplete-item {
+        padding: 8px 12px;
+        cursor: pointer;
+    }
+
+    .autocomplete-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .autocomplete-item.selected .tick {
+        color: green;
+        margin-left: 10px;
+    }
+
+    .modal-body .row {
+        margin-bottom: 1rem;
+    }
+
+    .modal-body .mb-3 {
+        margin-bottom: 0 !important;
+        /* Override margin-bottom trong cột */
+    }
+
+    .file-upload-label {
+        display: block;
+        padding: 0.5rem;
+        border: 2px dashed #dee2e6;
+        border-radius: 0.375rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .file-upload-label:hover {
+        border-color: #86b7fe;
+        background-color: #f8f9fa;
+    }
+
+    .file-upload-text {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+
+    .submit-btn {
+        padding: 0.6rem;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+
+    .submit-btn:hover {
+        transform: translateY(-2px);
+    }
 </style>
 
 <h1 class="mb-4 text-primary"><i class="bi bi-file-earmark-text me-2"></i> Quản lý tài liệu</h1>
@@ -90,7 +163,7 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                                     data-category-id="<?php echo $document['category_id'] ?? ''; ?>"
                                     data-course-id="<?php echo $document['course_id'] ?? ''; ?>"
                                     data-visibility="<?php echo $document['visibility']; ?>"
-                                    data-tags="<?php echo htmlspecialchars(json_encode($document['tags'] ?? [])); ?>">
+                                    data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $document['document_id']; ?>">
@@ -124,7 +197,7 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
 
 <!-- Add Document Modal -->
 <div class="modal fade" id="addDocumentModal" tabindex="-1" aria-labelledby="addDocumentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="addDocumentModalLabel">Thêm tài liệu mới</h5>
@@ -132,52 +205,66 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
             <div class="modal-body">
                 <form id="addDocumentForm" method="POST" action="/study_sharing/AdminDocument/admin_add" enctype="multipart/form-data" class="needs-validation" novalidate>
-                    <div class="mb-3">
-                        <label for="addDocumentTitle" class="form-label">Tiêu đề</label>
-                        <input type="text" class="form-control" id="addDocumentTitle" name="title" required>
-                        <div class="invalid-feedback">Vui lòng nhập tiêu đề.</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addDocumentTitle" class="form-label">Tiêu đề</label>
+                                <input type="text" class="form-control" id="addDocumentTitle" name="title" required>
+                                <div class="invalid-feedback">Vui lòng nhập tiêu đề.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="addDocumentCategory" class="form-label">Danh mục</label>
+                                <select class="form-control" id="addDocumentCategory" name="category_id">
+                                    <option value="0">Không chọn</option>
+                                    <?php foreach ($categories as $category): ?>
+                                        <option value="<?php echo $category['category_id']; ?>"><?php echo htmlspecialchars($category['category_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="addDocumentCourse" class="form-label">Khóa học</label>
+                                <select class="form-control" id="addDocumentCourse" name="course_id">
+                                    <option value="">Không chọn</option>
+                                    <?php foreach ($courses as $course): ?>
+                                        <option value="<?php echo $course['course_id']; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="addDocumentDescription" class="form-label">Mô tả</label>
+                                <textarea class="form-control" id="addDocumentDescription" name="description" rows="4"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="addDocumentVisibility" class="form-label">Chế độ hiển thị</label>
+                                <select class="form-control" id="addDocumentVisibility" name="visibility" required>
+                                    <option value="public">Công khai</option>
+                                    <option value="private">Riêng tư</option>
+                                </select>
+                                <div class="invalid-feedback">Vui lòng chọn chế độ hiển thị.</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="addDocumentDescription" class="form-label">Mô tả</label>
-                        <textarea class="form-control" id="addDocumentDescription" name="description" rows="4"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="addDocumentCategory" class="form-label">Danh mục</label>
-                        <select class="form-control" id="addDocumentCategory" name="category_id">
-                            <option value="0">Không chọn</option>
-                            <?php foreach ($categories as $category): ?>
-                                <option value="<?php echo $category['category_id']; ?>"><?php echo htmlspecialchars($category['category_name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="addDocumentCourse" class="form-label">Khóa học</label>
-                        <select class="form-control" id="addDocumentCourse" name="course_id">
-                            <option value="">Không chọn</option>
-                            <?php foreach ($courses as $course): ?>
-                                <option value="<?php echo $course['course_id']; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="addDocumentVisibility" class="form-label">Chế độ hiển thị</label>
-                        <select class="form-control" id="addDocumentVisibility" name="visibility" required>
-                            <option value="public">Công khai</option>
-                            <option value="private">Riêng tư</option>
-                        </select>
-                        <div class="invalid-feedback">Vui lòng chọn chế độ hiển thị.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="addDocumentTags" class="form-label">Thẻ (chọn nhiều)</label>
-                        <select class="form-control" id="addDocumentTags" name="tags[]" multiple>
+                    <div class="mb-4 autocomplete-container">
+                        <label for="addDocumentTags" class="form-label">Thẻ (click để chọn thẻ từ danh sách)</label>
+                        <input type="text" class="form-control" id="addDocumentTags" name="tags" placeholder="Click để chọn thẻ..." readonly>
+                        <ul class="autocomplete-dropdown list-unstyled m-0">
                             <?php foreach ($tags as $tag): ?>
-                                <option value="<?php echo htmlspecialchars($tag['tag_name']); ?>"><?php echo htmlspecialchars($tag['tag_name']); ?></option>
+                                <li class="autocomplete-item" data-value="<?php echo htmlspecialchars($tag['tag_name']); ?>">
+                                    <?php echo htmlspecialchars($tag['tag_name']); ?>
+                                    <span class="tick d-none"><i class="bi bi-check"></i></span>
+                                </li>
                             <?php endforeach; ?>
-                        </select>
+                        </ul>
                     </div>
-                    <div class="mb-3">
-                        <label for="addDocumentFile" class="form-label">Tệp tài liệu</label>
-                        <input type="file" class="form-control" id="addDocumentFile" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx" required>
+                    <div class="mb-4">
+                        <label for="addDocumentFile" class="form-label">Tệp tài liệu <span class="text-danger">*</span></label>
+                        <label for="addDocumentFile" class="file-upload-label">
+                            <i class="bi bi-cloud-arrow-up fs-3"></i>
+                            <div class="file-upload-text">Nhấn để tải lên tệp (PDF, DOC, DOCX, PPT, PPTX)</div>
+                        </label>
+                        <input type="file" class="form-control d-none" id="addDocumentFile" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx" required>
                         <div class="invalid-feedback">Vui lòng chọn tệp tài liệu.</div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
@@ -192,7 +279,7 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
 
 <!-- Edit Document Modal -->
 <div class="modal fade" id="editDocumentModal" tabindex="-1" aria-labelledby="editDocumentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="editDocumentModalLabel">Chỉnh sửa tài liệu</h5>
@@ -201,52 +288,68 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
             <div class="modal-body">
                 <form id="editDocumentForm" method="POST" action="/study_sharing/AdminDocument/admin_edit" enctype="multipart/form-data" class="needs-validation" novalidate>
                     <input type="hidden" id="editDocumentId" name="document_id">
-                    <div class="mb-3">
-                        <label for="editDocumentTitle" class="form-label">Tiêu đề</label>
-                        <input type="text" class="form-control" id="editDocumentTitle" name="title" required>
-                        <div class="invalid-feedback">Vui lòng nhập tiêu đề.</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editDocumentTitle" class="form-label">Tiêu đề</label>
+                                <input type="text" class="form-control" id="editDocumentTitle" name="title" required>
+                                <div class="invalid-feedback">Vui lòng nhập tiêu đề.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editDocumentCategory" class="form-label">Danh mục</label>
+                                <select class="form-control" id="editDocumentCategory" name="category_id">
+                                    <option value="0">Không chọn</option>
+                                    <?php foreach ($categories as $category): ?>
+                                        <option value="<?php echo $category['category_id']; ?>"><?php echo htmlspecialchars($category['category_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editDocumentCourse" class="form-label">Khóa học</label>
+                                <select class="form-control" id="editDocumentCourse" name="course_id">
+                                    <option value="">Không chọn</option>
+                                    <?php foreach ($courses as $course): ?>
+                                        <option value="<?php echo $course['course_id']; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="editDocumentDescription" class="form-label">Mô tả</label>
+                                <textarea class="form-control" id="editDocumentDescription" name="description" rows="4"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="editDocumentVisibility" class="form-label">Chế độ hiển thị</label>
+                                <select class="form-control" id="editDocumentVisibility" name="visibility" required>
+                                    <option value="public">Công khai</option>
+                                    <option value="private">Riêng tư</option>
+                                </select>
+                                <div class="invalid-feedback">Vui lòng chọn chế độ hiển thị.</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <label for="editDocumentDescription" class="form-label">Mô tả</label>
-                        <textarea class="form-control" id="editDocumentDescription" name="description" rows="4"></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editDocumentCategory" class="form-label">Danh mục</label>
-                        <select class="form-control" id="editDocumentCategory" name="category_id">
-                            <option value="0">Không chọn</option>
-                            <?php foreach ($categories as $category): ?>
-                                <option value="<?php echo $category['category_id']; ?>"><?php echo htmlspecialchars($category['category_name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editDocumentCourse" class="form-label">Khóa học</label>
-                        <select class="form-control" id="editDocumentCourse" name="course_id">
-                            <option value="">Không chọn</option>
-                            <?php foreach ($courses as $course): ?>
-                                <option value="<?php echo $course['course_id']; ?>"><?php echo htmlspecialchars($course['course_name']); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editDocumentVisibility" class="form-label">Chế độ hiển thị</label>
-                        <select class="form-control" id="editDocumentVisibility" name="visibility" required>
-                            <option value="public">Công khai</option>
-                            <option value="private">Riêng tư</option>
-                        </select>
-                        <div class="invalid-feedback">Vui lòng chọn chế độ hiển thị.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="editDocumentTags" class="form-label">Thẻ (chọn nhiều)</label>
-                        <select class="form-control" id="editDocumentTags" name="tags[]" multiple>
+                    <div class="mb-4 autocomplete-container">
+                        <label for="editDocumentTags" class="form-label">Thẻ (click để chọn thẻ từ danh sách)</label>
+                        <input type="text" class="form-control" id="editDocumentTags" name="tags" placeholder="Click để chọn thẻ..." readonly>
+                        <ul class="autocomplete-dropdown list-unstyled m-0">
                             <?php foreach ($tags as $tag): ?>
-                                <option value="<?php echo htmlspecialchars($tag['tag_name']); ?>"><?php echo htmlspecialchars($tag['tag_name']); ?></option>
+                                <li class="autocomplete-item" data-value="<?php echo htmlspecialchars($tag['tag_name']); ?>">
+                                    <?php echo htmlspecialchars($tag['tag_name']); ?>
+                                    <span class="tick d-none"><i class="bi bi-check"></i></span>
+                                </li>
                             <?php endforeach; ?>
-                        </select>
+                        </ul>
                     </div>
-                    <div class="mb-3">
-                        <label for="editDocumentFile" class="form-label">Tệp tài liệu (để trống nếu không thay đổi)</label>
-                        <input type="file" class="form-control" id="editDocumentFile" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx">
+                    <div class="mb-4">
+                        <label for="editDocumentFile" class="form-label">Tệp tài liệu</label>
+                        <label for="editDocumentFile" class="file-upload-label">
+                            <i class="bi bi-cloud-arrow-up fs-3"></i>
+                            <div class="file-upload-text">Nhấn để thay đổi tệp (PDF, DOC, DOCX, PPT, PPTX)</div>
+                            <div id="currentFileName" class="text-primary mt-2 fw-medium"></div>
+                        </label>
+                        <input type="file" class="form-control d-none" id="editDocumentFile" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx">
+                        <small class="text-muted d-block mt-1">Để trống nếu không muốn thay đổi tệp</small>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
                         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
