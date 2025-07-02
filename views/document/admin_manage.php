@@ -31,7 +31,6 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
         border-radius: 0.25rem;
         margin-top: 5px;
         display: none;
-        /* Ẩn mặc định */
     }
 
     .autocomplete-item {
@@ -54,7 +53,6 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
 
     .modal-body .mb-3 {
         margin-bottom: 0 !important;
-        /* Override margin-bottom trong cột */
     }
 
     .file-upload-label {
@@ -163,7 +161,8 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                                     data-category-id="<?php echo $document['category_id'] ?? ''; ?>"
                                     data-course-id="<?php echo $document['course_id'] ?? ''; ?>"
                                     data-visibility="<?php echo $document['visibility']; ?>"
-                                    data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>">
+                                    data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>"
+                                    data-file-name="<?php echo htmlspecialchars(basename($document['file_path'])); ?>">
                                     <i class="bi bi-pencil"></i>
                                 </button>
                                 <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $document['document_id']; ?>">
@@ -263,6 +262,7 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                         <label for="addDocumentFile" class="file-upload-label">
                             <i class="bi bi-cloud-arrow-up fs-3"></i>
                             <div class="file-upload-text">Nhấn để tải lên tệp (PDF, DOC, DOCX, PPT, PPTX)</div>
+                            <div id="addFileName" class="text-primary mt-2 fw-medium"></div>
                         </label>
                         <input type="file" class="form-control d-none" id="addDocumentFile" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx" required>
                         <div class="invalid-feedback">Vui lòng chọn tệp tài liệu.</div>

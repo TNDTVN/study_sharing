@@ -9,10 +9,24 @@ class AdminDocumentController
 {
     private $pdo;
     private $itemsPerPage = 5;
+    private $uploadDir = 'uploads/';
 
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
+        $this->ensureUploadDirectory();
+    }
+
+    private function ensureUploadDirectory()
+    {
+        $absolutePath = __DIR__ . '/../' . $this->uploadDir;
+        if (!is_dir($absolutePath)) {
+            mkdir($absolutePath, 0775, true);
+            chmod($absolutePath, 0775);
+        }
+        if (!is_writable($absolutePath)) {
+            error_log("Thư mục {$absolutePath} không có quyền ghi!");
+        }
     }
 
     public function admin_manage()
@@ -21,7 +35,6 @@ class AdminDocumentController
             session_start();
         }
 
-        // Kiểm tra quyền admin
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header('Location: /study_sharing');
             exit;
@@ -34,7 +47,6 @@ class AdminDocumentController
         $offset = ($page - 1) * $this->itemsPerPage;
 
         try {
-            // Truy vấn tài liệu
             $query = "SELECT d.*, c.category_name, u.full_name, co.course_name
                     FROM documents d
                     LEFT JOIN categories c ON d.category_id = c.category_id
@@ -70,17 +82,14 @@ class AdminDocumentController
             $stmt->execute();
             $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Lấy danh sách danh mục
             $categoryStmt = $this->pdo->prepare("SELECT * FROM categories ORDER BY category_name");
             $categoryStmt->execute();
             $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Lấy danh sách khóa học
             $courseStmt = $this->pdo->prepare("SELECT course_id, course_name FROM courses ORDER BY course_name");
             $courseStmt->execute();
             $courses = $courseStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Đếm tổng số tài liệu
             $countQuery = "SELECT COUNT(*) as total FROM documents WHERE 1=1";
             $countParams = [];
 
@@ -108,7 +117,6 @@ class AdminDocumentController
             $totalDocuments = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
             $totalPages = ceil($totalDocuments / $this->itemsPerPage);
 
-            // Lấy danh sách thẻ cho mỗi tài liệu
             foreach ($documents as &$document) {
                 $tagStmt = $this->pdo->prepare("
                     SELECT t.tag_name 
@@ -120,8 +128,7 @@ class AdminDocumentController
                 $tagStmt->execute();
                 $document['tags'] = $tagStmt->fetchAll(PDO::FETCH_COLUMN);
             }
-            unset($document); // Hủy tham chiếu để tránh lỗi
-
+            unset($document);
         } catch (PDOException $e) {
             error_log("Manage documents error: " . $e->getMessage());
             $_SESSION['message'] = 'Lỗi server khi tải tài liệu: ' . $e->getMessage();
@@ -167,6 +174,23 @@ class AdminDocumentController
             }
 
             try {
+                // Kiểm tra lỗi upload
+                if ($_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+                    $uploadErrors = [
+                        UPLOAD_ERR_INI_SIZE => 'Kích thước tệp vượt quá giới hạn php.ini!',
+                        UPLOAD_ERR_FORM_SIZE => 'Kích thước tệp vượt quá giới hạn form!',
+                        UPLOAD_ERR_PARTIAL => 'Tệp chỉ được tải lên một phần!',
+                        UPLOAD_ERR_NO_FILE => 'Không có tệp nào được tải lên!',
+                        UPLOAD_ERR_NO_TMP_DIR => 'Thiếu thư mục tạm để tải lên!',
+                        UPLOAD_ERR_CANT_WRITE => 'Không thể ghi tệp vào đĩa!',
+                        UPLOAD_ERR_EXTENSION => 'Phần mở rộng PHP ngăn tải lên!'
+                    ];
+                    $_SESSION['message'] = $uploadErrors[$_FILES['file']['error']] ?? 'Lỗi không xác định khi tải tệp!';
+                    $_SESSION['message_type'] = 'danger';
+                    header('Location: /study_sharing/AdminDocument/admin_manage');
+                    exit;
+                }
+
                 // Xử lý tệp tải lên
                 $file = $_FILES['file'];
                 $allowed_types = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
@@ -186,9 +210,12 @@ class AdminDocumentController
                 }
 
                 $file_name = uniqid() . '.' . $file_ext;
-                $file_path = 'uploads/documents/' . $file_name;
-                if (!move_uploaded_file($file['tmp_name'], __DIR__ . '/../../' . $file_path)) {
-                    $_SESSION['message'] = 'Lỗi khi tải lên tệp!';
+                $file_path = $file_name; // Chỉ lưu tên file
+                $absolute_file_path = __DIR__ . '/../' . $this->uploadDir . $file_name; // Đường dẫn tuyệt đối để lưu file
+
+                if (!move_uploaded_file($file['tmp_name'], $absolute_file_path)) {
+                    error_log("Failed to move uploaded file to: {$absolute_file_path}");
+                    $_SESSION['message'] = 'Lỗi khi di chuyển tệp đến thư mục uploads!';
                     $_SESSION['message_type'] = 'danger';
                     header('Location: /study_sharing/AdminDocument/admin_manage');
                     exit;
@@ -196,11 +223,11 @@ class AdminDocumentController
 
                 // Thêm tài liệu
                 $query = "INSERT INTO documents (title, description, file_path, account_id, category_id, course_id, visibility, upload_date) 
-                          VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
+                VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindValue(':title', $title, PDO::PARAM_STR);
                 $stmt->bindValue(':description', $description, PDO::PARAM_STR);
-                $stmt->bindValue(':file_path', $file_path, PDO::PARAM_STR);
+                $stmt->bindValue(':file_path', $file_path, PDO::PARAM_STR); // Lưu tên file
                 $stmt->bindValue(':account_id', $_SESSION['account_id'], PDO::PARAM_INT);
                 $stmt->bindValue(':category_id', $category_id ?: null, $category_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
                 $stmt->bindValue(':course_id', $course_id, $course_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
@@ -209,7 +236,7 @@ class AdminDocumentController
 
                 $document_id = $this->pdo->lastInsertId();
 
-                // Thêm thẻ (tags)
+                // Thêm thẻ
                 foreach ($tags as $tag_name) {
                     $tag_name = trim($tag_name);
                     if (!empty($tag_name)) {
@@ -291,6 +318,23 @@ class AdminDocumentController
 
                 $file_path = $currentDocument['file_path'];
                 if (!empty($_FILES['file']['name'])) {
+                    // Kiểm tra lỗi upload
+                    if ($_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+                        $uploadErrors = [
+                            UPLOAD_ERR_INI_SIZE => 'Kích thước tệp vượt quá giới hạn php.ini!',
+                            UPLOAD_ERR_FORM_SIZE => 'Kích thước tệp vượt quá giới hạn form!',
+                            UPLOAD_ERR_PARTIAL => 'Tệp chỉ được tải lên một phần!',
+                            UPLOAD_ERR_NO_FILE => 'Không có tệp nào được tải lên!',
+                            UPLOAD_ERR_NO_TMP_DIR => 'Thiếu thư mục tạm để tải lên!',
+                            UPLOAD_ERR_CANT_WRITE => 'Không thể ghi tệp vào đĩa!',
+                            UPLOAD_ERR_EXTENSION => 'Phần mở rộng PHP ngăn tải lên!'
+                        ];
+                        $_SESSION['message'] = $uploadErrors[$_FILES['file']['error']] ?? 'Lỗi không xác định khi tải tệp!';
+                        $_SESSION['message_type'] = 'danger';
+                        header('Location: /study_sharing/AdminDocument/admin_manage');
+                        exit;
+                    }
+
                     $file = $_FILES['file'];
                     $allowed_types = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
                     $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
@@ -309,43 +353,43 @@ class AdminDocumentController
                     }
 
                     $file_name = uniqid() . '.' . $file_ext;
-                    $file_path = 'Uploads/documents/' . $file_name;
-                    if (!move_uploaded_file($file['tmp_name'], __DIR__ . '/../../' . $file_path)) {
-                        $_SESSION['message'] = 'Lỗi khi tải lên tệp!';
+                    $file_path = $file_name; // Chỉ lưu tên file
+                    $absolute_file_path = __DIR__ . '/../' . $this->uploadDir . $file_name; // Đường dẫn tuyệt đối để lưu file
+
+                    if (!move_uploaded_file($file['tmp_name'], $absolute_file_path)) {
+                        error_log("Failed to move uploaded file to: {$absolute_file_path}");
+                        $_SESSION['message'] = 'Lỗi khi di chuyển tệp đến thư mục uploads!';
                         $_SESSION['message_type'] = 'danger';
                         header('Location: /study_sharing/AdminDocument/admin_manage');
                         exit;
                     }
 
-                    // Lưu phiên bản cũ
                     $versionStmt = $this->pdo->prepare("INSERT INTO document_versions (document_id, version_number, file_path, change_note) 
-                                                       VALUES (:document_id, (SELECT COALESCE(MAX(version_number), 0) + 1 FROM document_versions WHERE document_id = :document_id), :file_path, :change_note)");
+                                        VALUES (:document_id, (SELECT COALESCE(MAX(version_number), 0) + 1 FROM document_versions WHERE document_id = :document_id), :file_path, :change_note)");
                     $versionStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
                     $versionStmt->bindValue(':file_path', $currentDocument['file_path'], PDO::PARAM_STR);
                     $versionStmt->bindValue(':change_note', 'Cập nhật tệp mới', PDO::PARAM_STR);
                     $versionStmt->execute();
                 }
 
-                // Cập nhật tài liệu
-                $query = "UPDATE documents 
-                          SET title = :title, description = :description, file_path = :file_path, 
-                              category_id = :category_id, course_id = :course_id, visibility = :visibility 
-                          WHERE document_id = :document_id";
+                $query = "UPDATE documents
+            SET title = :title, description = :description, file_path = :file_path,
+                category_id = :category_id, course_id = :course_id, visibility = :visibility
+            WHERE document_id = :document_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindValue(':title', $title, PDO::PARAM_STR);
                 $stmt->bindValue(':description', $description, PDO::PARAM_STR);
-                $stmt->bindValue(':file_path', $file_path, PDO::PARAM_STR);
+                $stmt->bindValue(':file_path', $file_path, PDO::PARAM_STR); // Lưu tên file
                 $stmt->bindValue(':category_id', $category_id ?: null, $category_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
                 $stmt->bindValue(':course_id', $course_id, $course_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
                 $stmt->bindValue(':visibility', $visibility, PDO::PARAM_STR);
                 $stmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
                 $stmt->execute();
 
-                // Xóa thẻ cũ
-                $this->pdo->prepare("DELETE FROM document_tags WHERE document_id = :document_id")
-                    ->execute([':document_id' => $document_id]);
+                $deleteTagStmt = $this->pdo->prepare("DELETE FROM document_tags WHERE document_id = :document_id");
+                $deleteTagStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $deleteTagStmt->execute();
 
-                // Thêm thẻ mới
                 foreach ($tags as $tag_name) {
                     $tag_name = trim($tag_name);
                     if (!empty($tag_name)) {
@@ -405,28 +449,53 @@ class AdminDocumentController
             }
 
             try {
-                // Kiểm tra liên kết với các bảng khác
-                $checkStmt = $this->pdo->prepare("
-                    SELECT 
-                        (SELECT COUNT(*) FROM comments WHERE document_id = :document_id) as comment_count,
-                        (SELECT COUNT(*) FROM downloads WHERE document_id = :document_id) as download_count,
-                        (SELECT COUNT(*) FROM document_tags WHERE document_id = :document_id) as tag_count,
-                        (SELECT COUNT(*) FROM document_versions WHERE document_id = :document_id) as version_count,
-                        (SELECT COUNT(*) FROM ratings WHERE document_id = :document_id) as rating_count
-                ");
+                $counts = [
+                    'comment_count' => 0,
+                    'download_count' => 0,
+                    'version_count' => 0,
+                    'rating_count' => 0
+                ];
+
+                $checkStmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM comments WHERE document_id = :document_id");
                 $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
                 $checkStmt->execute();
-                $counts = $checkStmt->fetch(PDO::FETCH_ASSOC);
+                $counts['comment_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+                $checkStmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM downloads WHERE document_id = :document_id");
+                $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $checkStmt->execute();
+                $counts['download_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+                $checkStmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM document_versions WHERE document_id = :document_id");
+                $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $checkStmt->execute();
+                $counts['version_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+                $checkStmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM ratings WHERE document_id = :document_id");
+                $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $checkStmt->execute();
+                $counts['rating_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
 
                 if (
-                    $counts['comment_count'] > 0 || $counts['download_count'] > 0 || $counts['tag_count'] > 0 ||
+                    $counts['comment_count'] > 0 || $counts['download_count'] > 0 ||
                     $counts['version_count'] > 0 || $counts['rating_count'] > 0
                 ) {
-                    echo json_encode(['success' => false, 'message' => 'Không thể xóa tài liệu vì có dữ liệu liên quan (bình luận, lượt tải, thẻ, phiên bản, hoặc đánh giá)!']);
+                    echo json_encode(['success' => false, 'message' => 'Không thể xóa tài liệu vì có dữ liệu liên quan (bình luận, lượt tải, phiên bản, hoặc đánh giá)!']);
                     exit;
                 }
 
-                // Xóa tài liệu
+                $currentDocumentStmt = $this->pdo->prepare("SELECT file_path FROM documents WHERE document_id = :document_id");
+                $currentDocumentStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $currentDocumentStmt->execute();
+                $currentDocument = $currentDocumentStmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($currentDocument) {
+                    $file_path = __DIR__ . '/../' . $this->uploadDir . $currentDocument['file_path'];
+                    if (file_exists($file_path)) {
+                        unlink($file_path);
+                    }
+                }
+
                 $deleteStmt = $this->pdo->prepare("DELETE FROM documents WHERE document_id = :document_id");
                 $deleteStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
                 $deleteStmt->execute();

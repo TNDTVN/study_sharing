@@ -7,6 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const editTagsInput = document.getElementById('editDocumentTags');
     const addTagsDropdown = addTagsInput?.nextElementSibling;
     const editTagsDropdown = editTagsInput?.nextElementSibling;
+    const addFileInput = document.getElementById('addDocumentFile');
+    const editFileInput = document.getElementById('editDocumentFile');
+    const addFileNameDisplay = document.getElementById('addFileName');
+    const editFileNameDisplay = document.getElementById('currentFileName');
 
     // Hàm khởi tạo tag cho input
     function initializeTags(input, dropdown) {
@@ -75,6 +79,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const addTags = addTagsInput ? initializeTags(addTagsInput, addTagsDropdown) : null;
     const editTags = editTagsInput ? initializeTags(editTagsInput, editTagsDropdown) : null;
 
+    // Xử lý hiển thị tên file khi chọn file trong modal thêm
+    if (addFileInput && addFileNameDisplay) {
+        addFileInput.addEventListener('change', () => {
+            const fileName = addFileInput.files.length > 0 ? addFileInput.files[0].name : '';
+            addFileNameDisplay.textContent = fileName || '';
+        });
+    }
+
+    // Xử lý hiển thị tên file khi chọn file trong modal chỉnh sửa
+    if (editFileInput && editFileNameDisplay) {
+        editFileInput.addEventListener('change', () => {
+            const fileName = editFileInput.files.length > 0 ? editFileInput.files[0].name : '';
+            editFileNameDisplay.textContent = fileName || editFileNameDisplay.dataset.currentFile || '';
+        });
+    }
+
     // Xử lý nút chỉnh sửa
     editButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -85,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const courseId = button.getAttribute('data-course-id');
             const visibility = button.getAttribute('data-visibility');
             const tags = button.getAttribute('data-tags') ? button.getAttribute('data-tags').split(',').map(t => t.trim()) : [];
+            const fileName = button.getAttribute('data-file-name');
 
             document.getElementById('editDocumentId').value = id;
             document.getElementById('editDocumentTitle').value = title;
@@ -94,6 +115,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('editDocumentVisibility').value = visibility;
             if (editTags) {
                 editTags.setTags(tags);
+            }
+            if (editFileNameDisplay) {
+                editFileNameDisplay.textContent = fileName || '';
+                editFileNameDisplay.dataset.currentFile = fileName || '';
             }
         });
     });
