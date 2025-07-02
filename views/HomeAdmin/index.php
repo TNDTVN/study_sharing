@@ -8,7 +8,7 @@
                 <i class="bi bi-people card-icon"></i>
                 <h5 class="card-title">Người dùng</h5>
                 <p class="card-text"><?php echo $totalUsers; ?></p>
-                <a href="/Account/manage" class="quick-link">Quản lý người dùng</a>
+                <a href="/study_sharing/Account/manage" class="quick-link">Quản lý người dùng</a>
             </div>
         </div>
     </div>
@@ -18,7 +18,7 @@
                 <i class="bi bi-file-earmark-text card-icon"></i>
                 <h5 class="card-title">Tài liệu</h5>
                 <p class="card-text"><?php echo $totalDocuments; ?></p>
-                <a href="/document/delete" class="quick-link">Quản lý tài liệu</a>
+                <a href="/study_sharing/AdminDocument/admin_manage" class="quick-link">Quản lý tài liệu</a>
             </div>
         </div>
     </div>
@@ -38,7 +38,7 @@
                 <i class="bi bi-folder card-icon"></i>
                 <h5 class="card-title">Danh mục</h5>
                 <p class="card-text"><?php echo $totalCategories; ?></p>
-                <a href="/category/manage" class="quick-link">Quản lý danh mục</a>
+                <a href="/study_sharing/category/manage" class="quick-link">Quản lý danh mục</a>
             </div>
         </div>
     </div>
@@ -49,10 +49,10 @@
     <div class="col-12">
         <h3 class="mb-3 text-primary">Hành động nhanh</h3>
         <div class="d-flex flex-wrap gap-3">
-            <a href="/Account/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-people me-2"></i> Quản lý người dùng</a>
-            <a href="/category/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-folder me-2"></i> Quản lý danh mục</a>
-            <a href="/tag/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-tag me-2"></i> Quản lý thẻ</a>
-            <a href="/document/delete" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-file-earmark-text me-2"></i> Quản lý tài liệu</a>
+            <a href="/study_sharing/Account/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-people me-2"></i> Quản lý người dùng</a>
+            <a href="/study_sharing/category/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-folder me-2"></i> Quản lý danh mục</a>
+            <a href="/study_sharing/tag/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-tag me-2"></i> Quản lý thẻ</a>
+            <a href="/study_sharing/AdminDocument/admin_manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-file-earmark-text me-2"></i> Quản lý tài liệu</a>
             <a href="/course/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-book me-2"></i> Quản lý khóa học</a>
         </div>
     </div>
