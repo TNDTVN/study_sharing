@@ -105,9 +105,7 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
         <select class="form-select" name="file_type">
             <option value="">Tất cả định dạng</option>
             <option value="pdf" <?php echo $file_type == 'pdf' ? 'selected' : ''; ?>>PDF</option>
-            <option value="doc" <?php echo $file_type == 'doc' ? 'selected' : ''; ?>>DOC</option>
             <option value="docx" <?php echo $file_type == 'docx' ? 'selected' : ''; ?>>DOCX</option>
-            <option value="ppt" <?php echo $file_type == 'ppt' ? 'selected' : ''; ?>>PPT</option>
             <option value="pptx" <?php echo $file_type == 'pptx' ? 'selected' : ''; ?>>PPTX</option>
         </select>
         <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
@@ -261,10 +259,10 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                         <label for="addDocumentFile" class="form-label">Tệp tài liệu <span class="text-danger">*</span></label>
                         <label for="addDocumentFile" class="file-upload-label">
                             <i class="bi bi-cloud-arrow-up fs-3"></i>
-                            <div class="file-upload-text">Nhấn để tải lên tệp (PDF, DOC, DOCX, PPT, PPTX)</div>
+                            <div class="file-upload-text">Nhấn để tải lên tệp (PDF, DOCX, PPTX)</div>
                             <div id="addFileName" class="text-primary mt-2 fw-medium"></div>
                         </label>
-                        <input type="file" class="form-control d-none" id="addDocumentFile" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx" required>
+                        <input type="file" class="form-control d-none" id="addDocumentFile" name="file" accept=".pdf,.docx,.pptx" required>
                         <div class="invalid-feedback">Vui lòng chọn tệp tài liệu.</div>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
@@ -345,10 +343,10 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                         <label for="editDocumentFile" class="form-label">Tệp tài liệu</label>
                         <label for="editDocumentFile" class="file-upload-label">
                             <i class="bi bi-cloud-arrow-up fs-3"></i>
-                            <div class="file-upload-text">Nhấn để thay đổi tệp (PDF, DOC, DOCX, PPT, PPTX)</div>
+                            <div class="file-upload-text">Nhấn để thay đổi tệp (PDF, DOCX, PPTX)</div>
                             <div id="currentFileName" class="text-primary mt-2 fw-medium"></div>
                         </label>
-                        <input type="file" class="form-control d-none" id="editDocumentFile" name="file" accept=".pdf,.doc,.docx,.ppt,.pptx">
+                        <input type="file" class="form-control d-none" id="editDocumentFile" name="file" accept=".pdf,.docx,.pptx">
                         <small class="text-muted d-block mt-1">Để trống nếu không muốn thay đổi tệp</small>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">

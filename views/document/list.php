@@ -43,9 +43,7 @@ $totalPages = $totalPages ?? 1;
                 <select class="form-select" name="file_type">
                     <option value="">Tất cả loại file</option>
                     <option value="pdf" <?php echo (isset($file_type) && $file_type == 'pdf') ? 'selected' : ''; ?>>PDF</option>
-                    <option value="doc" <?php echo (isset($file_type) && $file_type == 'doc') ? 'selected' : ''; ?>>DOC</option>
                     <option value="docx" <?php echo (isset($file_type) && $file_type == 'docx') ? 'selected' : ''; ?>>DOCX</option>
-                    <option value="ppt" <?php echo (isset($file_type) && $file_type == 'ppt') ? 'selected' : ''; ?>>PPT</option>
                     <option value="pptx" <?php echo (isset($file_type) && $file_type == 'pptx') ? 'selected' : ''; ?>>PPTX</option>
                 </select>
             </div>

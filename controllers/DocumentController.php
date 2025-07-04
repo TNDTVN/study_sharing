@@ -26,7 +26,7 @@ class DocumentController
 
     public function list()
     {
-        $valid_file_types = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
+        $valid_file_types = ['pdf', 'docx', 'pptx'];
         $query = isset($_GET['query']) ? trim($_GET['query']) : '';
         $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
         $file_type = (isset($_GET['file_type']) && in_array(trim($_GET['file_type']), $valid_file_types)) ? trim($_GET['file_type']) : '';
@@ -470,7 +470,7 @@ class DocumentController
 
         $query = isset($_GET['query']) ? trim($_GET['query']) : '';
         $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
-        $file_type = isset($_GET['file_type']) && in_array(trim($_GET['file_type']), ['pdf', 'doc', 'docx', 'ppt', 'pptx']) ? trim($_GET['file_type']) : '';
+        $file_type = isset($_GET['file_type']) && in_array(trim($_GET['file_type']), ['pdf', 'docx', 'pptx']) ? trim($_GET['file_type']) : '';
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 10;
 

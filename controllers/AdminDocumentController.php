@@ -43,7 +43,7 @@ class AdminDocumentController
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
         $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
-        $file_type = isset($_GET['file_type']) && in_array(trim($_GET['file_type']), ['pdf', 'doc', 'docx', 'ppt', 'pptx']) ? trim($_GET['file_type']) : '';
+        $file_type = isset($_GET['file_type']) && in_array(trim($_GET['file_type']), ['pdf', 'docx', 'pptx']) ? trim($_GET['file_type']) : '';
         $offset = ($page - 1) * $this->itemsPerPage;
 
         try {
@@ -193,7 +193,7 @@ class AdminDocumentController
 
                 // Xử lý tệp tải lên
                 $file = $_FILES['file'];
-                $allowed_types = ['pdf', 'doc', 'docx', 'ppt', 'pptx'];
+                $allowed_types = ['pdf', 'docx', 'pptx'];
                 $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                 if (!in_array($file_ext, $allowed_types)) {
                     $_SESSION['message'] = 'Chỉ chấp nhận các định dạng: ' . implode(', ', $allowed_types);
