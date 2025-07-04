@@ -70,3 +70,9 @@
     font-weight: bold;
     background-color: transparent;
 }
+
+.document-container {
+    height: 600px;
+    width: 100%;
+    overflow: hidden;
+}

@@ -1,4 +1,6 @@
 <link rel="stylesheet" href="/study_sharing/assets/css/detail_document.css">
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/docx-preview@latest/dist/docx-preview.js"></script>
 <div class="container">
     <h1 class="mb-4"><?php echo htmlspecialchars($document['title']); ?></h1>
 
@@ -28,10 +30,14 @@
     <div class="card mb-4">
         <div class="card-body">
             <h5 class="card-title">Nội dung tài liệu</h5>
-            <?php if ($file_ext === 'pdf'): ?>
+            <?php
+            $file_ext = strtolower(pathinfo($document['file_path'], PATHINFO_EXTENSION));
+            $valid_file_types = ['pdf', 'docx', 'pptx'];
+            ?>
+            <?php if (in_array($file_ext, $valid_file_types)): ?>
                 <div class="mb-3">
                     <label for="versionSelect" class="form-label">Chọn version:</label>
-                    <select id="versionSelect" class="form-select" onchange="loadVersion(this.value)">
+                    <select id="versionSelect" class="form-select" onchange="loadVersion(this.value, '<?php echo $file_ext; ?>')">
                         <option value="/study_sharing/uploads/<?php echo htmlspecialchars($document['file_path']); ?>" <?php echo !isset($_GET['version']) ? 'selected' : ''; ?>>Version hiện tại</option>
                         <?php foreach ($versions as $version): ?>
                             <option value="/study_sharing/uploads/<?php echo htmlspecialchars($version['file_path']); ?>" <?php echo isset($_GET['version']) && $_GET['version'] == $version['version_number'] ? 'selected' : ''; ?>>
@@ -40,9 +46,9 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div id="pdf-container" class="pdf-container" style="height: 600px;"></div>
+                <div id="document-container" class="document-container" style="height: 600px; overflow-y: auto;"></div>
             <?php else: ?>
-                <p>Không thể hiển thị trực tiếp. Vui lòng tải xuống để xem nội dung.</p>
+                <p>Định dạng file không được hỗ trợ. Vui lòng tải xuống để xem nội dung.</p>
             <?php endif; ?>
         </div>
     </div>
@@ -227,16 +233,17 @@
             </div>
         </div>
     </div>
+</div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="/study_sharing/assets/js/document.js"></script>
-    <script>
-        document.getElementById('backButton').addEventListener('click', function(e) {
-            e.preventDefault();
-            if (document.referrer && document.referrer.includes('/study_sharing/')) {
-                window.history.back();
-            } else {
-                window.location.href = '/study_sharing';
-            }
-        });
-    </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="/study_sharing/assets/js/document.js"></script>
+<script>
+    document.getElementById('backButton').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (document.referrer && document.referrer.includes('/study_sharing/')) {
+            window.history.back();
+        } else {
+            window.location.href = '/study_sharing';
+        }
+    });
+</script>

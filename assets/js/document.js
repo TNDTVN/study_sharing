@@ -1,3 +1,5 @@
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
 // Xử lý form bình luận chính
 (function() {
     'use strict';
@@ -232,7 +234,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             `;
                         }
 
-                        // Hàm đệ quy để hiển thị các bình luận trả lời
                         function generateRepliesHtml(replies, documentId, level = 1) {
                             console.log(`Rendering replies at level ${level}:`, replies);
                             let repliesHtml = '';
@@ -341,36 +342,137 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-function loadVersion(pdfUrl) {
-    const pdfContainer = document.getElementById('pdf-container');
-    pdfContainer.innerHTML = '';
-
-    pdfjsLib.getDocument(pdfUrl).promise.then(function(pdf) {
-        const numPages = pdf.numPages;
-        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-            pdf.getPage(pageNum).then(function(page) {
-                const scale = 1.5;
-                const viewport = page.getViewport({ scale: scale });
-                const canvas = document.createElement('canvas');
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
-                canvas.style.maxWidth = '100%';
-                pdfContainer.appendChild(canvas);
-                page.render({ canvasContext: context, viewport: viewport });
-            });
+function loadVersion(fileUrl, fileExt) {
+    const documentContainer = document.getElementById('document-container');
+    documentContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Đang tải...</span></div></div>';
+    if (fileExt === 'pdf') {
+        // Hiển thị PDF bằng pdf.js
+        pdfjsLib.getDocument(fileUrl).promise.then(function(pdf) {
+            documentContainer.innerHTML = ''; // Xóa spinner
+            const numPages = pdf.numPages;
+            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                pdf.getPage(pageNum).then(function(page) {
+                    const scale = 1.0; // Giảm scale để tránh vỡ layout
+                    const viewport = page.getViewport({ scale: scale });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height;
+                    canvas.width = viewport.width;
+                    canvas.style.maxWidth = '100%';
+                    canvas.style.margin = '0 auto';
+                    canvas.style.display = 'block';
+                    documentContainer.appendChild(canvas);
+                    page.render({ canvasContext: context, viewport: viewport });
+                });
+            }
+            documentContainer.scrollTop = 0;
+        }).catch(function(error) {
+            console.error('Error loading PDF:', error);
+            documentContainer.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+        });
+    } else if (fileExt === 'docx') {
+        // Kiểm tra xem docx-preview có được tải đúng không
+        if (typeof docx === 'undefined' || typeof docx.renderAsync !== 'function') {
+            console.error('docx-preview library is not loaded or renderAsync is not available');
+            documentContainer.innerHTML = '<p>Thư viện docx-preview không được tải. Vui lòng kiểm tra kết nối mạng hoặc CDN. <a href="' + fileUrl + '" download>Tải xuống để xem.</a></p>';
+            return;
         }
-        pdfContainer.scrollTop = 0;
-    }).catch(function(error) {
-        console.error('Error loading PDF:', error);
-        pdfContainer.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + pdfUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
-    });
+
+        // Hiển thị DOCX bằng docx-preview
+        fetch(fileUrl)
+            .then(response => {
+                console.log('Fetch response:', response);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.arrayBuffer();
+            })
+            .then(buffer => {
+                console.log('Buffer loaded:', buffer.byteLength);
+                docx.renderAsync(buffer, documentContainer, null, {
+                    ignoreWidth: false,
+                    ignoreHeight: false,
+                    breakPages: true,
+                    renderHeaders: true,
+                    renderFooters: true,
+                    useBase64URL: true
+                }).then(() => {
+                    console.log('DOCX rendered successfully');
+                    documentContainer.scrollTop = 0;
+                }).catch(error => {
+                    console.error('Error rendering DOCX:', error);
+                    documentContainer.innerHTML = '<p>Tài liệu DOCX không thể hiển thị. Có thể file bị hỏng hoặc không tương thích. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+                });
+            })
+            .catch(error => {
+                console.error('Error loading DOCX:', error);
+                documentContainer.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+            });
+        } else if (fileExt === 'pptx') {
+            // Gọi API chuyển đổi PPTX sang PDF
+            console.log('Requesting PPTX conversion for file:', fileUrl);
+            fetch('/study_sharing/convert_pptx_to_pdf.php?file=' + encodeURIComponent(fileUrl))
+                .then(response => {
+                    // Kiểm tra phản hồi có phải JSON không
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        return response.text().then(text => {
+                            console.error('Phản hồi không phải JSON:', text);
+                            throw new Error('Phản hồi không phải JSON: ' + text);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        console.log('PDF converted successfully:', data.pdfPath);
+                        // Hiển thị PDF bằng pdf.js
+                        pdfjsLib.getDocument(data.pdfPath).promise.then(function(pdf) {
+                            documentContainer.innerHTML = ''; // Xóa spinner
+                            const numPages = pdf.numPages;
+                            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                                pdf.getPage(pageNum).then(function(page) {
+                                    const scale = 1.0;
+                                    const viewport = page.getViewport({ scale: scale });
+                                    const canvas = document.createElement('canvas');
+                                    const context = canvas.getContext('2d');
+                                    canvas.height = viewport.height;
+                                    canvas.width = viewport.width;
+                                    canvas.style.maxWidth = '100%';
+                                    canvas.style.margin = '0 auto';
+                                    canvas.style.display = 'block';
+                                    documentContainer.appendChild(canvas);
+                                    page.render({ canvasContext: context, viewport: viewport });
+                                });
+                            }
+                            documentContainer.scrollTop = 0;
+                        }).catch(function(error) {
+                            console.error('Error loading converted PDF:', error);
+                            documentContainer.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+                        });
+                    } else {
+                        console.error('Conversion failed:', data.message);
+                        documentContainer.innerHTML = '<p>Tài liệu PPTX không thể hiển thị: ' + data.message + '. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error converting PPTX:', error);
+                    documentContainer.innerHTML = '<p>Tài liệu PPTX không thể hiển thị: ' + error.message + '. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+                });
+        } else {
+        console.error('Unsupported file extension:', fileExt);
+        documentContainer.innerHTML = '<p>Định dạng file không được hỗ trợ. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const pdfUrl = document.getElementById('versionSelect').value;
-    if (pdfUrl) {
-        loadVersion(pdfUrl);
+    const versionSelect = document.getElementById('versionSelect');
+    if (versionSelect) {
+        const fileUrl = versionSelect.value;
+        const fileExt = versionSelect.options[versionSelect.selectedIndex].value.split('.').pop().toLowerCase();
+        if (fileUrl) {
+            loadVersion(fileUrl, fileExt);
+        }
     }
 
     const ratingStars = document.getElementById('rating-stars');
@@ -490,5 +592,3 @@ function recordDownload(documentId, event) {
         document.body.removeChild(link);
     });
 }
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
