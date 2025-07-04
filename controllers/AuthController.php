@@ -151,7 +151,7 @@ class AuthController
                 $_SESSION['account_id'] = $account['account_id'];
                 $_SESSION['role'] = $account['role'];
                 $_SESSION['username'] = $account['username'];
-                $_SESSION['login_time'] = date('Y-m-d H:i:s'); // Lưu thời gian đăng nhập
+
 
                 header('Content-Type: application/json');
                 echo json_encode([

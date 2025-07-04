@@ -74,14 +74,19 @@ if (session_status() === PHP_SESSION_NONE) {
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="/study_sharing/Account/view/<?php echo $user['account_id']; ?>" class="btn btn-info btn-sm">Xem</a>
+                                    <button type="button" class="btn btn-info btn-sm" onclick='showUserDetails(<?php echo json_encode($user, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'>
+                                        Xem
+                                    </button>
+
                                     <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editUserModal"
                                         onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($user)); ?>)">
                                         Sửa
                                     </button>
-                                    <button type="button" class="btn btn-danger btn-sm" onclick="lockUser(<?php echo $user['account_id']; ?>, '<?php echo $user['status'] === 'banned' ? 'active' : 'banned'; ?>')">
-                                        <?php echo $user['status'] === 'banned' ? 'Mở khóa' : 'Khóa'; ?>
-                                    </button>
+                                    <?php if ($user['role'] === 'teacher' || $user['role'] === 'student'): ?>
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="lockUser(<?php echo $user['account_id']; ?>, '<?php echo $user['status'] === 'banned' ? 'active' : 'banned'; ?>')">
+                                            <?php echo $user['status'] === 'banned' ? 'Mở khóa' : 'Khóa'; ?>
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -234,6 +239,33 @@ if (session_status() === PHP_SESSION_NONE) {
     </div>
 </div>
 
+<!-- Modal xem thông tin người dùng -->
+<div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewUserModalLabel">Thông tin người dùng</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>ID:</strong> <span id="view_account_id"></span></p>
+                <p><strong>Tên đăng nhập:</strong> <span id="view_username"></span></p>
+                <p><strong>Email:</strong> <span id="view_email"></span></p>
+                <p><strong>Họ tên:</strong> <span id="view_full_name"></span></p>
+                <p><strong>Vai trò:</strong> <span id="view_role"></span></p>
+                <p><strong>Số điện thoại:</strong> <span id="view_phone_number"></span></p>
+                <p><strong>Địa chỉ:</strong> <span id="view_address"></span></p>
+                <p><strong>Ngày sinh:</strong> <span id="view_date_of_birth"></span></p>
+                <p><strong>Trạng thái:</strong> <span id="view_status"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <script>
     function fillEditModal(user) {
         document.getElementById('edit_account_id').value = user.account_id;
@@ -245,6 +277,22 @@ if (session_status() === PHP_SESSION_NONE) {
         document.getElementById('edit_address').value = user.address || '';
         document.getElementById('edit_date_of_birth').value = user.date_of_birth || '';
     }
+
+    function showUserDetails(user) {
+        document.getElementById('view_account_id').textContent = user.account_id;
+        document.getElementById('view_username').textContent = user.username;
+        document.getElementById('view_email').textContent = user.email;
+        document.getElementById('view_full_name').textContent = user.full_name || '';
+        document.getElementById('view_role').textContent = user.role;
+        document.getElementById('view_phone_number').textContent = user.phone_number || '';
+        document.getElementById('view_address').textContent = user.address || '';
+        document.getElementById('view_date_of_birth').textContent = user.date_of_birth || '';
+        document.getElementById('view_status').textContent = user.status;
+
+        var viewModal = new bootstrap.Modal(document.getElementById('viewUserModal'));
+        viewModal.show();
+    }
+
 
     function lockUser(accountId, status) {
         if (confirm('Bạn có chắc chắn muốn ' + (status === 'banned' ? 'khóa' : 'mở khóa') + ' tài khoản này?')) {
