@@ -401,7 +401,7 @@ class AccountController
             $pdo = $this->pdo;
 
             ob_start();
-            require __DIR__ . '/../views/user/view.php';
+            require __DIR__ . '/../views/Account/view.php';
             $content = ob_get_clean();
             require __DIR__ . '/../views/layouts/admin_layout.php';
         } catch (PDOException $e) {
