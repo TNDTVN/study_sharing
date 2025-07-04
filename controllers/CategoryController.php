@@ -57,7 +57,7 @@ class CategoryController
                 $params[':keyword2'] = '%' . $keyword . '%';
             }
 
-            $query .= " ORDER BY c.category_name LIMIT :offset, :itemsPerPage";
+            $query .= " ORDER BY c.category_id ASC LIMIT :offset, :itemsPerPage";
 
             $stmt = $this->pdo->prepare($query);
             if (!empty($keyword)) {
@@ -151,7 +151,7 @@ class CategoryController
                 $query .= " AND (category_name LIKE :keyword OR description LIKE :keyword)";
                 $params[':keyword'] = '%' . $keyword . '%';
             }
-            $query .= " ORDER BY category_name LIMIT :offset, :itemsPerPage";
+            $query .= " ORDER BY category_id ASC LIMIT :offset, :itemsPerPage";
 
             $stmt = $this->pdo->prepare($query);
             if (!empty($keyword)) {

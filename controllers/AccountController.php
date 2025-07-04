@@ -23,7 +23,6 @@ class AccountController
 
         // Kiểm tra quyền admin
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            error_log("Access denied: Not an admin or session not set. Account ID: " . ($_SESSION['account_id'] ?? 'none') . ", Role: " . ($_SESSION['role'] ?? 'none'));
             header('Location: /study_sharing');
             exit;
         }
@@ -33,64 +32,85 @@ class AccountController
         $offset = ($page - 1) * $this->itemsPerPage;
         $users = [];
         $totalPages = 1;
-        $errorMessage = '';
 
         try {
             if (!$this->pdo) {
                 throw new PDOException("Kết nối cơ sở dữ liệu không hợp lệ");
             }
 
-            // Truy vấn thông tin người dùng
+            // Truy vấn danh sách người dùng
             $query = "
-                SELECT a.account_id, a.username, a.email, a.role, a.status, u.full_name, u.date_of_birth, u.phone_number, u.address
-                FROM accounts a
-                LEFT JOIN users u ON a.account_id = u.account_id
-                WHERE 1=1
-            ";
+            SELECT DISTINCT a.account_id, a.username, a.email, a.role, a.status,
+                            u.full_name, u.date_of_birth, u.phone_number, u.address
+            FROM accounts a
+            LEFT JOIN users u ON a.account_id = u.account_id
+            WHERE 1=1
+        ";
             $params = [];
 
             if (!empty($keyword)) {
-                $query .= " AND (a.username LIKE :keyword OR a.email LIKE :keyword OR u.full_name LIKE :keyword)";
-                $params[':keyword'] = '%' . $keyword . '%';
+                $query .= " AND (
+                a.username LIKE :keyword1 OR
+                a.email LIKE :keyword2 OR
+                COALESCE(u.full_name, '') LIKE :keyword3
+            )";
+                $params[':keyword1'] = '%' . $keyword . '%';
+                $params[':keyword2'] = '%' . $keyword . '%';
+                $params[':keyword3'] = '%' . $keyword . '%';
             }
 
-            $query .= " ORDER BY a.account_id LIMIT :offset, :itemsPerPage";
+            $query .= " ORDER BY a.account_id ASC LIMIT :offset, :itemsPerPage";
 
             $stmt = $this->pdo->prepare($query);
+
             if (!empty($keyword)) {
-                $stmt->bindValue(':keyword', $params[':keyword'], PDO::PARAM_STR);
+                $stmt->bindValue(':keyword1', $params[':keyword1'], PDO::PARAM_STR);
+                $stmt->bindValue(':keyword2', $params[':keyword2'], PDO::PARAM_STR);
+                $stmt->bindValue(':keyword3', $params[':keyword3'], PDO::PARAM_STR);
             }
+
             $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
             $stmt->bindValue(':itemsPerPage', $this->itemsPerPage, PDO::PARAM_INT);
             $stmt->execute();
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Tính tổng số người dùng
+            // Truy vấn tổng số người dùng (cho phân trang)
             $countQuery = "
-                SELECT COUNT(*) as total
-                FROM accounts a
-                LEFT JOIN users u ON a.account_id = u.account_id
-                WHERE 1=1
-            ";
+            SELECT COUNT(DISTINCT a.account_id) as total
+            FROM accounts a
+            LEFT JOIN users u ON a.account_id = u.account_id
+            WHERE 1=1
+        ";
+
             if (!empty($keyword)) {
-                $countQuery .= " AND (a.username LIKE :keyword OR a.email LIKE :keyword OR u.full_name LIKE :keyword)";
+                $countQuery .= " AND (
+                a.username LIKE :keyword1 OR
+                a.email LIKE :keyword2 OR
+                COALESCE(u.full_name, '') LIKE :keyword3
+            )";
             }
 
             $countStmt = $this->pdo->prepare($countQuery);
+
             if (!empty($keyword)) {
-                $countStmt->bindValue(':keyword', $params[':keyword'], PDO::PARAM_STR);
+                $countStmt->bindValue(':keyword1', $params[':keyword1'], PDO::PARAM_STR);
+                $countStmt->bindValue(':keyword2', $params[':keyword2'], PDO::PARAM_STR);
+                $countStmt->bindValue(':keyword3', $params[':keyword3'], PDO::PARAM_STR);
             }
+
             $countStmt->execute();
             $totalUsers = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
             $totalPages = ceil($totalUsers / $this->itemsPerPage);
 
+            // Cảnh báo nếu không tìm thấy kết quả
             if (empty($users) && !empty($keyword)) {
                 $_SESSION['message'] = 'Không tìm thấy người dùng nào khớp với từ khóa: ' . htmlspecialchars($keyword);
                 $_SESSION['message_type'] = 'warning';
             }
         } catch (PDOException $e) {
             error_log("Manage users error: " . $e->getMessage());
-            $errorMessage = 'Lỗi server khi tải danh sách người dùng: ' . $e->getMessage();
+            $_SESSION['message'] = 'Lỗi khi truy vấn dữ liệu: ' . $e->getMessage();
+            $_SESSION['message_type'] = 'danger';
         }
 
         $keyword = htmlspecialchars($keyword);
@@ -103,6 +123,8 @@ class AccountController
         require __DIR__ . '/../views/layouts/admin_layout.php';
         exit;
     }
+
+
 
     public function addUser()
     {

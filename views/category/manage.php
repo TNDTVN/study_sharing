@@ -12,7 +12,7 @@ $title = "Quản lý danh mục";
 <div class="d-flex justify-content-between mb-4">
     <form class="input-group w-50" method="GET" action="/study_sharing/category/searchCategoriesWithDocuments">
         <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm theo tên danh mục hoặc mô tả..." value="<?php echo htmlspecialchars($keyword ?? ''); ?>" aria-label="Tìm kiếm danh mục">
-        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm kiếm</button>
     </form>
     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCategoryModal"><i class="bi bi-plus-circle"></i> Thêm danh mục</button>
 </div>
@@ -27,64 +27,65 @@ $title = "Quản lý danh mục";
 <?php endif; ?>
 
 <!-- Categories Table -->
-<div class="card shadow-sm">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
+<!-- Bảng danh sách danh mục -->
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tên danh mục</th>
+                <th>Mô tả</th>
+                <th>Ngày tạo</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (empty($categories)): ?>
                 <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Tên danh mục</th>
-                    <th scope="col">Mô tả</th>
-                    <th scope="col">Ngày tạo</th>
-                    <th scope="col">Hành động</th>
+                    <td colspan="5" class="text-center">Không tìm thấy danh mục nào!</td>
                 </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($categories)): ?>
+            <?php else: ?>
+                <?php foreach ($categories as $category): ?>
                     <tr>
-                        <td colspan="5" class="text-center">Không tìm thấy danh mục nào!</td>
+                        <td><?php echo htmlspecialchars($category['category_id']); ?></td>
+                        <td><?php echo htmlspecialchars($category['category_name']); ?></td>
+                        <td><?php echo htmlspecialchars($category['description'] ?? 'N/A'); ?></td>
+                        <td><?php echo date('d/m/Y', strtotime($category['created_at'])); ?></td>
+                        <td>
+                            <div class="action-buttons">
+                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
+                                    onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($category)); ?>)">
+                                    Sửa
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteCategory(<?php echo $category['category_id']; ?>)">
+                                    Xóa
+                                </button>
+                            </div>
+                        </td>
                     </tr>
-                <?php else: ?>
-                    <?php foreach ($categories as $category): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($category['category_id']); ?></td>
-                            <td><?php echo htmlspecialchars($category['category_name']); ?></td>
-                            <td><?php echo htmlspecialchars($category['description'] ?? ''); ?></td>
-                            <td><?php echo date('d/m/Y', strtotime($category['created_at'])); ?></td>
-                            <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
-                                    data-id="<?php echo $category['category_id']; ?>"
-                                    data-name="<?php echo htmlspecialchars($category['category_name']); ?>"
-                                    data-description="<?php echo htmlspecialchars($category['description'] ?? ''); ?>">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $category['category_id']; ?>">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
 
-        <!-- Trong file manage.php, sửa phần pagination -->
-        <nav aria-label="Category pagination">
-            <ul class="pagination justify-content-center">
-                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
-                </li>
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                        <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
-                    </li>
-                <?php endfor; ?>
-                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
-                </li>
-            </ul>
-        </nav>
-    </div>
+<!-- Trong file manage.php, sửa phần pagination -->
+<nav aria-label="Category pagination">
+    <ul class="pagination justify-content-center">
+        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+            <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
+        </li>
+        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+            <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
+            </li>
+        <?php endfor; ?>
+        <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+            <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
+        </li>
+    </ul>
+</nav>
+</div>
 </div>
 
 <!-- Add Category Modal -->
