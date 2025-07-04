@@ -111,6 +111,14 @@ class AccountController
                 session_start();
             }
 
+            // Kiểm tra quyền admin
+            if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                $_SESSION['message'] = 'Bạn không có quyền thêm người dùng!';
+                $_SESSION['message_type'] = 'danger';
+                header('Location: /study_sharing/Account/manage');
+                exit;
+            }
+
             $username = trim($_POST['username'] ?? '');
             $email = trim($_POST['email'] ?? '');
             $password = $_POST['password'] ?? '';
@@ -197,6 +205,14 @@ class AccountController
                 session_start();
             }
 
+            // Kiểm tra quyền admin
+            if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+                $_SESSION['message'] = 'Bạn không có quyền cập nhật người dùng!';
+                $_SESSION['message_type'] = 'danger';
+                header('Location: /study_sharing/Account/manage');
+                exit;
+            }
+
             $account_id = $_POST['account_id'] ?? '';
             $username = trim($_POST['username'] ?? '');
             $email = trim($_POST['email'] ?? '');
@@ -273,13 +289,14 @@ class AccountController
         }
     }
 
-    public function banUser()
+    public function lockUser()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
 
+            // Kiểm tra quyền admin
             if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => 'Bạn không có quyền khóa tài khoản!']);
@@ -296,6 +313,13 @@ class AccountController
             }
 
             try {
+                // Không cho phép khóa tài khoản admin hiện tại
+                if ($account_id == $_SESSION['account_id']) {
+                    header('Content-Type: application/json');
+                    echo json_encode(['success' => false, 'message' => 'Không thể khóa tài khoản của chính bạn!']);
+                    exit;
+                }
+
                 $query = "UPDATE accounts SET status = :status WHERE account_id = :account_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindParam(':status', $status, PDO::PARAM_STR);
@@ -311,7 +335,7 @@ class AccountController
                     echo json_encode(['success' => false, 'message' => 'Không tìm thấy tài khoản để cập nhật!']);
                 }
             } catch (PDOException $e) {
-                error_log("Ban user error: " . $e->getMessage());
+                error_log("Lock user error: " . $e->getMessage());
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
             }
@@ -325,6 +349,7 @@ class AccountController
             session_start();
         }
 
+        // Kiểm tra quyền admin
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header('Location: /study_sharing');
             exit;
