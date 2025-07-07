@@ -123,73 +123,71 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
 <?php endif; ?>
 
 <!-- Documents Table -->
-<div class="card shadow-sm">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th scope="col">STT</th>
+                <th scope="col">Tiêu đề</th>
+                <th scope="col">Danh mục</th>
+                <th scope="col">Khóa học</th>
+                <th scope="col">Người tải lên</th>
+                <th scope="col">Ngày tải lên</th>
+                <th scope="col">Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (empty($documents)): ?>
                 <tr>
-                    <th scope="col">STT</th>
-                    <th scope="col">Tiêu đề</th>
-                    <th scope="col">Danh mục</th>
-                    <th scope="col">Khóa học</th>
-                    <th scope="col">Người tải lên</th>
-                    <th scope="col">Ngày tải lên</th>
-                    <th scope="col">Hành động</th>
+                    <td colspan="7" class="text-center">Không tìm thấy tài liệu nào!</td>
                 </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($documents)): ?>
+            <?php else: ?>
+                <?php foreach ($documents as $index => $document): ?>
                     <tr>
-                        <td colspan="7" class="text-center">Không tìm thấy tài liệu nào!</td>
+                        <td><?php echo htmlspecialchars($offset + $index + 1); ?></td>
+                        <td><?php echo htmlspecialchars($document['title']); ?></td>
+                        <td><?php echo htmlspecialchars($document['category_name'] ?? 'Không có'); ?></td>
+                        <td><?php echo htmlspecialchars($document['course_name'] ?? 'Không có'); ?></td>
+                        <td><?php echo htmlspecialchars($document['full_name'] ?? 'Ẩn danh'); ?></td>
+                        <td><?php echo date('d/m/Y', strtotime($document['upload_date'])); ?></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editDocumentModal"
+                                data-id="<?php echo $document['document_id']; ?>"
+                                data-title="<?php echo htmlspecialchars($document['title']); ?>"
+                                data-description="<?php echo htmlspecialchars($document['description'] ?? ''); ?>"
+                                data-category-id="<?php echo $document['category_id'] ?? ''; ?>"
+                                data-course-id="<?php echo $document['course_id'] ?? ''; ?>"
+                                data-visibility="<?php echo $document['visibility']; ?>"
+                                data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>"
+                                data-file-name="<?php echo htmlspecialchars(basename($document['file_path'])); ?>">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $document['document_id']; ?>">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
                     </tr>
-                <?php else: ?>
-                    <?php foreach ($documents as $index => $document): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($offset + $index + 1); ?></td>
-                            <td><?php echo htmlspecialchars($document['title']); ?></td>
-                            <td><?php echo htmlspecialchars($document['category_name'] ?? 'Không có'); ?></td>
-                            <td><?php echo htmlspecialchars($document['course_name'] ?? 'Không có'); ?></td>
-                            <td><?php echo htmlspecialchars($document['full_name'] ?? 'Ẩn danh'); ?></td>
-                            <td><?php echo date('d/m/Y', strtotime($document['upload_date'])); ?></td>
-                            <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editDocumentModal"
-                                    data-id="<?php echo $document['document_id']; ?>"
-                                    data-title="<?php echo htmlspecialchars($document['title']); ?>"
-                                    data-description="<?php echo htmlspecialchars($document['description'] ?? ''); ?>"
-                                    data-category-id="<?php echo $document['category_id'] ?? ''; ?>"
-                                    data-course-id="<?php echo $document['course_id'] ?? ''; ?>"
-                                    data-visibility="<?php echo $document['visibility']; ?>"
-                                    data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>"
-                                    data-file-name="<?php echo htmlspecialchars(basename($document['file_path'])); ?>">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $document['document_id']; ?>">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
 
-        <!-- Pagination -->
-        <nav aria-label="Document pagination">
-            <ul class="pagination justify-content-center">
-                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>">Trước</a>
+    <!-- Pagination -->
+    <nav aria-label="Document pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>">Trước</a>
+            </li>
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                    <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>"><?php echo $i; ?></a>
                 </li>
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                        <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>"><?php echo $i; ?></a>
-                    </li>
-                <?php endfor; ?>
-                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>">Sau</a>
-                </li>
-            </ul>
-        </nav>
-    </div>
+            <?php endfor; ?>
+            <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>">Sau</a>
+            </li>
+        </ul>
+    </nav>
 </div>
 
 <!-- Add Document Modal -->

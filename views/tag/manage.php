@@ -27,62 +27,60 @@ $title = "Quản lý thẻ";
 <?php endif; ?>
 
 <!-- Tags Table -->
-<div class="card shadow-sm">
-    <div class="card-body">
-        <table class="table table-hover">
-            <thead>
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Tên thẻ</th>
+                <th scope="col">Mô tả</th>
+                <th scope="col">Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (empty($tags)): ?>
                 <tr>
-                    <th scope="col">ID</th>
-                    <th scope="col">Tên thẻ</th>
-                    <th scope="col">Mô tả</th>
-                    <th scope="col">Hành động</th>
+                    <td colspan="4" class="text-center">Không tìm thấy thẻ nào!</td>
                 </tr>
-            </thead>
-            <tbody>
-                <?php if (empty($tags)): ?>
+            <?php else: ?>
+                <?php foreach ($tags as $tag): ?>
                     <tr>
-                        <td colspan="4" class="text-center">Không tìm thấy thẻ nào!</td>
+                        <td><?php echo htmlspecialchars($tag['tag_id']); ?></td>
+                        <td><?php echo htmlspecialchars($tag['tag_name']); ?></td>
+                        <td><?php echo htmlspecialchars($tag['description'] ?? ''); ?></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editTagModal"
+                                data-id="<?php echo $tag['tag_id']; ?>"
+                                data-name="<?php echo htmlspecialchars($tag['tag_name']); ?>"
+                                data-description="<?php echo htmlspecialchars($tag['description'] ?? ''); ?>">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $tag['tag_id']; ?>">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
                     </tr>
-                <?php else: ?>
-                    <?php foreach ($tags as $tag): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($tag['tag_id']); ?></td>
-                            <td><?php echo htmlspecialchars($tag['tag_name']); ?></td>
-                            <td><?php echo htmlspecialchars($tag['description'] ?? ''); ?></td>
-                            <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editTagModal"
-                                    data-id="<?php echo $tag['tag_id']; ?>"
-                                    data-name="<?php echo htmlspecialchars($tag['tag_name']); ?>"
-                                    data-description="<?php echo htmlspecialchars($tag['description'] ?? ''); ?>">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $tag['tag_id']; ?>">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </tbody>
-        </table>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </tbody>
+    </table>
 
-        <!-- Pagination -->
-        <nav aria-label="Tag pagination">
-            <ul class="pagination justify-content-center">
-                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
+    <!-- Pagination -->
+    <nav aria-label="Tag pagination">
+        <ul class="pagination justify-content-center">
+            <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
+            </li>
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                    <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
                 </li>
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                        <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
-                    </li>
-                <?php endfor; ?>
-                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
-                </li>
-            </ul>
-        </nav>
-    </div>
+            <?php endfor; ?>
+            <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
+            </li>
+        </ul>
+    </nav>
 </div>
 
 <!-- Add Tag Modal -->
