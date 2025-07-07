@@ -8,7 +8,7 @@ use PDOException;
 class CategoryController
 {
     private $pdo;
-    private $itemsPerPage = 10;
+    private $itemsPerPage = 5;
 
     public function __construct($pdo)
     {

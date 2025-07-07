@@ -3,6 +3,8 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 ?>
+
+
 <style>
     .content {
         padding-top: 0px;
@@ -73,24 +75,30 @@ if (session_status() === PHP_SESSION_NONE) {
                                 </span>
                             </td>
                             <td>
-                                <div class="action-buttons">
-                                    <button type="button" class="btn btn-info btn-sm" onclick='showUserDetails(<?php echo json_encode($user, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>)'>
-                                        Xem
+                                <div class="action-buttons d-flex gap-1">
+                                    <button type="button" class="btn btn-outline-info btn-sm" title="Xem"
+                                        onclick='showUserDetails(<?php echo json_encode($user); ?>)'>
+                                        <i class="fa fa-eye"></i>
                                     </button>
 
-                                    <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editUserModal"
+                                    <button type="button" class="btn btn-outline-warning btn-sm" title="Sửa"
+                                        data-bs-toggle="modal" data-bs-target="#editUserModal"
                                         onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($user)); ?>)">
-                                        Sửa
+                                        <i class="fa fa-edit"></i>
                                     </button>
+
                                     <?php if ($user['role'] === 'teacher' || $user['role'] === 'student'): ?>
-                                        <button type="button" class="btn btn-danger btn-sm" onclick="lockUser(<?php echo $user['account_id']; ?>, '<?php echo $user['status'] === 'banned' ? 'active' : 'banned'; ?>')">
-                                            <?php echo $user['status'] === 'banned' ? 'Mở khóa' : 'Khóa'; ?>
+                                        <button type="button" class="btn btn-outline-danger btn-sm"
+                                            title="<?php echo $user['status'] === 'banned' ? 'Mở khóa' : 'Khóa'; ?>"
+                                            onclick="lockUser(<?php echo $user['account_id']; ?>, '<?php echo $user['status'] === 'banned' ? 'active' : 'banned'; ?>')">
+                                            <i class="fa <?php echo $user['status'] === 'banned' ? 'fa-unlock' : 'fa-lock'; ?>"></i>
                                         </button>
                                     <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
+
                 <?php else: ?>
                     <tr>
                         <td colspan="7" class="text-center">Không có người dùng nào.</td>

@@ -7,86 +7,9 @@ $tagStmt->execute();
 $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<style>
-    .content {
-        padding-top: 0px;
-    }
 
-    .form-select {
-        max-width: 200px;
-    }
+<link href="/study_sharing/assets/css/manage_document.css" rel="stylesheet">
 
-    .autocomplete-container {
-        position: relative;
-    }
-
-    .autocomplete-dropdown {
-        position: absolute;
-        z-index: 1000;
-        width: 100%;
-        max-height: 200px;
-        overflow-y: auto;
-        background: white;
-        border: 1px solid #ced4da;
-        border-radius: 0.25rem;
-        margin-top: 5px;
-        display: none;
-    }
-
-    .autocomplete-item {
-        padding: 8px 12px;
-        cursor: pointer;
-    }
-
-    .autocomplete-item:hover {
-        background-color: #f8f9fa;
-    }
-
-    .autocomplete-item.selected .tick {
-        color: green;
-        margin-left: 10px;
-    }
-
-    .modal-body .row {
-        margin-bottom: 1rem;
-    }
-
-    .modal-body .mb-3 {
-        margin-bottom: 0 !important;
-    }
-
-    .file-upload-label {
-        display: block;
-        padding: 0.5rem;
-        border: 2px dashed #dee2e6;
-        border-radius: 0.375rem;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.3s;
-    }
-
-    .file-upload-label:hover {
-        border-color: #86b7fe;
-        background-color: #f8f9fa;
-    }
-
-    .file-upload-text {
-        display: block;
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: #6c757d;
-    }
-
-    .submit-btn {
-        padding: 0.6rem;
-        font-weight: 500;
-        transition: all 0.3s;
-    }
-
-    .submit-btn:hover {
-        transform: translateY(-2px);
-    }
-</style>
 <div class="content-1 px-3">
     <h1 class="mb-4 text-primary"><i class="bi bi-file-earmark-text me-2"></i> Quản lý tài liệu</h1>
 
@@ -151,7 +74,7 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo htmlspecialchars($document['full_name'] ?? 'Ẩn danh'); ?></td>
                             <td><?php echo date('d/m/Y', strtotime($document['upload_date'])); ?></td>
                             <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editDocumentModal"
+                                <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editDocumentModal"
                                     data-id="<?php echo $document['document_id']; ?>"
                                     data-title="<?php echo htmlspecialchars($document['title']); ?>"
                                     data-description="<?php echo htmlspecialchars($document['description'] ?? ''); ?>"
@@ -160,10 +83,10 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                                     data-visibility="<?php echo $document['visibility']; ?>"
                                     data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>"
                                     data-file-name="<?php echo htmlspecialchars(basename($document['file_path'])); ?>">
-                                    <i class="bi bi-pencil"></i>
+                                    <i class="fa fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $document['document_id']; ?>">
-                                    <i class="bi bi-trash"></i>
+                                <button class="btn btn-outline-danger btn-sm delete-btn" data-id="<?php echo $document['document_id']; ?>">
+                                    <i class="fa fa-trash"></i>
                                 </button>
                             </td>
                         </tr>

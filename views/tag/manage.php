@@ -1,6 +1,8 @@
 <?php
 $title = "Quản lý thẻ";
 ?>
+
+
 <style>
     .content {
         padding-top: 0px;
@@ -50,14 +52,14 @@ $title = "Quản lý thẻ";
                             <td><?php echo htmlspecialchars($tag['tag_name']); ?></td>
                             <td><?php echo htmlspecialchars($tag['description'] ?? ''); ?></td>
                             <td>
-                                <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editTagModal"
+                                <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editTagModal"
                                     data-id="<?php echo $tag['tag_id']; ?>"
                                     data-name="<?php echo htmlspecialchars($tag['tag_name']); ?>"
                                     data-description="<?php echo htmlspecialchars($tag['description'] ?? ''); ?>">
-                                    <i class="bi bi-pencil"></i>
+                                    <i class="fa fa-edit"></i>
                                 </button>
-                                <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $tag['tag_id']; ?>">
-                                    <i class="bi bi-trash"></i>
+                                <button class="btn btn-outline-danger btn-sm" data-id="<?php echo $tag['tag_id']; ?>">
+                                    <i class="fa fa-trash"></i>
                                 </button>
                             </td>
                         </tr>
