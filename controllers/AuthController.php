@@ -28,52 +28,84 @@ class AuthController
     public function register()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $username = $_POST['username'] ?? '';
-            $email = $_POST['email'] ?? '';
-            $password = password_hash($_POST['password'] ?? '', PASSWORD_DEFAULT);
-            $full_name = $_POST['full_name'] ?? '';
-            $role = $_POST['role'] ?? '';
-            $date_of_birth = $_POST['date_of_birth'] ?: null;
-            $phone_number = $_POST['phone_number'] ?: null;
-            $address = $_POST['address'] ?: null;
+            $username = trim(htmlspecialchars($_POST['username'] ?? ''));
+            $email = trim(htmlspecialchars($_POST['email'] ?? ''));
+            $raw_password = $_POST['password'] ?? '';
+            $full_name = trim(htmlspecialchars($_POST['full_name'] ?? ''));
+            $role = trim(htmlspecialchars($_POST['role'] ?? ''));
+            $date_of_birth = trim(htmlspecialchars($_POST['date_of_birth'] ?? '')); // Sửa lỗi
+            $phone_number = trim(htmlspecialchars($_POST['phone_number'] ?? ''));   // Sửa lỗi
+            $address = trim(htmlspecialchars($_POST['address'] ?? ''));             // Sửa lỗi
             $avatar = 'profile.png';
 
+            // Kiểm tra vai trò
             if (!in_array($role, ['student', 'teacher'])) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Vai trò không hợp lệ!']);
-                exit;
+                $this->sendJsonResponse(false, 'Vai trò không hợp lệ!');
             }
 
-            $existingAccount = $this->accountModel->getAccountByUsernameOrEmail($email);
-            if ($existingAccount && $existingAccount['email'] === $email) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Email đã được sử dụng!']);
-                exit;
+            // Kiểm tra tên đăng nhập
+            if (!preg_match('/^[a-zA-Z0-9_-]{6,20}$/', $username)) {
+                $this->sendJsonResponse(false, 'Tên đăng nhập không hợp lệ! Chỉ cho phép chữ cái, số, dấu gạch dưới hoặc gạch ngang, từ 6-20 ký tự.');
             }
 
-            if ($username && $email && $password && $full_name && $role) {
+            // Kiểm tra email
+            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $this->sendJsonResponse(false, 'Email không hợp lệ!');
+            }
+
+            // Kiểm tra mật khẩu
+            if (strlen($raw_password) < 6) {
+                $this->sendJsonResponse(false, 'Mật khẩu phải dài ít nhất 6 ký tự!');
+            }
+            $password = password_hash($raw_password, PASSWORD_DEFAULT);
+
+            // Kiểm tra ngày sinh
+            if ($date_of_birth && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_of_birth)) {
+                $this->sendJsonResponse(false, 'Ngày sinh không đúng định dạng (YYYY-MM-DD)!');
+            }
+
+            // Kiểm tra số điện thoại
+            if ($phone_number && !preg_match('/^\+?\d{10,15}$/', $phone_number)) {
+                $this->sendJsonResponse(false, 'Số điện thoại không hợp lệ!');
+            }
+
+            // Kiểm tra trùng tên đăng nhập hoặc email
+            $existingAccount = $this->accountModel->getAccountByUsernameOrEmail($username, $email);
+            if ($existingAccount) {
+                if ($existingAccount['username'] === $username) {
+                    $this->sendJsonResponse(false, 'Tên đăng nhập đã được sử dụng!');
+                }
+                if ($existingAccount['email'] === $email) {
+                    $this->sendJsonResponse(false, 'Email đã được sử dụng!');
+                }
+            }
+
+            // Kiểm tra các trường bắt buộc
+            if ($username && $email && $raw_password && $full_name && $role) {
                 try {
                     $this->pdo->beginTransaction();
 
                     $account_id = $this->accountModel->createAccount($username, $email, $password, $role, 'active');
-
                     $this->userModel->createUser($account_id, $full_name, $avatar, $date_of_birth, $phone_number, $address);
 
                     $this->pdo->commit();
-                    header('Content-Type: application/json');
-                    echo json_encode(['success' => true, 'message' => 'Đăng ký thành công!']);
+                    $this->sendJsonResponse(true, 'Đăng ký thành công!');
                 } catch (PDOException $e) {
                     $this->pdo->rollBack();
                     error_log("Register error: " . $e->getMessage());
-                    header('Content-Type: application/json');
-                    echo json_encode(['success' => false, 'message' => 'Lỗi đăng ký: ' . $e->getMessage()]);
+                    $this->sendJsonResponse(false, 'Lỗi đăng ký: ' . $e->getMessage());
                 }
             } else {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => 'Vui lòng điền đầy đủ thông tin bắt buộc!']);
+                $this->sendJsonResponse(false, 'Vui lòng điền đầy đủ thông tin bắt buộc!');
             }
-            exit;
         }
+    }
+
+    private function sendJsonResponse($success, $message)
+    {
+        header('Content-Type: application/json');
+        echo json_encode(['success' => $success, 'message' => $message]);
+        exit;
     }
 
     // public function login()
