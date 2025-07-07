@@ -6,83 +6,84 @@ $title = "Quản lý thẻ";
         padding-top: 0px;
     }
 </style>
-<h1 class="mb-4 text-primary"><i class="bi bi-tags me-2"></i> Quản lý thẻ</h1>
+<div class="content-1 px-3">
+    <h1 class="mb-4 text-primary"><i class="bi bi-tags me-2"></i> Quản lý thẻ</h1>
 
-<!-- Search and Add New Tag -->
-<div class="d-flex justify-content-between mb-4">
-    <form class="input-group w-50" method="GET" action="/study_sharing/tag/searchTagsWithDocuments">
-        <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm theo tên thẻ hoặc mô tả..." value="<?php echo htmlspecialchars($keyword ?? ''); ?>" aria-label="Tìm kiếm thẻ">
-        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
-    </form>
-    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTagModal"><i class="bi bi-plus-circle"></i> Thêm thẻ</button>
-</div>
-
-<!-- Message Display -->
-<?php if (isset($_SESSION['message'])): ?>
-    <div class="alert alert-<?php echo $_SESSION['message_type']; ?> alert-dismissible fade show" role="alert">
-        <?php echo htmlspecialchars($_SESSION['message']); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    <!-- Search and Add New Tag -->
+    <div class="d-flex justify-content-between mb-4">
+        <form class="input-group w-50" method="GET" action="/study_sharing/tag/searchTagsWithDocuments">
+            <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm theo tên thẻ hoặc mô tả..." value="<?php echo htmlspecialchars($keyword ?? ''); ?>" aria-label="Tìm kiếm thẻ">
+            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
+        </form>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTagModal"><i class="bi bi-plus-circle"></i> Thêm thẻ</button>
     </div>
-    <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
-<?php endif; ?>
 
-<!-- Tags Table -->
-<div class="table-responsive">
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th scope="col">ID</th>
-                <th scope="col">Tên thẻ</th>
-                <th scope="col">Mô tả</th>
-                <th scope="col">Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($tags)): ?>
+    <!-- Message Display -->
+    <?php if (isset($_SESSION['message'])): ?>
+        <div class="alert alert-<?php echo $_SESSION['message_type']; ?> alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($_SESSION['message']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
+    <?php endif; ?>
+
+    <!-- Tags Table -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
                 <tr>
-                    <td colspan="4" class="text-center">Không tìm thấy thẻ nào!</td>
+                    <th scope="col">ID</th>
+                    <th scope="col">Tên thẻ</th>
+                    <th scope="col">Mô tả</th>
+                    <th scope="col">Hành động</th>
                 </tr>
-            <?php else: ?>
-                <?php foreach ($tags as $tag): ?>
+            </thead>
+            <tbody>
+                <?php if (empty($tags)): ?>
                     <tr>
-                        <td><?php echo htmlspecialchars($tag['tag_id']); ?></td>
-                        <td><?php echo htmlspecialchars($tag['tag_name']); ?></td>
-                        <td><?php echo htmlspecialchars($tag['description'] ?? ''); ?></td>
-                        <td>
-                            <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editTagModal"
-                                data-id="<?php echo $tag['tag_id']; ?>"
-                                data-name="<?php echo htmlspecialchars($tag['tag_name']); ?>"
-                                data-description="<?php echo htmlspecialchars($tag['description'] ?? ''); ?>">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $tag['tag_id']; ?>">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
+                        <td colspan="4" class="text-center">Không tìm thấy thẻ nào!</td>
                     </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+                <?php else: ?>
+                    <?php foreach ($tags as $tag): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($tag['tag_id']); ?></td>
+                            <td><?php echo htmlspecialchars($tag['tag_name']); ?></td>
+                            <td><?php echo htmlspecialchars($tag['description'] ?? ''); ?></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editTagModal"
+                                    data-id="<?php echo $tag['tag_id']; ?>"
+                                    data-name="<?php echo htmlspecialchars($tag['tag_name']); ?>"
+                                    data-description="<?php echo htmlspecialchars($tag['description'] ?? ''); ?>">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $tag['tag_id']; ?>">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
 
-    <!-- Pagination -->
-    <nav aria-label="Tag pagination">
-        <ul class="pagination justify-content-center">
-            <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
-            </li>
-            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                    <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
+        <!-- Pagination -->
+        <nav aria-label="Tag pagination">
+            <ul class="pagination justify-content-center">
+                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
                 </li>
-            <?php endfor; ?>
-            <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
-            </li>
-        </ul>
-    </nav>
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                        <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
+                    </li>
+                <?php endfor; ?>
+                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="/study_sharing/tag/searchTagsWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
 </div>
-
 <!-- Add Tag Modal -->
 <div class="modal fade" id="addTagModal" tabindex="-1" aria-labelledby="addTagModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

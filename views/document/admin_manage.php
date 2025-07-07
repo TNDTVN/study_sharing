@@ -87,109 +87,109 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
         transform: translateY(-2px);
     }
 </style>
+<div class="content-1 px-3">
+    <h1 class="mb-4 text-primary"><i class="bi bi-file-earmark-text me-2"></i> Quản lý tài liệu</h1>
 
-<h1 class="mb-4 text-primary"><i class="bi bi-file-earmark-text me-2"></i> Quản lý tài liệu</h1>
-
-<!-- Search and Add New Document -->
-<div class="d-flex justify-content-between mb-4">
-    <form class="input-group w-75" method="GET" action="/study_sharing/AdminDocument/admin_manage">
-        <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm theo tiêu đề hoặc mô tả" value="<?php echo htmlspecialchars($keyword ?? ''); ?>" aria-label="Tìm kiếm tài liệu">
-        <select class="form-select" name="category_id">
-            <option value="0">Tất cả danh mục</option>
-            <?php foreach ($categories as $category): ?>
-                <option value="<?php echo $category['category_id']; ?>" <?php echo $category_id == $category['category_id'] ? 'selected' : ''; ?>>
-                    <?php echo htmlspecialchars($category['category_name']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <select class="form-select" name="file_type">
-            <option value="">Tất cả định dạng</option>
-            <option value="pdf" <?php echo $file_type == 'pdf' ? 'selected' : ''; ?>>PDF</option>
-            <option value="docx" <?php echo $file_type == 'docx' ? 'selected' : ''; ?>>DOCX</option>
-            <option value="pptx" <?php echo $file_type == 'pptx' ? 'selected' : ''; ?>>PPTX</option>
-        </select>
-        <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
-    </form>
-    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addDocumentModal"><i class="bi bi-plus-circle"></i> Thêm tài liệu</button>
-</div>
-
-<!-- Message Display -->
-<?php if (isset($_SESSION['message'])): ?>
-    <div class="alert alert-<?php echo $_SESSION['message_type']; ?> alert-dismissible fade show" role="alert">
-        <?php echo htmlspecialchars($_SESSION['message']); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
-<?php endif; ?>
-
-<!-- Documents Table -->
-<div class="table-responsive">
-    <table class="table table-bordered table-striped">
-        <thead>
-            <tr>
-                <th scope="col">STT</th>
-                <th scope="col">Tiêu đề</th>
-                <th scope="col">Danh mục</th>
-                <th scope="col">Khóa học</th>
-                <th scope="col">Người tải lên</th>
-                <th scope="col">Ngày tải lên</th>
-                <th scope="col">Hành động</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($documents)): ?>
-                <tr>
-                    <td colspan="7" class="text-center">Không tìm thấy tài liệu nào!</td>
-                </tr>
-            <?php else: ?>
-                <?php foreach ($documents as $index => $document): ?>
-                    <tr>
-                        <td><?php echo htmlspecialchars($offset + $index + 1); ?></td>
-                        <td><?php echo htmlspecialchars($document['title']); ?></td>
-                        <td><?php echo htmlspecialchars($document['category_name'] ?? 'Không có'); ?></td>
-                        <td><?php echo htmlspecialchars($document['course_name'] ?? 'Không có'); ?></td>
-                        <td><?php echo htmlspecialchars($document['full_name'] ?? 'Ẩn danh'); ?></td>
-                        <td><?php echo date('d/m/Y', strtotime($document['upload_date'])); ?></td>
-                        <td>
-                            <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editDocumentModal"
-                                data-id="<?php echo $document['document_id']; ?>"
-                                data-title="<?php echo htmlspecialchars($document['title']); ?>"
-                                data-description="<?php echo htmlspecialchars($document['description'] ?? ''); ?>"
-                                data-category-id="<?php echo $document['category_id'] ?? ''; ?>"
-                                data-course-id="<?php echo $document['course_id'] ?? ''; ?>"
-                                data-visibility="<?php echo $document['visibility']; ?>"
-                                data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>"
-                                data-file-name="<?php echo htmlspecialchars(basename($document['file_path'])); ?>">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $document['document_id']; ?>">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
+    <!-- Search and Add New Document -->
+    <div class="d-flex justify-content-between mb-4">
+        <form class="input-group w-75" method="GET" action="/study_sharing/AdminDocument/admin_manage">
+            <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm theo tiêu đề hoặc mô tả" value="<?php echo htmlspecialchars($keyword ?? ''); ?>" aria-label="Tìm kiếm tài liệu">
+            <select class="form-select" name="category_id">
+                <option value="0">Tất cả danh mục</option>
+                <?php foreach ($categories as $category): ?>
+                    <option value="<?php echo $category['category_id']; ?>" <?php echo $category_id == $category['category_id'] ? 'selected' : ''; ?>>
+                        <?php echo htmlspecialchars($category['category_name']); ?>
+                    </option>
                 <?php endforeach; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
+            </select>
+            <select class="form-select" name="file_type">
+                <option value="">Tất cả định dạng</option>
+                <option value="pdf" <?php echo $file_type == 'pdf' ? 'selected' : ''; ?>>PDF</option>
+                <option value="docx" <?php echo $file_type == 'docx' ? 'selected' : ''; ?>>DOCX</option>
+                <option value="pptx" <?php echo $file_type == 'pptx' ? 'selected' : ''; ?>>PPTX</option>
+            </select>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
+        </form>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addDocumentModal"><i class="bi bi-plus-circle"></i> Thêm tài liệu</button>
+    </div>
 
-    <!-- Pagination -->
-    <nav aria-label="Document pagination">
-        <ul class="pagination justify-content-center">
-            <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>">Trước</a>
-            </li>
-            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                    <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>"><?php echo $i; ?></a>
+    <!-- Message Display -->
+    <?php if (isset($_SESSION['message'])): ?>
+        <div class="alert alert-<?php echo $_SESSION['message_type']; ?> alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($_SESSION['message']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
+    <?php endif; ?>
+
+    <!-- Documents Table -->
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">STT</th>
+                    <th scope="col">Tiêu đề</th>
+                    <th scope="col">Danh mục</th>
+                    <th scope="col">Khóa học</th>
+                    <th scope="col">Người tải lên</th>
+                    <th scope="col">Ngày tải lên</th>
+                    <th scope="col">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($documents)): ?>
+                    <tr>
+                        <td colspan="7" class="text-center">Không tìm thấy tài liệu nào!</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($documents as $index => $document): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($offset + $index + 1); ?></td>
+                            <td><?php echo htmlspecialchars($document['title']); ?></td>
+                            <td><?php echo htmlspecialchars($document['category_name'] ?? 'Không có'); ?></td>
+                            <td><?php echo htmlspecialchars($document['course_name'] ?? 'Không có'); ?></td>
+                            <td><?php echo htmlspecialchars($document['full_name'] ?? 'Ẩn danh'); ?></td>
+                            <td><?php echo date('d/m/Y', strtotime($document['upload_date'])); ?></td>
+                            <td>
+                                <button class="btn btn-sm btn-primary edit-btn" data-bs-toggle="modal" data-bs-target="#editDocumentModal"
+                                    data-id="<?php echo $document['document_id']; ?>"
+                                    data-title="<?php echo htmlspecialchars($document['title']); ?>"
+                                    data-description="<?php echo htmlspecialchars($document['description'] ?? ''); ?>"
+                                    data-category-id="<?php echo $document['category_id'] ?? ''; ?>"
+                                    data-course-id="<?php echo $document['course_id'] ?? ''; ?>"
+                                    data-visibility="<?php echo $document['visibility']; ?>"
+                                    data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>"
+                                    data-file-name="<?php echo htmlspecialchars(basename($document['file_path'])); ?>">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger delete-btn" data-id="<?php echo $document['document_id']; ?>">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <nav aria-label="Document pagination">
+            <ul class="pagination justify-content-center">
+                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>">Trước</a>
                 </li>
-            <?php endfor; ?>
-            <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>">Sau</a>
-            </li>
-        </ul>
-    </nav>
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                        <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>"><?php echo $i; ?></a>
+                    </li>
+                <?php endfor; ?>
+                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="/study_sharing/AdminDocument/admin_manage?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id; ?>&file_type=<?php echo urlencode($file_type ?? ''); ?>">Sau</a>
+                </li>
+            </ul>
+        </nav>
+    </div>
 </div>
-
 <!-- Add Document Modal -->
 <div class="modal fade" id="addDocumentModal" tabindex="-1" aria-labelledby="addDocumentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
