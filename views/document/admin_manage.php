@@ -8,6 +8,9 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://unpkg.com/docx-preview@latest/dist/docx-preview.js"></script>
 <link href="/study_sharing/assets/css/manage_document.css" rel="stylesheet">
 
 <div class="content-1 px-3">
@@ -74,7 +77,22 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo htmlspecialchars($document['full_name'] ?? 'Ẩn danh'); ?></td>
                             <td><?php echo date('d/m/Y', strtotime($document['upload_date'])); ?></td>
                             <td>
-                                <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editDocumentModal"
+                                <button type="button" class="btn btn-outline-info btn-sm view-btn" title="Xem"
+                                    data-id="<?php echo $document['document_id']; ?>"
+                                    data-title="<?php echo htmlspecialchars($document['title']); ?>"
+                                    data-description="<?php echo htmlspecialchars($document['description'] ?? ''); ?>"
+                                    data-category-name="<?php echo htmlspecialchars($document['category_name'] ?? 'Không có'); ?>"
+                                    data-course-name="<?php echo htmlspecialchars($document['course_name'] ?? 'Không có'); ?>"
+                                    data-uploader-name="<?php echo htmlspecialchars($document['full_name'] ?? 'Ẩn danh'); ?>"
+                                    data-upload-date="<?php echo date('d/m/Y', strtotime($document['upload_date'])); ?>"
+                                    data-visibility="<?php echo $document['visibility']; ?>"
+                                    data-tags="<?php echo htmlspecialchars(implode(',', $document['tags'] ?? [])); ?>"
+                                    data-file-name="<?php echo htmlspecialchars(basename($document['file_path'])); ?>"
+                                    data-file-path="/study_sharing/uploads/<?php echo htmlspecialchars($document['file_path']); ?>"
+                                    data-file-ext="<?php echo htmlspecialchars(strtolower(pathinfo($document['file_path'], PATHINFO_EXTENSION))); ?>">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm edit-btn" data-bs-toggle="modal" data-bs-target="#editDocumentModal"
                                     data-id="<?php echo $document['document_id']; ?>"
                                     data-title="<?php echo htmlspecialchars($document['title']); ?>"
                                     data-description="<?php echo htmlspecialchars($document['description'] ?? ''); ?>"
@@ -275,6 +293,150 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                         Cập nhật tài liệu
                     </button>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Document Modal -->
+<div class="modal fade" id="viewDocumentModal" tabindex="-1" aria-labelledby="viewDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="viewDocumentModalLabel"><i class="bi bi-file-earmark-text me-2"></i> Chi tiết tài liệu</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="container-fluid">
+                    <div class="row g-0">
+                        <!-- Document Metadata - Left Column -->
+                        <div class="col-lg-5 p-4 border-end">
+                            <div class="d-flex flex-column h-100">
+                                <h4 id="viewDocumentTitle" class="text-primary mb-3"></h4>
+
+                                <!-- Document Info Card -->
+                                <div class="card mb-3 shadow-sm">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Thông tin tài liệu</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted d-block">Danh mục</small>
+                                                    <span id="viewDocumentCategory" class="fw-medium">Không có</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted d-block">Khóa học</small>
+                                                    <span id="viewDocumentCourse" class="fw-medium">Không có</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted d-block">Người tải lên</small>
+                                                    <span id="viewDocumentUploader" class="fw-medium">Ẩn danh</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted d-block">Ngày tải lên</small>
+                                                    <span id="viewDocumentUploadDate" class="fw-medium"></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted d-block">Chế độ hiển thị</small>
+                                                    <span id="viewDocumentVisibility" class="fw-medium"></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-2">
+                                                    <small class="text-muted d-block">Định dạng</small>
+                                                    <span id="viewDocumentFileType" class="fw-medium text-uppercase"></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Description Card -->
+                                <div class="card mb-3 shadow-sm flex-grow-1">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0"><i class="bi bi-card-text me-2"></i>Mô tả</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="viewDocumentDescription" class="text-dark" style="white-space: pre-line;">Không có mô tả</div>
+                                    </div>
+                                </div>
+
+                                <!-- Tags Card -->
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-light">
+                                        <h5 class="mb-0"><i class="bi bi-tags me-2"></i>Thẻ</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="viewDocumentTags" class="d-flex flex-wrap gap-2">
+                                            <span class="text-muted">Không có thẻ</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Download Button -->
+                                <div class="mt-3 d-grid">
+                                    <a id="viewDocumentDownloadLink" class="btn btn-primary" href="#" download>
+                                        <i class="bi bi-download me-2"></i>Tải xuống tài liệu
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Document Preview - Right Column -->
+                        <div class="col-lg-7 p-4">
+                            <div class="d-flex flex-column h-100">
+                                <!-- File Info -->
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5><i class="bi bi-file-earmark me-2"></i>Xem trước tài liệu</h5>
+                                    <div class="badge bg-light text-dark">
+                                        <i class="bi bi-file-earmark-text me-1"></i>
+                                        <span id="viewDocumentFileName"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Preview Container -->
+                                <div id="viewDocumentContainer" class="document-container flex-grow-1 shadow-sm"
+                                    style="height: calc(100vh - 250px); overflow-y: auto; border: 1px solid #dee2e6; border-radius: 0.25rem; background-color: #f8f9fa;">
+                                    <div class="d-flex justify-content-center align-items-center h-100">
+                                        <div class="text-center text-muted">
+                                            <i class="bi bi-file-earmark-text display-4 mb-3"></i>
+                                            <p>Đang tải xem trước tài liệu...</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Preview Controls -->
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div class="btn-group">
+                                        <button class="btn btn-outline-secondary btn-sm" id="zoomInBtn">
+                                            <i class="bi bi-zoom-in"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" id="zoomOutBtn">
+                                            <i class="bi bi-zoom-out"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary btn-sm" id="fitWidthBtn">
+                                            <i class="bi bi-arrows-angle-expand"></i> Vừa chiều rộng
+                                        </button>
+                                    </div>
+                                    <small class="text-muted" id="pageInfo"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>
