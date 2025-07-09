@@ -176,5 +176,3 @@ $title = "Quản lý danh mục";
         }
     }
 </script>
-
-<script src="/study_sharing/assets/js/category.js"></script>
