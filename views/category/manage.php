@@ -146,5 +146,35 @@ $title = "Quản lý danh mục";
         </div>
     </div>
 </div>
+<script>
+    function fillEditModal(category) {
+        document.getElementById('editCategoryId').value = category.category_id;
+        document.getElementById('editCategoryName').value = category.category_name;
+        document.getElementById('editCategoryDescription').value = category.description || '';
+    }
+
+    function deleteCategory(categoryId) {
+        if (confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
+            fetch('/study_sharing/category/deleteCategory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'category_id=' + encodeURIComponent(categoryId)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi:', error);
+                    alert('Có lỗi xảy ra khi xóa danh mục.');
+                });
+        }
+    }
+</script>
 
 <script src="/study_sharing/assets/js/category.js"></script>
