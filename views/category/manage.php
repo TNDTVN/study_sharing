@@ -53,12 +53,12 @@ $title = "Quản lý danh mục";
                         <td><?php echo date('d/m/Y', strtotime($category['created_at'])); ?></td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
+                                <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
                                     onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($category)); ?>)">
-                                    Sửa
+                                    <i class="fa fa-edit"></i>
                                 </button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteCategory(<?php echo $category['category_id']; ?>)">
-                                    Xóa
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteCategory(<?php echo $category['category_id']; ?>)">
+                                    <i class="fa fa-trash"></i>
                                 </button>
                             </div>
                         </td>
