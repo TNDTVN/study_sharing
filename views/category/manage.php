@@ -53,12 +53,12 @@ $title = "Quản lý danh mục";
                         <td><?php echo date('d/m/Y', strtotime($category['created_at'])); ?></td>
                         <td>
                             <div class="action-buttons">
-                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
+                                <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editCategoryModal"
                                     onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($category)); ?>)">
-                                    Sửa
+                                    <i class="fa fa-edit"></i>
                                 </button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteCategory(<?php echo $category['category_id']; ?>)">
-                                    Xóa
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteCategory(<?php echo $category['category_id']; ?>)">
+                                    <i class="fa fa-trash"></i>
                                 </button>
                             </div>
                         </td>
@@ -146,5 +146,33 @@ $title = "Quản lý danh mục";
         </div>
     </div>
 </div>
+<script>
+    function fillEditModal(category) {
+        document.getElementById('editCategoryId').value = category.category_id;
+        document.getElementById('editCategoryName').value = category.category_name;
+        document.getElementById('editCategoryDescription').value = category.description || '';
+    }
 
-<script src="/study_sharing/assets/js/category.js"></script>
+    function deleteCategory(categoryId) {
+        if (confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
+            fetch('/study_sharing/category/deleteCategory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'category_id=' + encodeURIComponent(categoryId)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi:', error);
+                    alert('Có lỗi xảy ra khi xóa danh mục.');
+                });
+        }
+    }
+</script>
