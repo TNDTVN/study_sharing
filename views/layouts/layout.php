@@ -46,7 +46,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <!-- Nút chức năng -->
                 <ul class="navbar-nav ms-auto">
                     <?php
-                    $user = isset($_SESSION['account_id']) ? (new \App\User($pdo))->getUserById($_SESSION['account_id']) : null;
+                    $user = isset($user) ? $user : null;
                     $role = $user ? $user['role'] : null;
                     $avatar = $user && $user['avatar'] ? '/study_sharing/assets/images/' . htmlspecialchars($user['avatar']) : '/study_sharing/assets/images/profile.png';
                     ?>
@@ -59,8 +59,8 @@ if (session_status() === PHP_SESSION_NONE) {
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="/study_sharing/document/list"><i class="bi bi-collection"></i> Xem tất cả</a></li>
                             <?php if ($user && in_array($role, ['teacher', 'student'])): ?>
-                                <li><a class="dropdown-item" href="/study_sharing/document/upload"><i class="bi bi-upload"></i> Tải lên</a></li>
-                                <li><a class="dropdown-item" href="/study_sharing/document/delete"><i class="bi bi-trash"></i> Quản lý</a></li>
+                                <li><a class="dropdown-item" href="/study_sharing/document/create"><i class="bi bi-upload"></i> Tải lên</a></li>
+                                <li><a class="dropdown-item" href="/study_sharing/document/manage"><i class="bi bi-journal-text"></i> Quản lý</a></li>
                                 <li><a class="dropdown-item" href="/study_sharing/document/downloadHistory"><i class="bi bi-download"></i> Lịch sử tải tài liệu</a></li>
                             <?php endif; ?>
                         </ul>
