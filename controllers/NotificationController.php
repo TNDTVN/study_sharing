@@ -37,6 +37,8 @@ class NotificationController
         ob_start();
         require __DIR__ . '/../views/notification/list.php';
         $content = ob_get_clean();
+        // Truyền $pdo vào layout.php
+        $pdo = $this->pdo;
         require __DIR__ . '/../views/layouts/layout.php';
     }
 

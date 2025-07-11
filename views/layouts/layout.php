@@ -46,7 +46,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <!-- Nút chức năng -->
                 <ul class="navbar-nav ms-auto">
                     <?php
-                    $user = isset($user) ? $user : null;
+                    $user = isset($_SESSION['account_id']) ? (new \App\User($pdo))->getUserById($_SESSION['account_id']) : null;
                     $role = $user ? $user['role'] : null;
                     $avatar = $user && $user['avatar'] ? '/study_sharing/assets/images/' . htmlspecialchars($user['avatar']) : '/study_sharing/assets/images/profile.png';
                     ?>
