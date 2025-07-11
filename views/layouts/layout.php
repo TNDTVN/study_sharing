@@ -16,6 +16,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <link href="/study_sharing/assets/css/custom.css" rel="stylesheet">
     <link rel="stylesheet" href="/study_sharing/assets/css/navbar_layout.css">
+    <link rel="icon" type="image/x-icon" href="/study_sharing/assets/images/logo.png">
 </head>
 
 <body class="bg-light d-flex flex-column min-vh-100">

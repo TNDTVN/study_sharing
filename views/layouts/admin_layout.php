@@ -18,6 +18,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <link href="/study_sharing/assets/css/admin.css" rel="stylesheet">
     <link href="/study_sharing/assets/css/sidebar.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" type="image/x-icon" href="/study_sharing/assets/images/logo.png">
 
 </head>
 

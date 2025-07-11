@@ -13,6 +13,7 @@ class DocumentController
     private $tag;
     private $comment;
     private $user;
+    private $notification;
 
     public function __construct($db)
     {
@@ -22,6 +23,7 @@ class DocumentController
         $this->tag = new Tag($db);
         $this->comment = new Comment($db);
         $this->user = new User($db);
+        $this->notification = new Notification($db);
     }
 
     public function list()
@@ -230,6 +232,13 @@ class DocumentController
 
         $success = $this->comment->createComment($document_id, $_SESSION['account_id'], $comment_text);
         if ($success) {
+            // Gửi thông báo đến chủ tài liệu nếu người bình luận không phải chủ tài liệu
+            if ($_SESSION['account_id'] != $document['account_id']) {
+                $commenter = $this->user->getUserById($_SESSION['account_id']);
+                $commenter_name = $commenter ? htmlspecialchars($commenter['full_name']) : 'Ẩn danh';
+                $message = "$commenter_name đã bình luận trên tài liệu của bạn: \"" . htmlspecialchars($document['title']) . "\"";
+                $this->notification->createNotification($document['account_id'], $message, false);
+            }
             echo json_encode(['success' => true, 'message' => 'Bình luận đã được gửi']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Lỗi khi gửi bình luận']);
@@ -292,10 +301,22 @@ class DocumentController
                 }
             }
 
-            error_log("Final parent_comment_id: $final_parent_comment_id, Comment text: $comment_text");
-
             $success = $this->comment->createComment($document_id, $_SESSION['account_id'], $comment_text, $final_parent_comment_id);
             if ($success) {
+                // Gửi thông báo đến người được trả lời (người sở hữu bình luận cha) nếu không phải chính họ
+                if ($tagged_user_id > 0 && $tagged_user_id != $_SESSION['account_id']) {
+                    $replier = $this->user->getUserById($_SESSION['account_id']);
+                    $replier_name = $replier ? htmlspecialchars($replier['full_name']) : 'Ẩn danh';
+                    $message = "$replier_name đã trả lời bình luận của bạn trong tài liệu: \"" . htmlspecialchars($document['title']) . "\"";
+                    $this->notification->createNotification($tagged_user_id, $message, false);
+                }
+                // Gửi thông báo đến chủ tài liệu nếu người trả lời không phải chủ tài liệu
+                if ($_SESSION['account_id'] != $document['account_id']) {
+                    $replier = $this->user->getUserById($_SESSION['account_id']);
+                    $replier_name = $replier ? htmlspecialchars($replier['full_name']) : 'Ẩn danh';
+                    $message = "$replier_name đã trả lời một bình luận trong tài liệu của bạn: \"" . htmlspecialchars($document['title']) . "\"";
+                    $this->notification->createNotification($document['account_id'], $message, false);
+                }
                 echo json_encode(['success' => true, 'message' => 'Trả lời đã được gửi']);
             } else {
                 throw new Exception('Lỗi khi gửi trả lời', 500);

@@ -33,6 +33,16 @@ class Notification
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    public function getUnreadNotificationsByUserId($account_id, $limit = 5)
+    {
+        $query = "SELECT * FROM notifications WHERE account_id = :account_id AND is_read = 0 ORDER BY created_at DESC LIMIT :limit";
+        $stmt = $this->pdo->prepare($query);
+        $stmt->bindParam(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function countNotificationsByUserId($account_id)
     {
         $query = "SELECT COUNT(*) FROM notifications WHERE account_id = :account_id";
