@@ -10,12 +10,14 @@ class CourseController
     private $db;
     private $course;
     private $user;
+    private $notification;
 
     public function __construct($db)
     {
         $this->db = $db;
         $this->course = new Course($db);
         $this->user = new User($db);
+        $this->notification = new Notification($db);
     }
 
     public function list()
@@ -155,6 +157,11 @@ class CourseController
             exit;
         }
 
+        if ($_SESSION['account_id'] == $course['creator_id']) {
+            echo json_encode(['success' => false, 'message' => 'Bạn là người tạo khóa học, không thể tham gia khóa học của chính mình']);
+            exit;
+        }
+
         if ($course['status'] !== 'open') {
             echo json_encode(['success' => false, 'message' => 'Khóa học hiện không mở đăng ký']);
             exit;
@@ -184,6 +191,11 @@ class CourseController
         $success = $stmt->execute();
 
         if ($success) {
+            $joiner = $this->user->getUserById($_SESSION['account_id']);
+            $joiner_name = $joiner ? htmlspecialchars($joiner['full_name']) : 'Ẩn danh';
+            $message = "$joiner_name đã tham gia khóa học của bạn: \"" . htmlspecialchars($course['course_name']) . "\"";
+            $this->notification->createNotification($course['creator_id'], $message, false);
+
             echo json_encode(['success' => true, 'message' => 'Tham gia khóa học thành công']);
         } else {
             echo json_encode(['success' => false, 'message' => 'Lỗi khi tham gia khóa học']);
