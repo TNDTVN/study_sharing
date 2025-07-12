@@ -41,7 +41,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <button type="submit" class="btn btn-primary">Tìm kiếm</button>
             </div>
         </form>
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="bi bi-plus-circle"></i>
             Thêm người dùng
         </button>
     </div>
@@ -108,7 +108,7 @@ if (session_status() === PHP_SESSION_NONE) {
         </table>
     </div>
 
-    <!-- Phân trang dưới bảng -->
+    <!-- Phân trang -->
     <?php if ($totalPages > 1): ?>
         <nav aria-label="Page navigation" class="mt-3">
             <ul class="pagination justify-content-center mb-0">

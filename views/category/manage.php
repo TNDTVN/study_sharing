@@ -69,24 +69,35 @@ $title = "Quản lý danh mục";
     </table>
 </div>
 
-<!-- Trong file manage.php, sửa phần pagination -->
-<nav aria-label="Category pagination">
-    <ul class="pagination justify-content-center">
-        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-            <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Trước</a>
-        </li>
-        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-            <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>"><?php echo $i; ?></a>
-            </li>
-        <?php endfor; ?>
-        <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-            <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>">Sau</a>
-        </li>
-    </ul>
-</nav>
-</div>
-</div>
+<!-- Phân trang -->
+<?php if ($totalPages > 1): ?>
+    <nav aria-label="Page navigation" class="mt-3">
+        <ul class="pagination justify-content-center mb-0">
+            <?php if ($page > 1): ?>
+                <li class="page-item">
+                    <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword); ?>">Trước</a>
+                </li>
+            <?php endif; ?>
+            <?php
+            $startPage = max(1, $page - 2);
+            $endPage = min($totalPages, $page + 2);
+            if ($endPage - $startPage < 4) {
+                $startPage = max(1, $endPage - 4);
+            }
+            for ($i = $startPage; $i <= $endPage; $i++): ?>
+                <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                    <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword); ?>"><?php echo $i; ?></a>
+                </li>
+            <?php endfor; ?>
+            <?php if ($page < $totalPages): ?>
+                <li class="page-item">
+                    <a class="page-link" href="/study_sharing/category/searchCategoriesWithDocuments?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword); ?>">Sau</a>
+                </li>
+            <?php endif; ?>
+        </ul>
+    </nav>
+<?php endif; ?>
+
 
 <!-- Add Category Modal -->
 <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
