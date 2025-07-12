@@ -513,4 +513,99 @@ class AdminDocumentController
             exit;
         }
     }
+
+    public function admin_statistics()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            header('Location: /study_sharing');
+            exit;
+        }
+
+        try {
+            // Tổng số tài liệu
+            $totalStmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM documents");
+            $totalStmt->execute();
+            $totalDocuments = $totalStmt->fetch(PDO::FETCH_ASSOC)['total'];
+
+            // Số tài liệu theo danh mục
+            $categoryStmt = $this->pdo->prepare("
+                SELECT c.category_name, COUNT(d.document_id) as document_count
+                FROM categories c
+                LEFT JOIN documents d ON c.category_id = d.category_id
+                GROUP BY c.category_id, c.category_name
+                ORDER BY c.category_name
+            ");
+            $categoryStmt->execute();
+            $documentsByCategory = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Số tài liệu theo loại tệp
+            $fileTypeStmt = $this->pdo->prepare("
+                SELECT 
+                    CASE 
+                        WHEN file_path LIKE '%.pdf' THEN 'PDF'
+                        WHEN file_path LIKE '%.docx' THEN 'DOCX'
+                        WHEN file_path LIKE '%.pptx' THEN 'PPTX'
+                        ELSE 'Khác'
+                    END as file_type,
+                    COUNT(*) as document_count
+                FROM documents
+                GROUP BY file_type
+            ");
+            $fileTypeStmt->execute();
+            $documentsByFileType = $fileTypeStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Tổng số lượt tải xuống
+            $downloadStmt = $this->pdo->prepare("SELECT COUNT(*) as total_downloads FROM downloads");
+            $downloadStmt->execute();
+            $totalDownloads = $downloadStmt->fetch(PDO::FETCH_ASSOC)['total_downloads'];
+
+            // Top 5 tài liệu được tải nhiều nhất
+            $topDocumentsStmt = $this->pdo->prepare("
+                SELECT d.document_id, d.title, COUNT(dw.download_id) as download_count
+                FROM documents d
+                LEFT JOIN downloads dw ON d.document_id = dw.document_id
+                GROUP BY d.document_id, d.title
+                ORDER BY download_count DESC
+                LIMIT 5
+            ");
+            $topDocumentsStmt->execute();
+            $topDocuments = $topDocumentsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Dữ liệu cho biểu đồ (số tài liệu theo tháng trong năm hiện tại)
+            $currentYear = date('Y');
+            $monthlyStmt = $this->pdo->prepare("
+                SELECT MONTH(upload_date) as month, COUNT(*) as document_count
+                FROM documents
+                WHERE YEAR(upload_date) = :year
+                GROUP BY MONTH(upload_date)
+                ORDER BY month
+            ");
+            $monthlyStmt->bindValue(':year', $currentYear, PDO::PARAM_INT);
+            $monthlyStmt->execute();
+            $documentsByMonth = $monthlyStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Chuẩn bị dữ liệu cho biểu đồ
+            $months = array_fill(1, 12, 0);
+            foreach ($documentsByMonth as $row) {
+                $months[$row['month']] = (int)$row['document_count'];
+            }
+
+            $title = 'Thống kê tài liệu';
+            $pdo = $this->pdo;
+            ob_start();
+            require __DIR__ . '/../views/document/admin_statistics.php';
+            $content = ob_get_clean();
+            require __DIR__ . '/../views/layouts/admin_layout.php';
+        } catch (PDOException $e) {
+            error_log("Statistics error: " . $e->getMessage());
+            $_SESSION['message'] = 'Lỗi server khi tải thống kê: ' . $e->getMessage();
+            $_SESSION['message_type'] = 'danger';
+            header('Location: /study_sharing');
+            exit;
+        }
+    }
 }

@@ -20,6 +20,7 @@ if (session_status() === PHP_SESSION_NONE) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="/study_sharing/assets/images/logo.png">
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 </head>
 
 <body class="bg-light">
@@ -80,13 +81,12 @@ if (session_status() === PHP_SESSION_NONE) {
                 <i class="bi bi-tag"></i> Quản lý thẻ
             </a>
             <!-- Document Dropdown -->
-            <a class="nav-link dropdown-toggle <?php echo strpos($_SERVER['REQUEST_URI'], '/document/') !== false ? 'active' : ''; ?>" href="#" role="button" onclick="toggleDropdown(this)">
+            <a class="nav-link dropdown-toggle <?php echo strpos($_SERVER['REQUEST_URI'], '/study_sharing/AdminDocument/') !== false ? 'active' : ''; ?>" href="#" role="button" onclick="toggleDropdown(this)">
                 <i class="bi bi-file-earmark-text"></i> Quản lý tài liệu
             </a>
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="/study_sharing/AdminDocument/admin_manage"><i class="bi bi-folder"></i> Quản lý tài liệu</a></li>
-                <li><a class="dropdown-item" href="/document/approve"><i class="bi bi-check-circle"></i> Phê duyệt tài liệu</a></li>
-                <li><a class="dropdown-item" href="/document/statistics"><i class="bi bi-bar-chart"></i> Thống kê tài liệu</a></li>
+                <li><a class="dropdown-item" href="/study_sharing/AdminDocument/admin_statistics"><i class="bi bi-bar-chart"></i> Thống kê tài liệu</a></li>
             </ul>
             <!-- Course Dropdown -->
             <a class="nav-link dropdown-toggle <?php echo strpos($_SERVER['REQUEST_URI'], '/course/') !== false ? 'active' : ''; ?>" href="#" role="button" onclick="toggleDropdown(this)">
