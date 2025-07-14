@@ -14,6 +14,8 @@ class DocumentController
     private $comment;
     private $user;
     private $notification;
+    private $uploadDir = 'uploads/';
+    private $itemsPerPage = 10;
 
     public function __construct($db)
     {
@@ -24,6 +26,19 @@ class DocumentController
         $this->comment = new Comment($db);
         $this->user = new User($db);
         $this->notification = new Notification($db);
+        $this->ensureUploadDirectory();
+    }
+
+    private function ensureUploadDirectory()
+    {
+        $absolutePath = __DIR__ . '/../' . $this->uploadDir;
+        if (!is_dir($absolutePath)) {
+            mkdir($absolutePath, 0775, true);
+            chmod($absolutePath, 0775);
+        }
+        if (!is_writable($absolutePath)) {
+            error_log("Thư mục {$absolutePath} không có quyền ghi!");
+        }
     }
 
     public function list()
@@ -584,5 +599,155 @@ class DocumentController
         $content = ob_get_clean();
         $pdo = $this->db;
         require __DIR__ . '/../views/layouts/' . $layout;
+    }
+
+    public function create()
+    {
+        // Kiểm tra người dùng đã đăng nhập
+        if (!isset($_SESSION['account_id'])) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập để tải lên tài liệu']);
+            exit;
+        }
+
+        $user = $this->user->getUserById($_SESSION['account_id']);
+        if (!in_array($user['role'], ['teacher', 'student'])) {
+            header('Content-Type: application/json');
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền tải lên tài liệu']);
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Xử lý yêu cầu POST (tải lên tài liệu)
+            try {
+                $title = trim($_POST['title'] ?? '');
+                $description = trim($_POST['description'] ?? '');
+                $category_id = (int)($_POST['category_id'] ?? 0);
+                $course_id = !empty($_POST['course_id']) ? (int)$_POST['course_id'] : null;
+                $visibility = in_array($_POST['visibility'] ?? '', ['public', 'private']) ? $_POST['visibility'] : 'public';
+                $tags = !empty($_POST['tags']) ? array_map('trim', explode(',', $_POST['tags'])) : [];
+
+                // Kiểm tra dữ liệu đầu vào
+                if (empty($title) || empty($_FILES['file']['name'])) {
+                    throw new Exception('Tiêu đề và tệp tài liệu là bắt buộc!');
+                }
+
+                // Kiểm tra lỗi upload
+                if ($_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+                    $uploadErrors = [
+                        UPLOAD_ERR_INI_SIZE => 'Kích thước tệp vượt quá giới hạn php.ini!',
+                        UPLOAD_ERR_FORM_SIZE => 'Kích thước tệp vượt quá giới hạn form!',
+                        UPLOAD_ERR_PARTIAL => 'Tệp chỉ được tải lên một phần!',
+                        UPLOAD_ERR_NO_FILE => 'Không có tệp nào được tải lên!',
+                        UPLOAD_ERR_NO_TMP_DIR => 'Thiếu thư mục tạm để tải lên!',
+                        UPLOAD_ERR_CANT_WRITE => 'Không thể ghi tệp vào đĩa!',
+                        UPLOAD_ERR_EXTENSION => 'Phần mở rộng PHP ngăn tải lên!'
+                    ];
+                    throw new Exception($uploadErrors[$_FILES['file']['error']] ?? 'Lỗi không xác định khi tải tệp!');
+                }
+
+                // Kiểm tra file
+                $file = $_FILES['file'];
+                $allowed_types = ['pdf', 'docx', 'pptx'];
+                $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+                if (!in_array($file_ext, $allowed_types)) {
+                    throw new Exception('Chỉ chấp nhận các định dạng: ' . implode(', ', $allowed_types));
+                }
+
+                if ($file['size'] > 10 * 1024 * 1024) {
+                    throw new Exception('Kích thước tệp không được vượt quá 10MB!');
+                }
+
+                // Xử lý upload file
+                $file_name = uniqid() . '.' . $file_ext;
+                $file_path = $this->uploadDir . $file_name;
+                $absolute_file_path = __DIR__ . '/../' . $file_path;
+
+                if (!move_uploaded_file($file['tmp_name'], $absolute_file_path)) {
+                    error_log("Failed to move uploaded file to: {$absolute_file_path}");
+                    throw new Exception('Lỗi khi di chuyển tệp đến thư mục uploads!');
+                }
+
+                // Thêm tài liệu vào database
+                $query = "INSERT INTO documents (title, description, file_path, account_id, category_id, course_id, visibility, upload_date) 
+                        VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
+                $stmt = $this->db->prepare($query);
+                $stmt->bindValue(':title', $title, PDO::PARAM_STR);
+                $stmt->bindValue(':description', $description, PDO::PARAM_STR);
+                $stmt->bindValue(':file_path', $file_name, PDO::PARAM_STR); // Chỉ lưu tên file
+                $stmt->bindValue(':account_id', $_SESSION['account_id'], PDO::PARAM_INT);
+                $stmt->bindValue(':category_id', $category_id ?: null, $category_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                $stmt->bindValue(':course_id', $course_id, $course_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
+                $stmt->bindValue(':visibility', $visibility, PDO::PARAM_STR);
+                $stmt->execute();
+
+                $document_id = $this->db->lastInsertId();
+
+                // Thêm thẻ (tags)
+                foreach ($tags as $tag_name) {
+                    if (!empty($tag_name)) {
+                        $tagStmt = $this->db->prepare("SELECT tag_id FROM tags WHERE tag_name = :tag_name");
+                        $tagStmt->bindValue(':tag_name', $tag_name, PDO::PARAM_STR);
+                        $tagStmt->execute();
+                        $tag = $tagStmt->fetch(PDO::FETCH_ASSOC);
+
+                        if (!$tag) {
+                            $tagStmt = $this->db->prepare("INSERT INTO tags (tag_name) VALUES (:tag_name)");
+                            $tagStmt->bindValue(':tag_name', $tag_name, PDO::PARAM_STR);
+                            $tagStmt->execute();
+                            $tag_id = $this->db->lastInsertId();
+                        } else {
+                            $tag_id = $tag['tag_id'];
+                        }
+
+                        $docTagStmt = $this->db->prepare("INSERT INTO document_tags (document_id, tag_id) VALUES (:document_id, :tag_id)");
+                        $docTagStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                        $docTagStmt->bindValue(':tag_id', $tag_id, PDO::PARAM_INT);
+                        $docTagStmt->execute();
+                    }
+                }
+
+                // Gửi thông báo
+                $this->notification->createNotification(
+                    $_SESSION['account_id'],
+                    "Tài liệu \"$title\" đã được tải lên thành công.",
+                    false
+                );
+
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true, 'message' => 'Tải lên tài liệu thành công!', 'redirect' => '/study_sharing/document/list']);
+                exit;
+            } catch (Exception $e) {
+                header('Content-Type: application/json');
+                http_response_code($e->getCode() ?: 500);
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                exit;
+            }
+        } else {
+            // Hiển thị form tải lên (GET)
+            $categories = $this->category->getAllCategories();
+            $courses = [];
+            if ($user['role'] === 'teacher') {
+                $courseModel = new Course($this->db);
+                $courses = $courseModel->getCoursesByTeacher($_SESSION['account_id']);
+            } elseif ($user['role'] === 'student') {
+                $courseModel = new Course($this->db);
+                $courses = $courseModel->getCoursesByStudent($_SESSION['account_id']);
+            }
+
+            $tagsStmt = $this->db->prepare("SELECT tag_id, tag_name FROM tags ORDER BY tag_name");
+            $tagsStmt->execute();
+            $tags = $tagsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $title = 'Tải lên tài liệu';
+            $layout = 'layout.php';
+            ob_start();
+            require __DIR__ . '/../views/document/create.php';
+            $content = ob_get_clean();
+            $pdo = $this->db;
+            require __DIR__ . '/../views/layouts/' . $layout;
+        }
     }
 }
