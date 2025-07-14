@@ -380,7 +380,7 @@ class AccountController
         try {
             $query = "
                 SELECT a.account_id, a.username, a.email, a.role, a.status, a.created_at, a.updated_at,
-                       u.full_name, u.avatar, u.date_of_birth, u.phone_number, u.address
+                    u.full_name, u.avatar, u.date_of_birth, u.phone_number, u.address
                 FROM accounts a
                 LEFT JOIN users u ON a.account_id = u.account_id
                 WHERE a.account_id = :account_id

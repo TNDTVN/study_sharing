@@ -57,7 +57,7 @@ class AuthController
             if (strlen($raw_password) < 6) {
                 $this->sendJsonResponse(false, 'Mật khẩu phải dài ít nhất 6 ký tự!');
             }
-            $password = password_hash($raw_password, PASSWORD_DEFAULT);
+            $password = password_hash($raw_password, PASSWORD_BCRYPT);
 
             // Kiểm tra ngày sinh
             if ($date_of_birth && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date_of_birth)) {
@@ -410,7 +410,7 @@ class AuthController
                     exit;
                 }
 
-                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+                $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
                 $account_id = $tokenData['account_id'];
                 $this->accountModel->updatePassword($account_id, $hashedPassword);
 
@@ -460,7 +460,7 @@ class AuthController
                 exit;
             }
 
-            $hashedPassword = password_hash($new_password, PASSWORD_DEFAULT);
+            $hashedPassword = password_hash($new_password, PASSWORD_BCRYPT);
             $this->accountModel->updatePassword($account_id, $hashedPassword);
 
             header('Content-Type: application/json');
