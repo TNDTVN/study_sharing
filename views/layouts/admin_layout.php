@@ -97,6 +97,12 @@ if (session_status() === PHP_SESSION_NONE) {
                 <li><a class="dropdown-item" href="/course/approve"><i class="bi bi-check-circle"></i> Phê duyệt khóa học</a></li>
                 <li><a class="dropdown-item" href="/course/statistics"><i class="bi bi-bar-chart"></i> Thống kê khóa học</a></li>
             </ul>
+            <!-- Notification Link -->
+            <a class="nav-link <?php echo strpos($_SERVER['REQUEST_URI'], '/NotificationAdmin/admin_send_notification') !== false ? 'active' : ''; ?>" href="/study_sharing/NotificationAdmin/admin_send_notification">
+                <i class="bi bi-bell"></i> Quản lý thông báo
+            </a>
+
+
         </nav>
     </div>
 

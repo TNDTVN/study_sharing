@@ -19,6 +19,7 @@ use App\AccountController;
 use App\AdminDocumentController;
 use App\TagController;
 use App\NotificationController;
+use App\NotificationAdminController;
 // thêm controller khác nếu cần
 
 session_start();
@@ -52,6 +53,7 @@ $allowedControllers = [
     'AdminDocumentController' => AdminDocumentController::class,
     'TagController' => TagController::class,
     'NotificationController' => NotificationController::class,
+    'NotificationAdminController' => NotificationAdminController::class,
     // Thêm các controller khác nếu cần
 ];
 
