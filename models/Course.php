@@ -45,4 +45,20 @@ class Course
         $stmt = $this->db->query($query);
         return $stmt->fetchColumn();
     }
+
+    public function getCoursesByTeacher($teacher_id)
+    {
+        $query = "SELECT * FROM courses WHERE creator_id = :teacher_id";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':teacher_id', $teacher_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getCoursesByStudent($student_id)
+    {
+        $query = "SELECT * FROM courses";
+        $stmt = $this->db->query($query);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
