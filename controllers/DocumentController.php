@@ -653,7 +653,7 @@ class DocumentController
                 $allowed_types = ['pdf', 'docx', 'pptx'];
                 $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                 if (!in_array($file_ext, $allowed_types)) {
-                    throw new Exception('Chỉ chấp nhận các định dạng: ' . implode(', ', $allowed_types));
+                    throw new Exception('Chỉ chấp nhận các định crawl: ' . implode(', ', $allowed_types));
                 }
 
                 if ($file['size'] > 10 * 1024 * 1024) {
@@ -667,16 +667,16 @@ class DocumentController
 
                 if (!move_uploaded_file($file['tmp_name'], $absolute_file_path)) {
                     error_log("Failed to move uploaded file to: {$absolute_file_path}");
-                    throw new Exception('Lỗi khi di chuyển tệp đến thư mục uploads!');
+                    throw new Exception('Lổi khi di chuyển tệp đến thư mục uploads!');
                 }
 
                 // Thêm tài liệu vào database
                 $query = "INSERT INTO documents (title, description, file_path, account_id, category_id, course_id, visibility, upload_date) 
-                        VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
+                    VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
                 $stmt = $this->db->prepare($query);
                 $stmt->bindValue(':title', $title, PDO::PARAM_STR);
                 $stmt->bindValue(':description', $description, PDO::PARAM_STR);
-                $stmt->bindValue(':file_path', $file_name, PDO::PARAM_STR); // Chỉ lưu tên file
+                $stmt->bindValue(':file_path', $file_name, PDO::PARAM_STR);
                 $stmt->bindValue(':account_id', $_SESSION['account_id'], PDO::PARAM_INT);
                 $stmt->bindValue(':category_id', $category_id ?: null, $category_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
                 $stmt->bindValue(':course_id', $course_id, $course_id ? PDO::PARAM_INT : PDO::PARAM_NULL);
@@ -684,6 +684,16 @@ class DocumentController
                 $stmt->execute();
 
                 $document_id = $this->db->lastInsertId();
+
+                // Thêm phiên bản đầu tiên vào document_versions
+                $documentVersion = new DocumentVersion($this->db);
+                $version_number = 1;
+                $change_note = 'Phiên bản đầu tiên';
+                $success = $documentVersion->createVersion($document_id, $version_number, $file_name, $change_note);
+
+                if (!$success) {
+                    throw new Exception('Lỗi khi tạo phiên bản tài liệu!');
+                }
 
                 // Thêm thẻ (tags)
                 foreach ($tags as $tag_name) {
@@ -749,5 +759,509 @@ class DocumentController
             $pdo = $this->db;
             require __DIR__ . '/../views/layouts/' . $layout;
         }
+    }
+
+    public function manage()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        // Logic lấy dữ liệu tài liệu, phân trang, tìm kiếm...
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
+        $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
+        $file_type = isset($_GET['file_type']) && in_array(trim($_GET['file_type']), ['pdf', 'docx', 'pptx']) ? trim($_GET['file_type']) : '';
+        $offset = ($page - 1) * $this->itemsPerPage;
+
+        try {
+            $query = "SELECT d.*, c.category_name, u.full_name, co.course_name
+                FROM documents d
+                LEFT JOIN categories c ON d.category_id = c.category_id
+                LEFT JOIN users u ON d.account_id = u.account_id
+                LEFT JOIN courses co ON d.course_id = co.course_id
+                WHERE d.account_id = :account_id";
+            $params = [':account_id' => $_SESSION['account_id']];
+
+            if (!empty($keyword)) {
+                $query .= " AND (d.title LIKE :keyword1 OR d.description LIKE :keyword2)";
+                $params[':keyword1'] = '%' . $keyword . '%';
+                $params[':keyword2'] = '%' . $keyword . '%';
+            }
+
+            if ($category_id > 0) {
+                $query .= " AND d.category_id = :category_id";
+                $params[':category_id'] = $category_id;
+            }
+
+            if ($file_type !== '') {
+                $query .= " AND d.file_path LIKE :file_type";
+                $params[':file_type'] = "%.$file_type";
+            }
+
+            $query .= " ORDER BY d.upload_date DESC LIMIT :offset, :itemsPerPage";
+
+            $stmt = $this->db->prepare($query);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':itemsPerPage', $this->itemsPerPage, PDO::PARAM_INT);
+            $stmt->execute();
+            $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Lấy danh sách danh mục và khóa học
+            $categoryStmt = $this->db->prepare("SELECT * FROM categories ORDER BY category_name");
+            $categoryStmt->execute();
+            $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $courseStmt = $this->db->prepare("SELECT course_id, course_name FROM courses ORDER BY course_name");
+            $courseStmt->execute();
+            $courses = $courseStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Lấy tổng số tài liệu
+            $countQuery = "SELECT COUNT(*) as total FROM documents WHERE account_id = :account_id";
+            $countParams = [':account_id' => $_SESSION['account_id']];
+            if (!empty($keyword)) {
+                $countQuery .= " AND (title LIKE :keyword1 OR description LIKE :keyword2)";
+                $countParams[':keyword1'] = '%' . $keyword . '%';
+                $countParams[':keyword2'] = '%' . $keyword . '%';
+            }
+            if ($category_id > 0) {
+                $countQuery .= " AND category_id = :category_id";
+                $countParams[':category_id'] = $category_id;
+            }
+            if ($file_type !== '') {
+                $countQuery .= " AND file_path LIKE :file_type";
+                $countParams[':file_type'] = "%.$file_type";
+            }
+            $countStmt = $this->db->prepare($countQuery);
+            foreach ($countParams as $key => $value) {
+                $countStmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $countStmt->execute();
+            $totalDocuments = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $totalPages = ceil($totalDocuments / $this->itemsPerPage);
+
+            // Lấy thẻ và phiên bản
+            foreach ($documents as &$document) {
+                $tagStmt = $this->db->prepare("
+                    SELECT t.tag_name
+                    FROM tags t
+                    JOIN document_tags dt ON t.tag_id = dt.tag_id
+                    WHERE dt.document_id = :document_id
+                ");
+                $tagStmt->bindValue(':document_id', $document['document_id'], PDO::PARAM_INT);
+                $tagStmt->execute();
+                $document['tags'] = $tagStmt->fetchAll(PDO::FETCH_COLUMN);
+
+                $versionStmt = $this->db->prepare("
+                    SELECT version_number, file_path, change_note, created_at
+                    FROM document_versions
+                    WHERE document_id = :document_id
+                    ORDER BY version_number DESC
+                ");
+                $versionStmt->bindValue(':document_id', $document['document_id'], PDO::PARAM_INT);
+                $versionStmt->execute();
+                $document['versions'] = $versionStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+            unset($document);
+
+            // Tạo CSRF token nếu chưa có
+            if (!isset($_SESSION['csrf_token'])) {
+                $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+            }
+
+            $title = 'Quản lý tài liệu của tôi';
+            ob_start();
+            require __DIR__ . '/../views/document/manage.php';
+            $content = ob_get_clean();
+            $pdo = $this->db;
+            $layout = 'layout.php';
+            require __DIR__ . '/../views/layouts/layout.php';
+        } catch (\PDOException $e) {
+            error_log("Manage documents error: " . $e->getMessage());
+            $_SESSION['message'] = 'Lỗi server khi tải tài liệu: ' . $e->getMessage();
+            $_SESSION['message_type'] = 'danger';
+            header('Location: /study_sharing');
+            exit;
+        }
+    }
+
+    public function edit()
+    {
+        header('Content-Type: application/json');
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !in_array($_SESSION['role'], ['teacher', 'student'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Bạn cần đăng nhập để chỉnh sửa tài liệu!']);
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        $document_id = isset($_POST['document_id']) ? (int)$_POST['document_id'] : 0;
+        $title = isset($_POST['title']) ? trim($_POST['title']) : '';
+        $description = isset($_POST['description']) ? trim($_POST['description']) : '';
+        $category_id = isset($_POST['category_id']) ? (int)$_POST['category_id'] : 0;
+        $course_id = isset($_POST['course_id']) ? (int)$_POST['course_id'] : 0;
+        $visibility = isset($_POST['visibility']) && in_array($_POST['visibility'], ['public', 'private']) ? $_POST['visibility'] : 'private';
+        $tags = isset($_POST['tags']) ? array_filter(array_map('trim', explode(',', $_POST['tags']))) : [];
+
+        if ($document_id <= 0 || empty($title)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID tài liệu và tiêu đề là bắt buộc!']);
+            exit;
+        }
+
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM documents WHERE document_id = :document_id AND account_id = :account_id");
+            $stmt->execute([':document_id' => $document_id, ':account_id' => $_SESSION['account_id']]);
+            $document = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$document) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại hoặc bạn không có quyền chỉnh sửa!']);
+                exit;
+            }
+
+            $this->db->beginTransaction();
+
+            $updateStmt = $this->db->prepare("
+                UPDATE documents
+                SET title = :title, description = :description, category_id = :category_id, course_id = :course_id, visibility = :visibility
+                WHERE document_id = :document_id
+            ");
+            $updateStmt->execute([
+                ':title' => $title,
+                ':description' => $description ?: null,
+                ':category_id' => $category_id > 0 ? $category_id : null,
+                ':course_id' => $course_id > 0 ? $course_id : null,
+                ':visibility' => $visibility,
+                ':document_id' => $document_id
+            ]);
+
+            $this->db->prepare("DELETE FROM document_tags WHERE document_id = :document_id")->execute([':document_id' => $document_id]);
+            foreach ($tags as $tag_name) {
+                if (!empty($tag_name)) {
+                    $tagStmt = $this->db->prepare("SELECT tag_id FROM tags WHERE tag_name = :tag_name");
+                    $tagStmt->execute([':tag_name' => $tag_name]);
+                    $tag = $tagStmt->fetch(PDO::FETCH_ASSOC);
+
+                    if (!$tag) {
+                        $tagStmt = $this->db->prepare("INSERT INTO tags (tag_name) VALUES (:tag_name)");
+                        $tagStmt->execute([':tag_name' => $tag_name]);
+                        $tag_id = $this->db->lastInsertId();
+                    } else {
+                        $tag_id = $tag['tag_id'];
+                    }
+
+                    $this->db->prepare("INSERT INTO document_tags (document_id, tag_id) VALUES (:document_id, :tag_id)")
+                        ->execute([':document_id' => $document_id, ':tag_id' => $tag_id]);
+                }
+            }
+
+            if (isset($_FILES['file']) && $_FILES['file']['error'] === UPLOAD_ERR_OK) {
+                $allowed_types = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+                $file_type = $_FILES['file']['type'];
+                $file_ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+
+                if (!in_array($file_type, $allowed_types) || !in_array($file_ext, ['pdf', 'docx', 'pptx'])) {
+                    $this->db->rollBack();
+                    http_response_code(400);
+                    echo json_encode(['success' => false, 'message' => 'Định dạng tệp không hợp lệ! Chỉ hỗ trợ PDF, DOCX, PPTX.']);
+                    exit;
+                }
+
+                $upload_dir = __DIR__ . '/../uploads/';
+                if (!is_dir($upload_dir)) {
+                    mkdir($upload_dir, 0755, true);
+                }
+
+                $versionStmt = $this->db->prepare("SELECT MAX(version_number) as max_version FROM document_versions WHERE document_id = :document_id");
+                $versionStmt->execute([':document_id' => $document_id]);
+                $current_version = $versionStmt->fetch(PDO::FETCH_ASSOC)['max_version'] ?? 0;
+                $new_version = $current_version + 1;
+
+                $file_name = $document_id . '_v' . $new_version . '.' . $file_ext;
+                $file_path = $file_name; // Chỉ lưu tên tệp
+
+                if (!move_uploaded_file($_FILES['file']['tmp_name'], $upload_dir . $file_name)) {
+                    $this->db->rollBack();
+                    http_response_code(500);
+                    echo json_encode(['success' => false, 'message' => 'Lỗi khi tải lên tệp!']);
+                    exit;
+                }
+
+                $this->db->prepare("UPDATE documents SET file_path = :file_path WHERE document_id = :document_id")
+                    ->execute([':file_path' => $file_path, ':document_id' => $document_id]);
+
+                $this->db->prepare("
+                    INSERT INTO document_versions (document_id, version_number, file_path, change_note, created_at)
+                    VALUES (:document_id, :version_number, :file_path, :change_note, NOW())
+                ")->execute([
+                    ':document_id' => $document_id,
+                    ':version_number' => $new_version,
+                    ':file_path' => $file_path, // Chỉ lưu tên tệp
+                    ':change_note' => 'Cập nhật tệp mới'
+                ]);
+            }
+
+            $this->db->commit();
+            echo json_encode(['success' => true, 'message' => 'Cập nhật tài liệu thành công!', 'redirect' => '/study_sharing/document/manage']);
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi server khi cập nhật tài liệu: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    public function delete()
+    {
+        header('Content-Type: application/json');
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !in_array($_SESSION['role'], ['teacher', 'student'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Bạn cần đăng nhập để xóa tài liệu!']);
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        // Kiểm tra CSRF token
+        $csrf_token = $_POST['_csrf'] ?? '';
+        if ($csrf_token !== $_SESSION['csrf_token']) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF không hợp lệ!']);
+            exit;
+        }
+
+        $document_id = isset($_POST['document_id']) ? (int)$_POST['document_id'] : 0;
+
+        if ($document_id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID tài liệu không hợp lệ!']);
+            exit;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            // Kiểm tra quyền sở hữu tài liệu
+            $stmt = $this->db->prepare("SELECT file_path FROM documents WHERE document_id = :document_id AND account_id = :account_id");
+            $stmt->execute([':document_id' => $document_id, ':account_id' => $_SESSION['account_id']]);
+            $document = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$document) {
+                $this->db->rollBack();
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại hoặc bạn không có quyền xóa!']);
+                exit;
+            }
+
+            // Kiểm tra dữ liệu liên quan
+            $counts = [
+                'comment_count' => 0,
+                'download_count' => 0,
+                'rating_count' => 0
+            ];
+
+            $checkStmt = $this->db->prepare("SELECT COUNT(*) as count FROM comments WHERE document_id = :document_id");
+            $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+            $checkStmt->execute();
+            $counts['comment_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+            $checkStmt = $this->db->prepare("SELECT COUNT(*) as count FROM downloads WHERE document_id = :document_id");
+            $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+            $checkStmt->execute();
+            $counts['download_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+            $checkStmt = $this->db->prepare("SELECT COUNT(*) as count FROM ratings WHERE document_id = :document_id");
+            $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+            $checkStmt->execute();
+            $counts['rating_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+            if (
+                $counts['comment_count'] > 0 ||
+                $counts['download_count'] > 0 ||
+                $counts['rating_count'] > 0
+            ) {
+                $this->db->rollBack();
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Không thể xóa tài liệu vì có dữ liệu liên quan (bình luận, lượt tải, hoặc đánh giá)!']);
+                exit;
+            }
+
+            // Lấy tất cả file phiên bản
+            $versionStmt = $this->db->prepare("SELECT file_path FROM document_versions WHERE document_id = :document_id");
+            $versionStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+            $versionStmt->execute();
+            $versionFiles = $versionStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Xóa tất cả file phiên bản và file PDF đã chuyển đổi
+            foreach ($versionFiles as $version) {
+                $file_path = __DIR__ . '/../uploads/' . $version['file_path'];
+                if (file_exists($file_path)) {
+                    unlink($file_path);
+                }
+                // Xóa file PDF đã chuyển đổi nếu có
+                $converted_dir = __DIR__ . '/../uploads/converted/';
+                $converted_file_name = pathinfo($version['file_path'], PATHINFO_FILENAME) . '.pdf';
+                $converted_file_path = $converted_dir . $converted_file_name;
+                if (file_exists($converted_file_path)) {
+                    unlink($converted_file_path);
+                }
+            }
+
+            // Xóa tất cả phiên bản từ document_versions
+            $this->db->prepare("DELETE FROM document_versions WHERE document_id = :document_id")
+                ->execute([':document_id' => $document_id]);
+
+            // Xóa thẻ tài liệu
+            $this->db->prepare("DELETE FROM document_tags WHERE document_id = :document_id")
+                ->execute([':document_id' => $document_id]);
+
+            $file_path = __DIR__ . '/../uploads/' . $document['file_path'];
+            if (file_exists($file_path)) {
+                unlink($file_path);
+            }
+
+            // Xóa tài liệu chính
+            $deleteStmt = $this->db->prepare("DELETE FROM documents WHERE document_id = :document_id");
+            $deleteStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+            $deleteStmt->execute();
+
+            $affected = $deleteStmt->rowCount();
+            if ($affected > 0) {
+                $this->db->commit();
+                echo json_encode(['success' => true, 'message' => 'Xóa tài liệu thành công!']);
+            } else {
+                $this->db->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại!']);
+            }
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Delete document error: " . $e->getMessage());
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi server khi xóa tài liệu: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    public function updateVersion()
+    {
+        header('Content-Type: application/json');
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !in_array($_SESSION['role'], ['teacher', 'student'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Bạn cần đăng nhập để cập nhật phiên bản tài liệu!']);
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        $document_id = isset($_POST['document_id']) ? (int)$_POST['document_id'] : 0;
+        $change_note = isset($_POST['change_note']) ? trim($_POST['change_note']) : 'Cập nhật phiên bản mới';
+
+        if ($document_id <= 0) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID tài liệu không hợp lệ!']);
+            exit;
+        }
+
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM documents WHERE document_id = :document_id AND account_id = :account_id");
+            $stmt->execute([':document_id' => $document_id, ':account_id' => $_SESSION['account_id']]);
+            $document = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$document) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại hoặc bạn không có quyền cập nhật!']);
+                exit;
+            }
+
+            if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Vui lòng chọn tệp để cập nhật phiên bản!']);
+                exit;
+            }
+
+            $allowed_types = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
+            $file_type = $_FILES['file']['type'];
+            $file_ext = strtolower(pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION));
+
+            if (!in_array($file_type, $allowed_types) || !in_array($file_ext, ['pdf', 'docx', 'pptx'])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'message' => 'Định dạng tệp không hợp lệ! Chỉ hỗ trợ PDF, DOCX, PPTX.']);
+                exit;
+            }
+
+            $this->db->beginTransaction();
+
+            $versionStmt = $this->db->prepare("SELECT MAX(version_number) as max_version FROM document_versions WHERE document_id = :document_id");
+            $versionStmt->execute([':document_id' => $document_id]);
+            $current_version = $versionStmt->fetch(PDO::FETCH_ASSOC)['max_version'] ?? 0;
+            $new_version = $current_version + 1;
+
+            $upload_dir = __DIR__ . '/../uploads/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0755, true);
+            }
+
+            $file_name = $document_id . '_v' . $new_version . '.' . $file_ext;
+            $file_path = $file_name;
+
+            if (!move_uploaded_file($_FILES['file']['tmp_name'], $upload_dir . $file_name)) {
+                $this->db->rollBack();
+                http_response_code(500);
+                echo json_encode(['success' => false, 'message' => 'Lỗi khi tải lên tệp!']);
+                exit;
+            }
+
+            $this->db->prepare("UPDATE documents SET file_path = :file_path WHERE document_id = :document_id")
+                ->execute([':file_path' => $file_path, ':document_id' => $document_id]);
+
+            $this->db->prepare("
+                INSERT INTO document_versions (document_id, version_number, file_path, change_note, created_at)
+                VALUES (:document_id, :version_number, :file_path, :change_note, NOW())
+            ")->execute([
+                ':document_id' => $document_id,
+                ':version_number' => $new_version,
+                ':file_path' => $file_path,
+                ':change_note' => $change_note
+            ]);
+
+            $this->db->commit();
+            echo json_encode(['success' => true, 'message' => 'Cập nhật phiên bản tài liệu thành công!', 'redirect' => '/study_sharing/document/manage']);
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            http_response_code(500);
+            echo json_encode(['success' => false, 'message' => 'Lỗi server khi cập nhật phiên bản: ' . $e->getMessage()]);
+        }
+        exit;
     }
 }

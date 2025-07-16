@@ -119,7 +119,7 @@ class AdminDocumentController
 
             foreach ($documents as &$document) {
                 $tagStmt = $this->pdo->prepare("
-                    SELECT t.tag_name 
+                    SELECT t.tag_name
                     FROM tags t
                     JOIN document_tags dt ON t.tag_id = dt.tag_id
                     WHERE dt.document_id = :document_id
@@ -223,7 +223,7 @@ class AdminDocumentController
 
                 // Thêm tài liệu
                 $query = "INSERT INTO documents (title, description, file_path, account_id, category_id, course_id, visibility, upload_date) 
-                VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
+                    VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindValue(':title', $title, PDO::PARAM_STR);
                 $stmt->bindValue(':description', $description, PDO::PARAM_STR);
@@ -235,6 +235,16 @@ class AdminDocumentController
                 $stmt->execute();
 
                 $document_id = $this->pdo->lastInsertId();
+
+                // Thêm phiên bản đầu tiên vào document_versions
+                $version_query = "INSERT INTO document_versions (document_id, version_number, file_path, change_note) 
+                            VALUES (:document_id, :version_number, :file_path, :change_note)";
+                $version_stmt = $this->pdo->prepare($version_query);
+                $version_stmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $version_stmt->bindValue(':version_number', 1, PDO::PARAM_INT);
+                $version_stmt->bindValue(':file_path', $file_name, PDO::PARAM_STR);
+                $version_stmt->bindValue(':change_note', 'Phiên bản đầu tiên', PDO::PARAM_STR);
+                $version_stmt->execute();
 
                 // Thêm thẻ
                 foreach ($tags as $tag_name) {
@@ -353,8 +363,8 @@ class AdminDocumentController
                     }
 
                     $file_name = uniqid() . '.' . $file_ext;
-                    $file_path = $file_name; // Chỉ lưu tên file
-                    $absolute_file_path = __DIR__ . '/../' . $this->uploadDir . $file_name; // Đường dẫn tuyệt đối để lưu file
+                    $file_path = $file_name;
+                    $absolute_file_path = __DIR__ . '/../' . $this->uploadDir . $file_name;
 
                     if (!move_uploaded_file($file['tmp_name'], $absolute_file_path)) {
                         error_log("Failed to move uploaded file to: {$absolute_file_path}");
@@ -364,7 +374,7 @@ class AdminDocumentController
                         exit;
                     }
 
-                    $versionStmt = $this->pdo->prepare("INSERT INTO document_versions (document_id, version_number, file_path, change_note) 
+                    $versionStmt = $this->pdo->prepare("INSERT INTO document_versions (document_id, version_number, file_path, change_note)
                                         VALUES (:document_id, (SELECT COALESCE(MAX(version_number), 0) + 1 FROM document_versions WHERE document_id = :document_id), :file_path, :change_note)");
                     $versionStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
                     $versionStmt->bindValue(':file_path', $currentDocument['file_path'], PDO::PARAM_STR);
@@ -452,7 +462,6 @@ class AdminDocumentController
                 $counts = [
                     'comment_count' => 0,
                     'download_count' => 0,
-                    'version_count' => 0,
                     'rating_count' => 0
                 ];
 
@@ -466,36 +475,54 @@ class AdminDocumentController
                 $checkStmt->execute();
                 $counts['download_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-                $checkStmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM document_versions WHERE document_id = :document_id");
-                $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
-                $checkStmt->execute();
-                $counts['version_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
-
                 $checkStmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM ratings WHERE document_id = :document_id");
                 $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
                 $checkStmt->execute();
                 $counts['rating_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
 
                 if (
-                    $counts['comment_count'] > 0 || $counts['download_count'] > 0 ||
-                    $counts['version_count'] > 0 || $counts['rating_count'] > 0
+                    $counts['comment_count'] > 0 ||
+                    $counts['download_count'] > 0 ||
+                    $counts['rating_count'] > 0
                 ) {
-                    echo json_encode(['success' => false, 'message' => 'Không thể xóa tài liệu vì có dữ liệu liên quan (bình luận, lượt tải, phiên bản, hoặc đánh giá)!']);
+                    echo json_encode(['success' => false, 'message' => 'Không thể xóa tài liệu vì có dữ liệu liên quan (bình luận, lượt tải, hoặc đánh giá)!']);
                     exit;
                 }
 
-                $currentDocumentStmt = $this->pdo->prepare("SELECT file_path FROM documents WHERE document_id = :document_id");
-                $currentDocumentStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
-                $currentDocumentStmt->execute();
-                $currentDocument = $currentDocumentStmt->fetch(PDO::FETCH_ASSOC);
+                // Get all version file paths
+                $versionStmt = $this->pdo->prepare("SELECT file_path FROM document_versions WHERE document_id = :document_id");
+                $versionStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $versionStmt->execute();
+                $versionFiles = $versionStmt->fetchAll(PDO::FETCH_ASSOC);
 
-                if ($currentDocument) {
-                    $file_path = __DIR__ . '/../' . $this->uploadDir . $currentDocument['file_path'];
+                // Delete all version files and their converted PDFs
+                foreach ($versionFiles as $version) {
+                    // Delete original version file
+                    $file_path = __DIR__ . '/../' . $this->uploadDir . $version['file_path'];
                     if (file_exists($file_path)) {
                         unlink($file_path);
                     }
+
+                    // Delete converted PDF file if it exists
+                    $converted_dir = __DIR__ . '/../Uploads/converted/';
+                    $converted_file_name = pathinfo($version['file_path'], PATHINFO_FILENAME) . '.pdf';
+                    $converted_file_path = $converted_dir . $converted_file_name;
+                    if (file_exists($converted_file_path)) {
+                        unlink($converted_file_path);
+                    }
                 }
 
+                // Delete all versions from document_versions
+                $deleteVersionsStmt = $this->pdo->prepare("DELETE FROM document_versions WHERE document_id = :document_id");
+                $deleteVersionsStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $deleteVersionsStmt->execute();
+
+                // Delete document tags
+                $deleteTagsStmt = $this->pdo->prepare("DELETE FROM document_tags WHERE document_id = :document_id");
+                $deleteTagsStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                $deleteTagsStmt->execute();
+
+                // Delete the main document
                 $deleteStmt = $this->pdo->prepare("DELETE FROM documents WHERE document_id = :document_id");
                 $deleteStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
                 $deleteStmt->execute();
