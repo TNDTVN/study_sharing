@@ -46,7 +46,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="/study_sharing/admin/profile"><i class="bi bi-person"></i> Hồ sơ</a></li>
-                        <li><a class="dropdown-item" href="/notification/list"><i class="bi bi-bell"></i> Thông báo</a></li>
+                        <li><a class="dropdown-item" href="/study_sharing/notification/list_admin"><i class="bi bi-bell"></i> Thông báo</a></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal"><i class="bi bi-key"></i> Đổi mật khẩu</a></li>
                         <li>
                             <hr class="dropdown-divider">

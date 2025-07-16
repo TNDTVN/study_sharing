@@ -25,10 +25,17 @@ class Account
 
     public function getAllAccounts()
     {
-        $query = "SELECT * FROM accounts";
+        $query = "
+        SELECT a.account_id, a.username, a.email, a.role, a.status, a.created_at, a.updated_at,
+            u.full_name, u.avatar, u.date_of_birth, u.phone_number, u.address
+        FROM accounts a
+        LEFT JOIN users u ON a.account_id = u.account_id
+    ";
         $stmt = $this->db->query($query);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+
 
     public function createAccount($username, $email, $password, $role = 'student', $status = 'active')
     {
@@ -123,5 +130,11 @@ class Account
             error_log("Update password error: " . $e->getMessage());
             throw $e;
         }
+    }
+    public function getUsersByRole($role)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM users WHERE role = ?");
+        $stmt->execute([$role]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }

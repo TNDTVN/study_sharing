@@ -42,6 +42,54 @@ class NotificationController
         require __DIR__ . '/../views/layouts/layout.php';
     }
 
+    // Hàm để lấy thông báo cho admin
+    public function list_admin()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Kiểm tra đã đăng nhập chưa
+        if (!isset($_SESSION['account_id'])) {
+            header('Location: /study_sharing/auth/login');
+            exit;
+        }
+
+        $accountId = $_SESSION['account_id'];
+        $userModel = new User($this->pdo);
+        $user = $userModel->getUserById($accountId);
+
+        // ✅ Kiểm tra vai trò có phải admin không
+        if (!isset($user['role']) || $user['role'] !== 'admin') {
+            echo "Bạn không có quyền truy cập trang này.";
+            exit;
+        }
+
+        // Khởi tạo model
+        $notificationModel = new Notification($this->pdo);
+
+        // Phân trang
+        $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+        $perPage = 10;
+        $offset = ($page - 1) * $perPage;
+
+        // Lấy tổng số và danh sách thông báo gửi cho admin (có thể là receiver_id = admin_id, hoặc broadcast nếu hệ thống có)
+        $totalNotifications = $notificationModel->countNotificationsByUserId($accountId);
+        $notifications = $notificationModel->getNotificationsByUserId($accountId, $offset, $perPage);
+        $totalPages = ceil($totalNotifications / $perPage);
+
+        $title = 'Thông báo quản trị';
+
+        // Gọi nội dung view
+        ob_start();
+        require __DIR__ . '/../views/notification/list_admin.php';
+        $content = ob_get_clean();
+
+        // Gọi layout
+        require __DIR__ . '/../views/layouts/admin_layout.php';
+    }
+
+
     public function markRead()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_SESSION['account_id'])) {
