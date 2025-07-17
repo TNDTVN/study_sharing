@@ -59,7 +59,7 @@ class NotificationController
         $userModel = new User($this->pdo);
         $user = $userModel->getUserById($accountId);
 
-        // ✅ Kiểm tra vai trò có phải admin không
+        // Kiểm tra vai trò có phải admin không
         if (!isset($user['role']) || $user['role'] !== 'admin') {
             echo "Bạn không có quyền truy cập trang này.";
             exit;
@@ -73,7 +73,7 @@ class NotificationController
         $perPage = 10;
         $offset = ($page - 1) * $perPage;
 
-        // Lấy tổng số và danh sách thông báo gửi cho admin (có thể là receiver_id = admin_id, hoặc broadcast nếu hệ thống có)
+        // Lấy tổng số và danh sách thông báo gửi cho admin
         $totalNotifications = $notificationModel->countNotificationsByUserId($accountId);
         $notifications = $notificationModel->getNotificationsByUserId($accountId, $offset, $perPage);
         $totalPages = ceil($totalNotifications / $perPage);
@@ -82,10 +82,12 @@ class NotificationController
 
         // Gọi nội dung view
         ob_start();
+        // Pass variables explicitly to the view
         require __DIR__ . '/../views/notification/list_admin.php';
         $content = ob_get_clean();
 
-        // Gọi layout
+        // Truyền $pdo và các biến khác vào layout
+        $pdo = $this->pdo;
         require __DIR__ . '/../views/layouts/admin_layout.php';
     }
 

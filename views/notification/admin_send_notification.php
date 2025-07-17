@@ -1,153 +1,178 @@
+<?php
+
+/** @var string $title */
+/** @var array $users */
+/** @var array|null $response */
+
+$title = "Gửi thông báo đến người dùng";
+$current_user_id = $_SESSION['user_id'] ?? null;
+
+// Lọc danh sách các vai trò từ $users (lấy từ bảng accounts)
+$students = array_filter($users, fn($user) => $user['role'] === 'student');
+$admins = array_filter($users, fn($user) => $user['role'] === 'admin');
+$teachers = array_filter($users, fn($user) => $user['role'] === 'teacher');
+?>
+
 <div class="container py-4">
-    <div class="bg-white p-4 rounded shadow-sm">
-        <h1 class="h3 mb-4 text-primary">Thông báo của bạn</h1>
+    <h1 class="text-primary mb-4"><i class="bi bi-megaphone"></i> Gửi thông báo</h1>
 
-        <?php if ($notifications): ?>
-            <div class="mb-3">
-                <button class="btn btn-primary btn-sm" id="markAllRead"><i class="bi bi-check-all"></i> Đánh dấu tất cả đã đọc</button>
-                <button class="btn btn-danger btn-sm" id="deleteAll"><i class="bi bi-trash"></i> Xóa tất cả</button>
-            </div>
+    <!-- Nút kích hoạt popup -->
+    <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#notificationModal">
+        <i class="bi bi-plus-circle"></i> Tạo thông báo mới
+    </button>
 
-            <div class="list-group">
-                <?php foreach ($notifications as $notification): ?>
-                    <div class="list-group-item d-flex justify-content-between align-items-start <?php echo $notification['is_read'] ? 'text-secondary' : 'fw-bold'; ?>">
-                        <div>
-                            <p class="mb-1"><?php echo htmlspecialchars($notification['message']); ?></p>
-                            <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($notification['created_at'])); ?></small>
-                        </div>
-                        <div>
-                            <?php if (!$notification['is_read']): ?>
-                                <button class="btn btn-outline-primary btn-sm mark-read" data-id="<?php echo $notification['notification_id']; ?>"><i class="bi bi-check"></i></button>
-                            <?php endif; ?>
-                            <button class="btn btn-outline-danger btn-sm delete-notification" data-id="<?php echo $notification['notification_id']; ?>"><i class="bi bi-trash"></i></button>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
+    <?php if ($response): ?>
+        <div class="alert <?= $response['status'] ? 'alert-success' : 'alert-danger' ?>">
+            <?= htmlspecialchars($response['message']) ?>
+        </div>
 
-            <!-- Phân trang -->
-            <?php if ($totalPages > 1): ?>
-                <nav aria-label="Page navigation" class="mt-4">
-                    <ul class="pagination justify-content-center">
-                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $page - 1; ?>" aria-label="Previous">
-                                <span aria-hidden="true">«</span>
-                            </a>
-                        </li>
-                        <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                            <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                                <a class="page-link" href="?page=<?php echo $i; ?>"><?php echo $i; ?></a>
-                            </li>
-                        <?php endfor; ?>
-                        <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $page + 1; ?>" aria-label="Next">
-                                <span aria-hidden="true">»</span>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-            <?php endif; ?>
-        <?php else: ?>
-            <p class="text-muted">Bạn chưa có thông báo nào.</p>
-        <?php endif; ?>
-    </div>
-</div>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Đánh dấu đã đọc
-        document.querySelectorAll('.mark-read').forEach(button => {
-            button.addEventListener('click', function() {
-                const notificationId = this.getAttribute('data-id');
-                fetch('/study_sharing/notification/markRead', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `notification_id=${notificationId}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            button.closest('.list-group-item').classList.remove('fw-bold');
-                            button.closest('.list-group-item').classList.add('text-secondary');
-                            button.remove();
-                        } else {
-                            alert('Có lỗi xảy ra khi đánh dấu đã đọc.');
-                        }
-                    });
-            });
-        });
-
-        // Xóa thông báo
-        document.querySelectorAll('.delete-notification').forEach(button => {
-            button.addEventListener('click', function() {
-                if (confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
-                    const notificationId = this.getAttribute('data-id');
-                    fetch('/study_sharing/notification/delete', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            },
-                            body: `notification_id=${notificationId}`
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                button.closest('.list-group-item').remove();
+        <?php if (isset($response['results'])): ?>
+            <ul class="list-group mb-3">
+                <?php foreach ($response['results'] as $res): ?>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>ID: <?= htmlspecialchars($res['account_id']) ?></span>
+                        <span class="badge 
+                            <?php
+                            if ($res['status'] === 'sent') {
+                                echo 'bg-success';
+                            } elseif ($res['status'] === 'skipped') {
+                                echo 'bg-warning';
                             } else {
-                                alert('Có lỗi xảy ra khi xóa thông báo.');
+                                echo 'bg-danger';
                             }
-                        });
-                }
-            });
-        });
+                            ?>">
+                            <?= htmlspecialchars($res['status']) ?>
+                        </span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    <?php endif; ?>
 
-        // Đánh dấu tất cả đã đọc
-        document.getElementById('markAllRead').addEventListener('click', function() {
-            fetch('/study_sharing/notification/markAllRead', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    },
-                    body: `user_id=<?php echo $_SESSION['account_id']; ?>`
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.querySelectorAll('.list-group-item').forEach(item => {
-                            item.classList.remove('fw-bold');
-                            item.classList.add('text-secondary');
-                            const markReadButton = item.querySelector('.mark-read');
-                            if (markReadButton) markReadButton.remove();
-                        });
-                    } else {
-                        alert('Có lỗi xảy ra khi đánh dấu tất cả đã đọc.');
-                    }
-                });
-        });
+    <!-- Modal Popup -->
+    <div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="notificationModalLabel">Gửi thông báo mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" id="notificationForm">
+                        <div class="mb-3">
+                            <label for="message" class="form-label">Nội dung thông báo</label>
+                            <textarea class="form-control" id="message" name="message" rows="3" required><?= htmlspecialchars($_POST['message'] ?? '') ?></textarea>
+                        </div>
 
-        // Xóa tất cả thông báo
-        document.getElementById('deleteAll').addEventListener('click', function() {
-            if (confirm('Bạn có chắc chắn muốn xóa tất cả thông báo?')) {
-                fetch('/study_sharing/notification/deleteAll', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `user_id=<?php echo $_SESSION['account_id']; ?>`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            document.querySelector('.list-group').innerHTML = '<p class="text-muted">Bạn chưa có thông báo nào.</p>';
-                            document.getElementById('markAllRead').remove();
-                            document.getElementById('deleteAll').remove();
-                        } else {
-                            alert('Có lỗi xảy ra khi xóa tất cả thông báo.');
-                        }
-                    });
+                        <div class="mb-3">
+                            <label for="target_type" class="form-label">Gửi đến</label>
+                            <select class="form-select" id="target_type" name="target_type" onchange="toggleTargetOptions()">
+                                <option value="all" <?= (!isset($_POST['target_type']) || $_POST['target_type'] === 'all') ? 'selected' : '' ?>>Tất cả người dùng</option>
+                                <option value="role" <?= (isset($_POST['target_type']) && $_POST['target_type'] === 'role') ? 'selected' : '' ?>>Theo vai trò</option>
+                                <option value="account" <?= (isset($_POST['target_type']) && $_POST['target_type'] === 'account') ? 'selected' : '' ?>>Theo tài khoản</option>
+                            </select>
+                        </div>
+
+                        <!-- Tùy chọn theo vai trò -->
+                        <div class="mb-3" id="role_options" style="display: <?= (isset($_POST['target_type']) && $_POST['target_type'] === 'role') ? 'block' : 'none' ?>;">
+                            <label for="role" class="form-label">Chọn vai trò</label>
+                            <select class="form-select" id="role" name="role" onchange="toggleRoleOptions()">
+                                <option value="admin" <?= (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'selected' : '' ?>>Admin</option>
+                                <option value="teacher" <?= (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'selected' : '' ?>>Teacher</option>
+                                <option value="student" <?= (isset($_POST['role']) && $_POST['role'] === 'student') ? 'selected' : '' ?>>Student</option>
+                            </select>
+
+                            <!-- Danh sách tài khoản admin khi chọn vai trò admin -->
+                            <div class="mb-3 mt-3" id="admin_options" style="display: <?= (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'block' : 'none' ?>;">
+                                <label class="form-label">Chọn tài khoản Admin</label>
+                                <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    <?php foreach ($admins as $user): ?>
+                                        <?php if ($user['account_id'] != $current_user_id): ?>
+                                            <label class="list-group-item d-flex align-items-center">
+                                                <input class="form-check-input me-2" type="checkbox" name="admin_ids[]" value="<?= $user['account_id'] ?>"
+                                                    <?= (isset($_POST['admin_ids']) && in_array($user['account_id'], $_POST['admin_ids'])) ? 'checked' : '' ?>>
+                                                <?= htmlspecialchars($user['full_name'] . ' (' . $user['username'] . ')') ?>
+                                            </label>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
+                            <!-- Danh sách tài khoản teacher khi chọn vai trò teacher -->
+                            <div class="mb-3 mt-3" id="teacher_options" style="display: <?= (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'block' : 'none' ?>;">
+                                <label class="form-label">Chọn tài khoản Teacher</label>
+                                <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    <?php foreach ($teachers as $user): ?>
+                                        <?php if ($user['account_id'] != $current_user_id): ?>
+                                            <label class="list-group-item d-flex align-items-center">
+                                                <input class="form-check-input me-2" type="checkbox" name="teacher_ids[]" value="<?= $user['account_id'] ?>"
+                                                    <?= (isset($_POST['teacher_ids']) && in_array($user['account_id'], $_POST['teacher_ids'])) ? 'checked' : '' ?>>
+                                                <?= htmlspecialchars($user['full_name'] . ' (' . $user['username'] . ')') ?>
+                                            </label>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+
+                            <!-- Danh sách tài khoản student khi chọn vai trò student -->
+                            <div class="mb-3 mt-3" id="student_options" style="display: <?= (isset($_POST['role']) && $_POST['role'] === 'student') ? 'block' : 'none' ?>;">
+                                <label class="form-label">Chọn tài khoản Student</label>
+                                <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    <?php foreach ($students as $user): ?>
+                                        <?php if ($user['account_id'] != $current_user_id): ?>
+                                            <label class="list-group-item d-flex align-items-center">
+                                                <input class="form-check-input me-2" type="checkbox" name="student_ids[]" value="<?= $user['account_id'] ?>"
+                                                    <?= (isset($_POST['student_ids']) && in_array($user['account_id'], $_POST['student_ids'])) ? 'checked' : '' ?>>
+                                                <?= htmlspecialchars($user['full_name'] . ' (' . $user['username'] . ')') ?>
+                                            </label>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tùy chọn theo tài khoản -->
+                        <div class="mb-3" id="account_options" style="display: <?= (isset($_POST['target_type']) && $_POST['target_type'] === 'account') ? 'block' : 'none' ?>;">
+                            <label class="form-label">Chọn tài khoản</label>
+                            <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                <?php foreach ($users as $user): ?>
+                                    <?php if ($user['account_id'] != $current_user_id): ?>
+                                        <label class="list-group-item d-flex align-items-center">
+                                            <input class="form-check-input me-2" type="checkbox" name="target_ids[]" value="<?= $user['account_id'] ?>"
+                                                <?= (isset($_POST['target_ids']) && in_array($user['account_id'], $_POST['target_ids'])) ? 'checked' : '' ?>>
+                                            <?= htmlspecialchars($user['full_name'] . ' (' . $user['username'] . ')') ?>
+                                        </label>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Gửi thông báo</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script để xử lý hiển thị tùy chọn -->
+    <script>
+        function toggleTargetOptions() {
+            const targetType = document.getElementById('target_type').value;
+            document.getElementById('role_options').style.display = targetType === 'role' ? 'block' : 'none';
+            document.getElementById('account_options').style.display = targetType === 'account' ? 'block' : 'none';
+            if (targetType === 'role') {
+                toggleRoleOptions();
             }
-        });
-    });
-</script>
+        }
+
+        function toggleRoleOptions() {
+            const role = document.getElementById('role').value;
+            document.getElementById('admin_options').style.display = role === 'admin' ? 'block' : 'none';
+            document.getElementById('teacher_options').style.display = role === 'teacher' ? 'block' : 'none';
+            document.getElementById('student_options').style.display = role === 'student' ? 'block' : 'none';
+        }
+    </script>
+</div>
