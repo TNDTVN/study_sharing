@@ -4,6 +4,8 @@ namespace App;
 
 use PDO;
 use Exception;
+use DateTime;
+use DateInterval;
 
 class DocumentController
 {
@@ -437,7 +439,8 @@ class DocumentController
         }
 
         $document = $this->document->getDocumentById($document_id);
-        if (!$document || $document['visibility'] !== 'public') {
+        // Kiểm tra quyền truy cập: tài liệu công khai hoặc thuộc về người dùng
+        if (!$document || ($document['visibility'] !== 'public' && (!isset($_SESSION['account_id']) || $_SESSION['account_id'] != $document['account_id']))) {
             echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại hoặc không có quyền truy cập']);
             exit;
         }
@@ -991,7 +994,7 @@ class DocumentController
                 $new_version = $current_version + 1;
 
                 $file_name = $document_id . '_v' . $new_version . '.' . $file_ext;
-                $file_path = $file_name; // Chỉ lưu tên tệp
+                $file_path = $file_name;
 
                 if (!move_uploaded_file($_FILES['file']['tmp_name'], $upload_dir . $file_name)) {
                     $this->db->rollBack();
@@ -1009,7 +1012,7 @@ class DocumentController
                 ")->execute([
                     ':document_id' => $document_id,
                     ':version_number' => $new_version,
-                    ':file_path' => $file_path, // Chỉ lưu tên tệp
+                    ':file_path' => $file_path,
                     ':change_note' => 'Cập nhật tệp mới'
                 ]);
             }
@@ -1032,7 +1035,7 @@ class DocumentController
             session_start();
         }
 
-        if (!isset($_SESSION['account_id']) || !in_array($_SESSION['role'], ['teacher', 'student'])) {
+        if (!isset($_SESSION['account_id']) || !in_array($_SESSION['role'], ['teacher', 'student(link:javascript:;student'])) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Bạn cần đăng nhập để xóa tài liệu!']);
             exit;
@@ -1041,14 +1044,6 @@ class DocumentController
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
             echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
-            exit;
-        }
-
-        // Kiểm tra CSRF token
-        $csrf_token = $_POST['_csrf'] ?? '';
-        if ($csrf_token !== $_SESSION['csrf_token']) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Token CSRF không hợp lệ!']);
             exit;
         }
 
@@ -1063,7 +1058,6 @@ class DocumentController
         try {
             $this->db->beginTransaction();
 
-            // Kiểm tra quyền sở hữu tài liệu
             $stmt = $this->db->prepare("SELECT file_path FROM documents WHERE document_id = :document_id AND account_id = :account_id");
             $stmt->execute([':document_id' => $document_id, ':account_id' => $_SESSION['account_id']]);
             $document = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -1075,7 +1069,6 @@ class DocumentController
                 exit;
             }
 
-            // Kiểm tra dữ liệu liên quan
             $counts = [
                 'comment_count' => 0,
                 'download_count' => 0,
@@ -1108,20 +1101,17 @@ class DocumentController
                 exit;
             }
 
-            // Lấy tất cả file phiên bản
             $versionStmt = $this->db->prepare("SELECT file_path FROM document_versions WHERE document_id = :document_id");
             $versionStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
             $versionStmt->execute();
             $versionFiles = $versionStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Xóa tất cả file phiên bản và file PDF đã chuyển đổi
             foreach ($versionFiles as $version) {
-                $file_path = __DIR__ . '/../uploads/' . $version['file_path'];
+                $file_path = __DIR__ . '/../Uploads/' . $version['file_path'];
                 if (file_exists($file_path)) {
                     unlink($file_path);
                 }
-                // Xóa file PDF đã chuyển đổi nếu có
-                $converted_dir = __DIR__ . '/../uploads/converted/';
+                $converted_dir = __DIR__ . '/../Uploads/converted/';
                 $converted_file_name = pathinfo($version['file_path'], PATHINFO_FILENAME) . '.pdf';
                 $converted_file_path = $converted_dir . $converted_file_name;
                 if (file_exists($converted_file_path)) {
@@ -1129,20 +1119,17 @@ class DocumentController
                 }
             }
 
-            // Xóa tất cả phiên bản từ document_versions
             $this->db->prepare("DELETE FROM document_versions WHERE document_id = :document_id")
                 ->execute([':document_id' => $document_id]);
 
-            // Xóa thẻ tài liệu
             $this->db->prepare("DELETE FROM document_tags WHERE document_id = :document_id")
                 ->execute([':document_id' => $document_id]);
 
-            $file_path = __DIR__ . '/../uploads/' . $document['file_path'];
+            $file_path = __DIR__ . '/../Uploads/' . $document['file_path'];
             if (file_exists($file_path)) {
                 unlink($file_path);
             }
 
-            // Xóa tài liệu chính
             $deleteStmt = $this->db->prepare("DELETE FROM documents WHERE document_id = :document_id");
             $deleteStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
             $deleteStmt->execute();
@@ -1227,7 +1214,7 @@ class DocumentController
             $current_version = $versionStmt->fetch(PDO::FETCH_ASSOC)['max_version'] ?? 0;
             $new_version = $current_version + 1;
 
-            $upload_dir = __DIR__ . '/../uploads/';
+            $upload_dir = __DIR__ . '/../Uploads/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0755, true);
             }
@@ -1263,5 +1250,315 @@ class DocumentController
             echo json_encode(['success' => false, 'message' => 'Lỗi server khi cập nhật phiên bản: ' . $e->getMessage()]);
         }
         exit;
+    }
+
+    public function statistics()
+    {
+        if (!isset($_SESSION['account_id'])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Vui lòng đăng nhập để xem thống kê tài liệu']);
+            exit;
+        }
+
+        try {
+            $account_id = $_SESSION['account_id'];
+
+            // 1. Thống kê tổng quan
+            $overviewStats = $this->getOverviewStatistics($account_id);
+
+            // 2. Thống kê theo danh mục
+            $categoryStats = $this->getCategoryStatistics($account_id);
+
+            // 3. Thống kê theo thời gian (7 ngày gần nhất, 30 ngày gần nhất)
+            $timeStats = $this->getTimeStatistics($account_id);
+
+            // 4. Thống kê tài liệu phổ biến
+            $popularDocs = $this->getPopularDocuments($account_id);
+
+            // Chuẩn bị dữ liệu cho view
+            $title = 'Thống kê tài liệu';
+            $layout = 'layout.php';
+            ob_start();
+            require __DIR__ . '/../views/document/statistics.php';
+            $content = ob_get_clean();
+            $pdo = $this->db;
+            require __DIR__ . '/../views/layouts/' . $layout;
+        } catch (\PDOException $e) {
+            error_log("Statistics error: " . $e->getMessage());
+            $_SESSION['message'] = 'Lỗi server khi tải thống kê: ' . $e->getMessage();
+            $_SESSION['message_type'] = 'danger';
+            header('Location: /study_sharing');
+            exit;
+        }
+    }
+
+    private function getOverviewStatistics($account_id)
+    {
+        $stats = [];
+
+        // Tổng số tài liệu
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM documents WHERE account_id = :account_id");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats['total_documents'] = $stmt->fetchColumn();
+
+        // Tổng lượt tải
+        $stmt = $this->db->prepare("
+        SELECT COUNT(*) 
+        FROM downloads dl
+        JOIN documents d ON dl.document_id = d.document_id
+        WHERE d.account_id = :account_id
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats['total_downloads'] = $stmt->fetchColumn();
+
+        // Tổng bình luận
+        $stmt = $this->db->prepare("
+        SELECT COUNT(*) 
+        FROM comments cm
+        JOIN documents d ON cm.document_id = d.document_id
+        WHERE d.account_id = :account_id
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats['total_comments'] = $stmt->fetchColumn();
+
+        // Đánh giá trung bình
+        $stmt = $this->db->prepare("
+        SELECT AVG(r.rating_value) 
+        FROM ratings r
+        JOIN documents d ON r.document_id = d.document_id
+        WHERE d.account_id = :account_id
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats['avg_rating'] = round($stmt->fetchColumn(), 1);
+
+        // Số lượng tài liệu theo loại file
+        $stmt = $this->db->prepare("
+        SELECT 
+            SUM(CASE WHEN file_path LIKE '%.pdf' THEN 1 ELSE 0 END) as pdf_count,
+            SUM(CASE WHEN file_path LIKE '%.docx' THEN 1 ELSE 0 END) as docx_count,
+            SUM(CASE WHEN file_path LIKE '%.pptx' THEN 1 ELSE 0 END) as pptx_count
+        FROM documents 
+        WHERE account_id = :account_id
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $fileTypes = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stats['file_types'] = $fileTypes;
+
+        return $stats;
+    }
+
+    private function getCategoryStatistics($account_id)
+    {
+        $stats = [];
+
+        // Thống kê số lượng tài liệu theo danh mục
+        $stmt = $this->db->prepare("
+        SELECT c.category_name, COUNT(d.document_id) as document_count
+        FROM categories c
+        LEFT JOIN documents d ON c.category_id = d.category_id AND d.account_id = :account_id
+        GROUP BY c.category_id, c.category_name
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats['document_counts'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Thống kê số lượt tải xuống theo danh mục
+        $stmt = $this->db->prepare("
+        SELECT c.category_name, COUNT(dl.download_id) as download_count
+        FROM categories c
+        LEFT JOIN documents d ON c.category_id = d.category_id AND d.account_id = :account_id
+        LEFT JOIN downloads dl ON d.document_id = dl.document_id
+        GROUP BY c.category_id, c.category_name
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats['download_counts'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Thống kê số bình luận theo danh mục
+        $stmt = $this->db->prepare("
+        SELECT c.category_name, COUNT(cm.comment_id) as comment_count
+        FROM categories c
+        LEFT JOIN documents d ON c.category_id = d.category_id AND d.account_id = :account_id
+        LEFT JOIN comments cm ON d.document_id = cm.document_id
+        GROUP BY c.category_id, c.category_name
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats['comment_counts'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Thống kê đánh giá trung bình theo danh mục
+        $stmt = $this->db->prepare("
+        SELECT c.category_name, AVG(r.rating_value) as avg_rating
+        FROM categories c
+        LEFT JOIN documents d ON c.category_id = d.category_id AND d.account_id = :account_id
+        LEFT JOIN ratings r ON d.document_id = r.document_id
+        GROUP BY c.category_id, c.category_name
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $stats['rating_avgs'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $stats;
+    }
+
+    private function getTimeStatistics($account_id)
+    {
+        $stats = [];
+        $now = new DateTime();
+
+        // Thống kê 7 ngày gần nhất
+        $sevenDaysAgo = (new DateTime())->sub(new DateInterval('P7D'))->format('Y-m-d');
+
+        // Tài liệu mới upload
+        $stmt = $this->db->prepare("
+        SELECT COUNT(*) 
+        FROM documents 
+        WHERE account_id = :account_id AND upload_date >= :date
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->bindValue(':date', $sevenDaysAgo);
+        $stmt->execute();
+        $stats['recent_uploads'] = $stmt->fetchColumn();
+
+        // Lượt tải gần đây
+        $stmt = $this->db->prepare("
+        SELECT COUNT(*) 
+        FROM downloads dl
+        JOIN documents d ON dl.document_id = d.document_id
+        WHERE d.account_id = :account_id AND dl.download_date >= :date
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->bindValue(':date', $sevenDaysAgo);
+        $stmt->execute();
+        $stats['recent_downloads'] = $stmt->fetchColumn();
+
+        // Bình luận gần đây
+        $stmt = $this->db->prepare("
+        SELECT COUNT(*) 
+        FROM comments cm
+        JOIN documents d ON cm.document_id = d.document_id
+        WHERE d.account_id = :account_id AND cm.comment_date >= :date
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->bindValue(':date', $sevenDaysAgo);
+        $stmt->execute();
+        $stats['recent_comments'] = $stmt->fetchColumn();
+
+        // Thống kê theo tháng (30 ngày)
+        $monthlyStats = [];
+        $monthNames = [
+            'Tháng 1',
+            'Tháng 2',
+            'Tháng 3',
+            'Tháng 4',
+            'Tháng 5',
+            'Tháng 6',
+            'Tháng 7',
+            'Tháng 8',
+            'Tháng 9',
+            'Tháng 10',
+            'Tháng 11',
+            'Tháng 12'
+        ];
+        for ($i = 0; $i < 12; $i++) {
+            $startDate = (new DateTime())->sub(new DateInterval('P' . (11 - $i) . 'M'))->format('Y-m-01');
+            $endDate = (new DateTime())->sub(new DateInterval('P' . (11 - $i) . 'M'))->format('Y-m-t');
+
+            $monthIndex = (new DateTime($startDate))->format('n') - 1; // Lấy số tháng (1-12) và điều chỉnh về 0-11
+            $year = (new DateTime($startDate))->format('Y');
+            $monthName = $monthNames[$monthIndex] . ' ' . $year;
+
+            // Tài liệu upload
+            $stmt = $this->db->prepare("
+            SELECT COUNT(*) 
+            FROM documents 
+            WHERE account_id = :account_id 
+            AND upload_date BETWEEN :start_date AND :end_date
+        ");
+            $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+            $stmt->bindValue(':start_date', $startDate);
+            $stmt->bindValue(':end_date', $endDate);
+            $stmt->execute();
+            $uploads = $stmt->fetchColumn();
+
+            // Lượt tải
+            $stmt = $this->db->prepare("
+            SELECT COUNT(*) 
+            FROM downloads dl
+            JOIN documents d ON dl.document_id = d.document_id
+            WHERE d.account_id = :account_id 
+            AND dl.download_date BETWEEN :start_date AND :end_date
+        ");
+            $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+            $stmt->bindValue(':start_date', $startDate);
+            $stmt->bindValue(':end_date', $endDate);
+            $stmt->execute();
+            $downloads = $stmt->fetchColumn();
+
+            $monthlyStats[] = [
+                'month' => $monthName,
+                'uploads' => $uploads,
+                'downloads' => $downloads
+            ];
+        }
+
+        $stats['monthly_stats'] = $monthlyStats;
+
+        return $stats;
+    }
+
+    private function getPopularDocuments($account_id)
+    {
+        $popularDocs = [];
+
+        // Top 5 tài liệu có lượt tải nhiều nhất
+        $stmt = $this->db->prepare("
+        SELECT d.document_id, d.title, COUNT(dl.download_id) as download_count
+        FROM documents d
+        LEFT JOIN downloads dl ON d.document_id = dl.document_id
+        WHERE d.account_id = :account_id
+        GROUP BY d.document_id, d.title
+        ORDER BY download_count DESC
+        LIMIT 5
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $popularDocs['by_downloads'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Top 5 tài liệu có nhiều bình luận nhất
+        $stmt = $this->db->prepare("
+        SELECT d.document_id, d.title, COUNT(cm.comment_id) as comment_count
+        FROM documents d
+        LEFT JOIN comments cm ON d.document_id = cm.document_id
+        WHERE d.account_id = :account_id
+        GROUP BY d.document_id, d.title
+        ORDER BY comment_count DESC
+        LIMIT 5
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $popularDocs['by_comments'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Top 5 tài liệu có đánh giá cao nhất
+        $stmt = $this->db->prepare("
+        SELECT d.document_id, d.title, AVG(r.rating_value) as avg_rating
+        FROM documents d
+        LEFT JOIN ratings r ON d.document_id = r.document_id
+        WHERE d.account_id = :account_id
+        GROUP BY d.document_id, d.title
+        HAVING avg_rating IS NOT NULL
+        ORDER BY avg_rating DESC
+        LIMIT 5
+    ");
+        $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $popularDocs['by_ratings'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return $popularDocs;
     }
 }

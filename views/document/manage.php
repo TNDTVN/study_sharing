@@ -161,7 +161,6 @@ $title = "Quản lý tài liệu của tôi";
             </div>
             <div class="modal-body">
                 <form id="editDocumentForm" method="POST" action="/study_sharing/document/edit" enctype="multipart/form-data" class="needs-validation" novalidate>
-                    <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES | ENT_SUBSTITUTE); ?>">
                     <input type="hidden" id="editDocumentId" name="document_id">
                     <div class="row">
                         <div class="col-md-6">
@@ -406,8 +405,7 @@ $title = "Quản lý tài liệu của tôi";
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="updateVersionForm" method="POST" action="/study_sharing/document/update_version" enctype="multipart/form-data" class="needs-validation" novalidate>
-                    <input type="hidden" name="_csrf" value="<?php echo htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES | ENT_SUBSTITUTE); ?>">
+                <form id="updateVersionForm" method="POST" action="/study_sharing/document/updateversion" enctype="multipart/form-data" class="needs-validation" novalidate>
                     <input type="hidden" id="updateVersionDocumentId" name="document_id">
                     <div class="mb-3">
                         <label for="updateVersionFile" class="form-label">Tệp tài liệu mới <span class="text-danger">*</span></label>
@@ -428,6 +426,24 @@ $title = "Quản lý tài liệu của tôi";
                         Cập nhật phiên bản
                     </button>
                 </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="successModalLabel">Thành công</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="successModalMessage"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Đóng</button>
             </div>
         </div>
     </div>

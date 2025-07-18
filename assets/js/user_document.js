@@ -19,12 +19,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const editFileNameDisplay = document.getElementById('currentFileName');
     const updateVersionFileInput = document.getElementById('updateVersionFile');
     const updateVersionFileNameDisplay = document.getElementById('updateVersionFileName');
+    const successModal = new bootstrap.Modal(document.getElementById('successModal'));
+    const successModalMessage = document.getElementById('successModalMessage');
 
     // Initialize PDF.js worker
     if (typeof pdfjsLib !== 'undefined') {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     } else {
         console.error('PDF.js is not loaded');
+    }
+
+    // Hàm hiển thị modal thành công
+    function showSuccessModal(message, callback) {
+        successModalMessage.textContent = message;
+        successModal.show();
+        const modalElement = document.getElementById('successModal');
+        modalElement.addEventListener('hidden.bs.modal', callback, { once: true });
     }
 
     // Hàm khởi tạo tag cho input
@@ -157,6 +167,50 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Xử lý submit form chỉnh sửa
+    editForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('editDocumentTitle').value;
+        const file = editFileInput.files[0];
+        if (!editForm.checkValidity()) {
+            editForm.classList.add('was-validated');
+            return;
+        } else if (title.length > 255) {
+            alert('Tiêu đề không được vượt quá 255 ký tự.');
+            return;
+        } else if (file && file.size > 10 * 1024 * 1024) {
+            alert('Kích thước tệp không được vượt quá 10MB.');
+            return;
+        }
+
+        const formData = new FormData(editForm);
+        fetch(editForm.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showSuccessModal(data.message, () => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    }
+                });
+            } else {
+                alert(data.message || 'Lỗi khi cập nhật tài liệu.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Lỗi kết nối hoặc server khi cập nhật tài liệu: ' + error.message);
+        });
+    });
+
     // Xử lý nút xóa
     deleteButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -165,10 +219,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetch('/study_sharing/document/delete', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: `document_id=${documentId}&_csrf=${encodeURIComponent(document.querySelector('meta[name="csrf-token"]').content)}`
+                    body: `document_id=${documentId}`
                 })
                 .then(response => {
                     if (!response.ok) {
@@ -178,8 +231,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                 .then(data => {
                     if (data.success) {
-                        alert(data.message);
-                        location.reload();
+                        showSuccessModal(data.message, () => {
+                            location.reload();
+                        });
                     } else {
                         alert(data.message || 'Lỗi không xác định khi xóa tài liệu.');
                     }
@@ -200,6 +254,46 @@ document.addEventListener('DOMContentLoaded', () => {
             updateVersionFileNameDisplay.textContent = '';
             updateVersionFileInput.value = '';
             document.getElementById('updateVersionChangeNote').value = '';
+        });
+    });
+
+    // Xử lý submit form cập nhật phiên bản
+    updateVersionForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const file = updateVersionFileInput.files[0];
+        if (!updateVersionForm.checkValidity()) {
+            updateVersionForm.classList.add('was-validated');
+            return;
+        } else if (file && file.size > 10 * 1024 * 1024) {
+            alert('Kích thước tệp không được vượt quá 10MB.');
+            return;
+        }
+
+        const formData = new FormData(updateVersionForm);
+        fetch(updateVersionForm.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                showSuccessModal(data.message, () => {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    }
+                });
+            } else {
+                alert(data.message || 'Lỗi khi cập nhật phiên bản.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Lỗi kết nối hoặc server khi cập nhật phiên bản: ' + error.message);
         });
     });
 
@@ -238,7 +332,6 @@ document.addEventListener('DOMContentLoaded', () => {
             pdfDoc = null;
             totalPages = 0;
 
-            // Kiểm tra kích thước file trước khi tải
             fetch(filePath, { method: 'HEAD' })
                 .then(response => {
                     const fileSize = response.headers.get('content-length');
@@ -270,13 +363,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('versionModal').addEventListener('hidden.bs.modal', () => {
         const versionModal = document.getElementById('versionModal');
         const tbody = document.getElementById('versionTableBody');
-        tbody.innerHTML = ''; // Xóa nội dung bảng
-        versionModal.classList.remove('show'); // Đảm bảo modal được ẩn hoàn toàn
-        versionModal.style.display = 'none'; // Đặt lại thuộc tính display
-        document.body.classList.remove('modal-open'); // Xóa lớp modal-open khỏi body
+        tbody.innerHTML = '';
+        versionModal.classList.remove('show');
+        versionModal.style.display = 'none';
+        document.body.classList.remove('modal-open');
         const modalBackdrop = document.querySelector('.modal-backdrop');
         if (modalBackdrop) {
-            modalBackdrop.remove(); // Xóa nền backdrop
+            modalBackdrop.remove();
         }
     });
 
@@ -436,37 +529,4 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = '<p>Định dạng file không được hỗ trợ. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
         }
     }
-
-    // Xử lý validation form chỉnh sửa
-    editForm.addEventListener('submit', (e) => {
-        const title = document.getElementById('editDocumentTitle').value;
-        const file = editFileInput.files[0];
-        if (!editForm.checkValidity()) {
-            e.preventDefault();
-            e.stopPropagation();
-        } else if (title.length > 255) {
-            e.preventDefault();
-            alert('Tiêu đề không được vượt quá 255 ký tự.');
-            return;
-        } else if (file && file.size > 10 * 1024 * 1024) {
-            e.preventDefault();
-            alert('Kích thước tệp không được vượt quá 10MB.');
-            return;
-        }
-        editForm.classList.add('was-validated');
-    });
-
-    // Xử lý validation form cập nhật phiên bản
-    updateVersionForm.addEventListener('submit', (e) => {
-        const file = updateVersionFileInput.files[0];
-        if (!updateVersionForm.checkValidity()) {
-            e.preventDefault();
-            e.stopPropagation();
-        } else if (file && file.size > 10 * 1024 * 1024) {
-            e.preventDefault();
-            alert('Kích thước tệp không được vượt quá 10MB.');
-            return;
-        }
-        updateVersionForm.classList.add('was-validated');
-    });
 });

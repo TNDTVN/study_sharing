@@ -63,6 +63,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <li><a class="dropdown-item" href="/study_sharing/document/create"><i class="bi bi-upload"></i> Tải lên</a></li>
                                 <li><a class="dropdown-item" href="/study_sharing/document/manage"><i class="bi bi-journal-text"></i> Quản lý</a></li>
                                 <li><a class="dropdown-item" href="/study_sharing/document/downloadHistory"><i class="bi bi-download"></i> Lịch sử tải tài liệu</a></li>
+                                <li><a class="dropdown-item" href="/study_sharing/document/statistics"><i class="bi bi-bar-chart"></i> Thống kê tài liệu</a></li>
                             <?php endif; ?>
                         </ul>
                     </li>

@@ -578,15 +578,14 @@ function recordDownload(documentId, event) {
     .then(data => {
         if (data.success) {
             link.click();
+            alert('Tải xuống thành công!');
         } else {
             alert('Lỗi khi ghi nhận tải xuống: ' + data.message);
-            link.click();
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Lỗi server, nhưng bạn vẫn có thể tải xuống!');
-        link.click();
+        alert('Lỗi server, vui lòng thử lại!');
     })
     .finally(() => {
         document.body.removeChild(link);
