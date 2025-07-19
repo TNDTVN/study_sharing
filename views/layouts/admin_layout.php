@@ -193,34 +193,22 @@ if (session_status() === PHP_SESSION_NONE) {
             color: #f56565;
         }
 
-        .intro h3::after {
-            background-color: #f56565;
-        }
-
+     
         .contact h3 {
             color: #63b3ed;
         }
 
-        .contact h3::after {
-            background-color: #63b3ed;
-        }
-
+      
         .address h3 {
             color: #68d391;
         }
 
-        .address h3::after {
-            background-color: #68d391;
-        }
-
+        
         .follow h3 {
             color: #b794f4;
         }
 
-        .follow h3::after {
-            background-color: #b794f4;
-        }
-
+      
         .footer-section p {
             color: #e2e8f0;
             line-height: 1.75;

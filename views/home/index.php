@@ -1,7 +1,7 @@
 <div class="container-fluid py-5" style="max-width: 1600px;">
     <div class="bg-white p-5 rounded-3 shadow-lg" style="background: linear-gradient(145deg, #ffffff, #e6f0fa);">
-        <h1 class="display-3 fw-bold text-center text-blue-dark mb-4 animate__animated animate__fadeIn">
-            Chào mừng đến với Hệ thống Chia sẻ Tài liệu
+        <h1 class="display-4 fw-bold text-center text-blue-dark mb-4 animate__animated animate__fadeIn">
+            Chào mừng đến với Website Chia sẻ Tài liệu
         </h1>
         <p class="lead text-center text-blue-light mb-5 animate__animated animate__fadeIn" style="animation-delay: 0.2s; font-size: 1.25rem;">
             Khám phá, chia sẻ và học hỏi từ kho tài liệu phong phú ngay hôm nay!
