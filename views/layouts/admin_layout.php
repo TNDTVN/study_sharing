@@ -115,277 +115,281 @@ if (session_status() === PHP_SESSION_NONE) {
         </main>
 
         <!-- Footer -->
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Liên kết Font Awesome cho các biểu tượng -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* CSS cho footer */
-        footer {
-            background: linear-gradient(to bottom, #1a202c, #2d3748);
-            color: white;
-            padding: 3rem 0;
-            margin-top: 3rem;
-            position: relative;
-            overflow: hidden;
-        }
+        <!DOCTYPE html>
+        <html lang="vi">
 
-        .wave-divider {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3rem;
-        }
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <!-- Liên kết Font Awesome cho các biểu tượng -->
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <style>
+                /* CSS cho footer */
+                footer {
+                    background: linear-gradient(to bottom, #1a202c, #2d3748);
+                    color: white;
+                    padding: 3rem 0;
+                    margin-top: 3rem;
+                    position: relative;
+                    overflow: hidden;
+                }
 
-        .wave-divider svg {
-            width: 100%;
-            height: 100%;
-            fill: #2d3748;
-        }
+                .wave-divider {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 3rem;
+                }
 
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2.5rem;
-            padding: 0 2rem;
-        }
+                .wave-divider svg {
+                    width: 100%;
+                    height: 100%;
+                    fill: #2d3748;
+                }
 
-        @media (min-width: 640px) {
-            .footer-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
+                .footer-grid {
+                    display: grid;
+                    grid-template-columns: 1fr;
+                    gap: 2.5rem;
+                    padding: 0 2rem;
+                }
 
-        @media (min-width: 1024px) {
-            .footer-grid {
-                grid-template-columns: repeat(4, 1fr);
-                padding: 0 5rem;
-            }
-            .footer-grid > div {
-                text-align: left;
-            }
-        }
+                @media (min-width: 640px) {
+                    .footer-grid {
+                        grid-template-columns: repeat(2, 1fr);
+                    }
+                }
 
-        .footer-section h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 1.25rem;
-            position: relative;
-        }
+                @media (min-width: 1024px) {
+                    .footer-grid {
+                        grid-template-columns: repeat(4, 1fr);
+                        padding: 0 5rem;
+                    }
 
-        .footer-section h3::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 3rem;
-            height: 0.25rem;
-            border-radius: 9999px;
-            transition: width 0.3s;
-        }
+                    .footer-grid>div {
+                        text-align: left;
+                    }
+                }
 
-        .intro h3 {
-            color: #f56565;
-        }
+                .footer-section h3 {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    margin-bottom: 1.25rem;
+                    position: relative;
+                }
 
-        .intro h3::after {
-            background-color: #f56565;
-        }
+                .footer-section h3::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    width: 3rem;
+                    height: 0.25rem;
+                    border-radius: 9999px;
+                    transition: width 0.3s;
+                }
 
-        .contact h3 {
-            color: #63b3ed;
-        }
+                .intro h3 {
+                    color: #f56565;
+                }
 
-        .contact h3::after {
-            background-color: #63b3ed;
-        }
+                .intro h3::after {
+                    background-color: #f56565;
+                }
 
-        .address h3 {
-            color: #68d391;
-        }
+                .contact h3 {
+                    color: #63b3ed;
+                }
 
-        .address h3::after {
-            background-color: #68d391;
-        }
+                .contact h3::after {
+                    background-color: #63b3ed;
+                }
 
-        .follow h3 {
-            color: #b794f4;
-        }
+                .address h3 {
+                    color: #68d391;
+                }
 
-        .follow h3::after {
-            background-color: #b794f4;
-        }
+                .address h3::after {
+                    background-color: #68d391;
+                }
 
-        .footer-section p {
-            color: #e2e8f0;
-            line-height: 1.75;
-            font-size: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            transition: color 0.3s;
-        }
+                .follow h3 {
+                    color: #b794f4;
+                }
 
-        @media (min-width: 1024px) {
-            .footer-section p {
-                justify-content: flex-start;
-            }
-        }
+                .follow h3::after {
+                    background-color: #b794f4;
+                }
 
-        .footer-section p:hover {
-            color: white;
-        }
+                .footer-section p {
+                    color: #e2e8f0;
+                    line-height: 1.75;
+                    font-size: 1rem;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 0.75rem;
+                    transition: color 0.3s;
+                }
 
-        .footer-section a {
-            color: inherit;
-            text-decoration: none;
-        }
+                @media (min-width: 1024px) {
+                    .footer-section p {
+                        justify-content: flex-start;
+                    }
+                }
 
-        .footer-section a:hover {
-            text-decoration: underline;
-        }
+                .footer-section p:hover {
+                    color: white;
+                }
 
-        .footer-section i {
-            transition: transform 0.3s;
-        }
+                .footer-section a {
+                    color: inherit;
+                    text-decoration: none;
+                }
 
-        .footer-section p:hover i {
-            transform: scale(1.1);
-        }
+                .footer-section a:hover {
+                    text-decoration: underline;
+                }
 
-        .social-links {
-            display: flex;
-            justify-content: center;
-            gap: 1.5rem;
-            font-size: 1.75rem;
-        }
+                .footer-section i {
+                    transition: transform 0.3s;
+                }
 
-        @media (min-width: 1024px) {
-            .social-links {
-                justify-content: flex-start;
-            }
-        }
+                .footer-section p:hover i {
+                    transform: scale(1.1);
+                }
 
-        .social-links a {
-            color: #e2e8f0;
-            transition: all 0.3s;
-        }
+                .social-links {
+                    display: flex;
+                    justify-content: center;
+                    gap: 1.5rem;
+                    font-size: 1.75rem;
+                }
 
-        .social-links a:hover {
-            transform: scale(1.1);
-            filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
-        }
+                @media (min-width: 1024px) {
+                    .social-links {
+                        justify-content: flex-start;
+                    }
+                }
 
-        .social-links a.github:hover {
-            color: white;
-        }
+                .social-links a {
+                    color: #e2e8f0;
+                    transition: all 0.3s;
+                }
 
-        .social-links a.youtube:hover {
-            color: #ef4444;
-        }
+                .social-links a:hover {
+                    transform: scale(1.1);
+                    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+                }
 
-        .social-links a.facebook:hover {
-            color: #3b5998;
-        }
+                .social-links a.github:hover {
+                    color: white;
+                }
 
-        .social-links a.linkedin:hover {
-            color: #0a66c2;
-        }
-    </style>
-</head>
-<body>
-    <footer>
-        <!-- Grid 4 cột -->
-        <div class="footer-grid">
-            <!-- Giới thiệu -->
-            <div class="footer-section intro">
-                <h3>Giới Thiệu</h3>
-                <p>Study Saring -Nền tảng quản lý và chia sẻ tài liệu học tập tiện lợi, đáng tin cậy, hỗ trợ mọi nhu cầu học tập</p>
-            </div>
+                .social-links a.youtube:hover {
+                    color: #ef4444;
+                }
 
-            <!-- Liên hệ -->
-            <div class="footer-section contact">
-                <h3>Liên Hệ</h3>
-                <p>
-                    <i class="fas fa-phone"></i>
-                    <a href="tel:0338111591">0338 111 591</a>
-                </p>
-                <p>
-                    <i class="fas fa-envelope"></i>
-                    <a href="mailto:contact@certicrypt.com">contact@certicrypt.com</a>
-                </p>
-            </div>
+                .social-links a.facebook:hover {
+                    color: #3b5998;
+                }
 
-            <!-- Địa chỉ -->
-            <div class="footer-section address">
-                <h3>Địa Chỉ</h3>
-                <p>
-                    <i class="fas fa-map-marker-alt"></i>
-                    <a href="https://maps.google.com/?q=Phạm+Hữu+Lầu,+P.6,+TP.+Cao+Lãnh,+Đồng+Tháp" target="_blank" rel="noopener noreferrer">
-                        Phạm Hữu Lầu, P.6, TP. Cao Lãnh, Đồng Tháp
-                    </a>
-                </p>
-            </div>
+                .social-links a.linkedin:hover {
+                    color: #0a66c2;
+                }
+            </style>
+        </head>
 
-            <!-- Nền tảng -->
-            <div class="footer-section follow">
-                <h3>Theo Dõi</h3>
-                <div class="social-links">
-                    <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="github"><i class="fab fa-github"></i></a>
-                    <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="youtube"><i class="fab fa-youtube"></i></a>
-                    <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="facebook"><i class="fab fa-facebook"></i></a>
-                    <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="linkedin"><i class="fab fa-linkedin"></i></a>
+        <body>
+            <footer>
+                <!-- Grid 4 cột -->
+                <div class="footer-grid">
+                    <!-- Giới thiệu -->
+                    <div class="footer-section intro">
+                        <h3>Giới Thiệu</h3>
+                        <p>Study Saring -Nền tảng quản lý và chia sẻ tài liệu học tập tiện lợi, đáng tin cậy, hỗ trợ mọi nhu cầu học tập</p>
+                    </div>
+
+                    <!-- Liên hệ -->
+                    <div class="footer-section contact">
+                        <h3>Liên Hệ</h3>
+                        <p>
+                            <i class="fas fa-phone"></i>
+                            <a href="tel:0338111591">0338 111 591</a>
+                        </p>
+                        <p>
+                            <i class="fas fa-envelope"></i>
+                            <a href="mailto:contact@certicrypt.com">contact@certicrypt.com</a>
+                        </p>
+                    </div>
+
+                    <!-- Địa chỉ -->
+                    <div class="footer-section address">
+                        <h3>Địa Chỉ</h3>
+                        <p>
+                            <i class="fas fa-map-marker-alt"></i>
+                            <a href="https://maps.google.com/?q=Phạm+Hữu+Lầu,+P.6,+TP.+Cao+Lãnh,+Đồng+Tháp" target="_blank" rel="noopener noreferrer">
+                                Phạm Hữu Lầu, P.6, TP. Cao Lãnh, Đồng Tháp
+                            </a>
+                        </p>
+                    </div>
+
+                    <!-- Nền tảng -->
+                    <div class="footer-section follow">
+                        <h3>Theo Dõi</h3>
+                        <div class="social-links">
+                            <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="github"><i class="fab fa-github"></i></a>
+                            <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="youtube"><i class="fab fa-youtube"></i></a>
+                            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="facebook"><i class="fab fa-facebook"></i></a>
+                            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="linkedin"><i class="fab fa-linkedin"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </footer>
+        </body>
+
+        </html>
+        <!-- Modal Đổi mật khẩu -->
+        <div id="changePasswordModal" class="modal fade" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="changePasswordModalLabel">Đổi mật khẩu</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="changePasswordMessage"></div>
+                        <form id="changePasswordForm" method="POST" class="needs-validation" novalidate>
+                            <div class="mb-3">
+                                <label for="currentPassword" class="form-label">Mật khẩu hiện tại</label>
+                                <input type="password" class="form-control" id="currentPassword" name="current_password" required>
+                                <div class="invalid-feedback">Vui lòng nhập mật khẩu hiện tại.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="newPassword" class="form-label">Mật khẩu mới</label>
+                                <input type="password" class="form-control" id="newPassword" name="new_password" required>
+                                <div class="invalid-feedback">Vui lòng nhập mật khẩu mới.</div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmNewPassword" class="form-label">Xác nhận mật khẩu mới</label>
+                                <input type="password" class="form-control" id="confirmNewPassword" name="confirm_new_password" required>
+                                <div class="invalid-feedback">Vui lòng xác nhận mật khẩu mới.</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                Đổi mật khẩu
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </footer>
-</body>
-</html>
-    <!-- Modal Đổi mật khẩu -->
-    <div id="changePasswordModal" class="modal fade" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="changePasswordModalLabel">Đổi mật khẩu</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="changePasswordMessage"></div>
-                    <form id="changePasswordForm" method="POST" class="needs-validation" novalidate>
-                        <div class="mb-3">
-                            <label for="currentPassword" class="form-label">Mật khẩu hiện tại</label>
-                            <input type="password" class="form-control" id="currentPassword" name="current_password" required>
-                            <div class="invalid-feedback">Vui lòng nhập mật khẩu hiện tại.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="newPassword" class="form-label">Mật khẩu mới</label>
-                            <input type="password" class="form-control" id="newPassword" name="new_password" required>
-                            <div class="invalid-feedback">Vui lòng nhập mật khẩu mới.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="confirmNewPassword" class="form-label">Xác nhận mật khẩu mới</label>
-                            <input type="password" class="form-control" id="confirmNewPassword" name="confirm_new_password" required>
-                            <div class="invalid-feedback">Vui lòng xác nhận mật khẩu mới.</div>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                            Đổi mật khẩu
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
-    <!-- Admin JS -->
-    <script src="/study_sharing/assets/js/admin.js"></script>
+        <!-- Bootstrap JS -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+        <!-- Admin JS -->
+        <script src="/study_sharing/assets/js/admin.js"></script>
 </body>
 
 </html>
