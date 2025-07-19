@@ -13,6 +13,7 @@ use App\HomeController;
 use App\HomeAdminController;
 use App\AuthController;
 use App\CourseController;
+use App\AdminCourseController;
 use App\CategoryController;
 use App\AdminController;
 use App\AccountController;
@@ -54,6 +55,7 @@ $allowedControllers = [
     'TagController' => TagController::class,
     'NotificationController' => NotificationController::class,
     'NotificationAdminController' => NotificationAdminController::class,
+    'AdminCourseController' => AdminCourseController::class,
     // Thêm các controller khác nếu cần
 ];
 

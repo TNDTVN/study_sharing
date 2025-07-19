@@ -86,6 +86,10 @@ $teachers = array_filter($users, fn($user) => $user['role'] === 'teacher');
                             <div class="mb-3 mt-3" id="admin_options" style="display: <?= (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'block' : 'none' ?>;">
                                 <label class="form-label">Chọn tài khoản Admin</label>
                                 <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    <label class="list-group-item d-flex align-items-center">
+                                        <input class="form-check-input me-2" type="checkbox" id="select_all_admins" onclick="toggleSelectAll('admin_ids[]', this)">
+                                        Chọn tất cả Admin
+                                    </label>
                                     <?php foreach ($admins as $user): ?>
                                         <?php if ($user['account_id'] != $current_user_id): ?>
                                             <label class="list-group-item d-flex align-items-center">
@@ -102,6 +106,10 @@ $teachers = array_filter($users, fn($user) => $user['role'] === 'teacher');
                             <div class="mb-3 mt-3" id="teacher_options" style="display: <?= (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'block' : 'none' ?>;">
                                 <label class="form-label">Chọn tài khoản Teacher</label>
                                 <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    <label class="list-group-item d-flex align-items-center">
+                                        <input class="form-check-input me-2" type="checkbox" id="select_all_teachers" onclick="toggleSelectAll('teacher_ids[]', this)">
+                                        Chọn tất cả Teacher
+                                    </label>
                                     <?php foreach ($teachers as $user): ?>
                                         <?php if ($user['account_id'] != $current_user_id): ?>
                                             <label class="list-group-item d-flex align-items-center">
@@ -118,6 +126,10 @@ $teachers = array_filter($users, fn($user) => $user['role'] === 'teacher');
                             <div class="mb-3 mt-3" id="student_options" style="display: <?= (isset($_POST['role']) && $_POST['role'] === 'student') ? 'block' : 'none' ?>;">
                                 <label class="form-label">Chọn tài khoản Student</label>
                                 <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                    <label class="list-group-item d-flex align-items-center">
+                                        <input class="form-check-input me-2" type="checkbox" id="select_all_students" onclick="toggleSelectAll('student_ids[]', this)">
+                                        Chọn tất cả Student
+                                    </label>
                                     <?php foreach ($students as $user): ?>
                                         <?php if ($user['account_id'] != $current_user_id): ?>
                                             <label class="list-group-item d-flex align-items-center">
@@ -135,6 +147,10 @@ $teachers = array_filter($users, fn($user) => $user['role'] === 'teacher');
                         <div class="mb-3" id="account_options" style="display: <?= (isset($_POST['target_type']) && $_POST['target_type'] === 'account') ? 'block' : 'none' ?>;">
                             <label class="form-label">Chọn tài khoản</label>
                             <div class="list-group" style="max-height: 200px; overflow-y: auto;">
+                                <label class="list-group-item d-flex align-items-center">
+                                    <input class="form-check-input me-2" type="checkbox" id="select_all_accounts" onclick="toggleSelectAll('target_ids[]', this)">
+                                    Chọn tất cả tài khoản
+                                </label>
                                 <?php foreach ($users as $user): ?>
                                     <?php if ($user['account_id'] != $current_user_id): ?>
                                         <label class="list-group-item d-flex align-items-center">
@@ -157,7 +173,7 @@ $teachers = array_filter($users, fn($user) => $user['role'] === 'teacher');
         </div>
     </div>
 
-    <!-- Script để xử lý hiển thị tùy chọn -->
+    <!-- Script để xử lý hiển thị tùy chọn và chọn tất cả -->
     <script>
         function toggleTargetOptions() {
             const targetType = document.getElementById('target_type').value;
@@ -173,6 +189,13 @@ $teachers = array_filter($users, fn($user) => $user['role'] === 'teacher');
             document.getElementById('admin_options').style.display = role === 'admin' ? 'block' : 'none';
             document.getElementById('teacher_options').style.display = role === 'teacher' ? 'block' : 'none';
             document.getElementById('student_options').style.display = role === 'student' ? 'block' : 'none';
+        }
+
+        function toggleSelectAll(name, checkbox) {
+            const checkboxes = document.getElementsByName(name);
+            for (let i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = checkbox.checked;
+            }
         }
     </script>
 </div>
