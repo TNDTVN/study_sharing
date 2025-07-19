@@ -46,7 +46,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="/study_sharing/admin/profile"><i class="bi bi-person"></i> Hồ sơ</a></li>
-                        <li><a class="dropdown-item" href="/study_sharing/notification/list_admin"><i class="bi bi-bell"></i> Thông báo</a></li>
+                        <li><a class="dropdown-item" href="/notification/list"><i class="bi bi-bell"></i> Thông báo</a></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal"><i class="bi bi-key"></i> Đổi mật khẩu</a></li>
                         <li>
                             <hr class="dropdown-divider">
@@ -115,6 +115,7 @@ if (session_status() === PHP_SESSION_NONE) {
         </main>
 
         <!-- Footer -->
+
         <!DOCTYPE html>
         <html lang="vi">
 
@@ -194,33 +195,21 @@ if (session_status() === PHP_SESSION_NONE) {
                     color: #f56565;
                 }
 
-                .intro h3::after {
-                    background-color: #f56565;
-                }
 
                 .contact h3 {
                     color: #63b3ed;
                 }
 
-                .contact h3::after {
-                    background-color: #63b3ed;
-                }
 
                 .address h3 {
                     color: #68d391;
                 }
 
-                .address h3::after {
-                    background-color: #68d391;
-                }
 
                 .follow h3 {
                     color: #b794f4;
                 }
 
-                .follow h3::after {
-                    background-color: #b794f4;
-                }
 
                 .footer-section p {
                     color: #e2e8f0;
@@ -350,6 +339,7 @@ if (session_status() === PHP_SESSION_NONE) {
         </body>
 
         </html>
+
         <!-- Modal Đổi mật khẩu -->
         <div id="changePasswordModal" class="modal fade" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">

@@ -1,7 +1,7 @@
 <div class="container-fluid py-5" style="max-width: 1600px;">
     <div class="bg-white p-5 rounded-3 shadow-lg" style="background: linear-gradient(145deg, #ffffff, #e6f0fa);">
-        <h1 class="display-3 fw-bold text-center text-blue-dark mb-4 animate__animated animate__fadeIn">
-            Chào mừng đến với Hệ thống Chia sẻ Tài liệu
+        <h1 class="display-4 fw-bold text-center text-blue-dark mb-4 animate__animated animate__fadeIn">
+            Chào mừng đến với Website Chia sẻ Tài liệu
         </h1>
         <p class="lead text-center text-blue-light mb-5 animate__animated animate__fadeIn" style="animation-delay: 0.2s; font-size: 1.25rem;">
             Khám phá, chia sẻ và học hỏi từ kho tài liệu phong phú ngay hôm nay!
@@ -49,7 +49,7 @@
                                                     $uploaderName = $user ? htmlspecialchars($user['full_name']) : 'Không xác định';
                                                     ?>
                                                     <p class="card-text small text-blue-light">
-                                                        <i class="bi bi-person-circle me-1"></i> <?php echo $uploaderName; ?> - 
+                                                        <i class="bi bi-person-circle me-1"></i> <?php echo $uploaderName; ?> -
                                                         <i class="bi bi-calendar3 me-1"></i> <?php echo date('d/m/Y', strtotime($doc['upload_date'])); ?>
                                                     </p>
                                                 </div>
@@ -98,7 +98,7 @@
                                                     $creatorName = $creator ? htmlspecialchars($creator['full_name']) : 'Không xác định';
                                                     ?>
                                                     <p class="card-text small text-blue-light">
-                                                        <i class="bi bi-person-circle me-1"></i> <?php echo $creatorName; ?> - 
+                                                        <i class="bi bi-person-circle me-1"></i> <?php echo $creatorName; ?> -
                                                         <i class="bi bi-calendar3 me-1"></i> <?php echo date('d/m/Y', strtotime($course['created_at'])); ?>
                                                     </p>
                                                 </div>
@@ -210,7 +210,8 @@
     }
 
     /* Carousel controls */
-    .carousel-control-prev, .carousel-control-next {
+    .carousel-control-prev,
+    .carousel-control-next {
         width: 4%;
         opacity: 0.8;
         transition: opacity 0.3s ease, transform 0.3s ease;
@@ -234,7 +235,8 @@
         transform: translateX(35px);
     }
 
-    .carousel-control-prev-icon, .carousel-control-next-icon {
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
         width: 3rem;
         height: 3rem;
         background-size: 50%;
@@ -260,7 +262,8 @@
             transform: translateX(25px);
         }
 
-        .carousel-control-prev, .carousel-control-next {
+        .carousel-control-prev,
+        .carousel-control-next {
             width: 8%;
         }
     }
@@ -282,20 +285,35 @@
             transform: translateX(20px);
         }
 
-        .carousel-control-prev, .carousel-control-next {
+        .carousel-control-prev,
+        .carousel-control-next {
             width: 12%;
         }
     }
 
     /* Animation */
     @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 
     @keyframes zoomIn {
-        from { opacity: 0; transform: scale(0.9); }
-        to { opacity: 1; transform: scale(1); }
+        from {
+            opacity: 0;
+            transform: scale(0.9);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
     }
 </style>
 

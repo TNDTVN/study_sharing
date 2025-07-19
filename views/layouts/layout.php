@@ -132,11 +132,230 @@ if (session_status() === PHP_SESSION_NONE) {
     </main>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white text-center p-4 mt-auto">
-        <div class="container">
-            <p class="mb-0">© 2025 - Hệ thống Quản lý và Chia sẻ Tài liệu. Đã đăng ký bản quyền.</p>
-        </div>
-    </footer>
+
+    <!DOCTYPE html>
+    <html lang="vi">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- Liên kết Font Awesome cho các biểu tượng -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <style>
+            /* CSS cho footer */
+            footer {
+                background: linear-gradient(to bottom, #1a202c, #2d3748);
+                color: white;
+                padding: 3rem 0;
+                margin-top: 3rem;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .wave-divider {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 3rem;
+            }
+
+            .wave-divider svg {
+                width: 100%;
+                height: 100%;
+                fill: #2d3748;
+            }
+
+            .footer-grid {
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 2.5rem;
+                padding: 0 2rem;
+            }
+
+            @media (min-width: 640px) {
+                .footer-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+
+            @media (min-width: 1024px) {
+                .footer-grid {
+                    grid-template-columns: repeat(4, 1fr);
+                    padding: 0 5rem;
+                }
+
+                .footer-grid>div {
+                    text-align: left;
+                }
+            }
+
+            .footer-section h3 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin-bottom: 1.25rem;
+                position: relative;
+            }
+
+            .footer-section h3::after {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                width: 3rem;
+                height: 0.25rem;
+                border-radius: 9999px;
+                transition: width 0.3s;
+            }
+
+            .intro h3 {
+                color: #f56565;
+            }
+
+
+            .contact h3 {
+                color: #63b3ed;
+            }
+
+
+            .address h3 {
+                color: #68d391;
+            }
+
+
+            .follow h3 {
+                color: #b794f4;
+            }
+
+
+            .footer-section p {
+                color: #e2e8f0;
+                line-height: 1.75;
+                font-size: 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.75rem;
+                transition: color 0.3s;
+            }
+
+            @media (min-width: 1024px) {
+                .footer-section p {
+                    justify-content: flex-start;
+                }
+            }
+
+            .footer-section p:hover {
+                color: white;
+            }
+
+            .footer-section a {
+                color: inherit;
+                text-decoration: none;
+            }
+
+            .footer-section a:hover {
+                text-decoration: underline;
+            }
+
+            .footer-section i {
+                transition: transform 0.3s;
+            }
+
+            .footer-section p:hover i {
+                transform: scale(1.1);
+            }
+
+            .social-links {
+                display: flex;
+                justify-content: center;
+                gap: 1.5rem;
+                font-size: 1.75rem;
+            }
+
+            @media (min-width: 1024px) {
+                .social-links {
+                    justify-content: flex-start;
+                }
+            }
+
+            .social-links a {
+                color: #e2e8f0;
+                transition: all 0.3s;
+            }
+
+            .social-links a:hover {
+                transform: scale(1.1);
+                filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+            }
+
+            .social-links a.github:hover {
+                color: white;
+            }
+
+            .social-links a.youtube:hover {
+                color: #ef4444;
+            }
+
+            .social-links a.facebook:hover {
+                color: #3b5998;
+            }
+
+            .social-links a.linkedin:hover {
+                color: #0a66c2;
+            }
+        </style>
+    </head>
+
+    <body>
+        <footer>
+            <!-- Grid 4 cột -->
+            <div class="footer-grid">
+                <!-- Giới thiệu -->
+                <div class="footer-section intro">
+                    <h3>Giới Thiệu</h3>
+                    <p>Study Saring -Nền tảng quản lý và chia sẻ tài liệu học tập tiện lợi, đáng tin cậy, hỗ trợ mọi nhu cầu học tập</p>
+                </div>
+
+                <!-- Liên hệ -->
+                <div class="footer-section contact">
+                    <h3>Liên Hệ</h3>
+                    <p>
+                        <i class="fas fa-phone"></i>
+                        <a href="tel:0338111591">0338 111 591</a>
+                    </p>
+                    <p>
+                        <i class="fas fa-envelope"></i>
+                        <a href="mailto:contact@certicrypt.com">contact@certicrypt.com</a>
+                    </p>
+                </div>
+
+                <!-- Địa chỉ -->
+                <div class="footer-section address">
+                    <h3>Địa Chỉ</h3>
+                    <p>
+                        <i class="fas fa-map-marker-alt"></i>
+                        <a href="https://maps.google.com/?q=Phạm+Hữu+Lầu,+P.6,+TP.+Cao+Lãnh,+Đồng+Tháp" target="_blank" rel="noopener noreferrer">
+                            Phạm Hữu Lầu, P.6, TP. Cao Lãnh, Đồng Tháp
+                        </a>
+                    </p>
+                </div>
+
+                <!-- Nền tảng -->
+                <div class="footer-section follow">
+                    <h3>Theo Dõi</h3>
+                    <div class="social-links">
+                        <a href="https://github.com" target="_blank" rel="noopener noreferrer" class="github"><i class="fab fa-github"></i></a>
+                        <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="youtube"><i class="fab fa-youtube"></i></a>
+                        <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="facebook"><i class="fab fa-facebook"></i></a>
+                        <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" class="linkedin"><i class="fab fa-linkedin"></i></a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </body>
+
+    </html>
 
     <!-- Modal Đăng nhập -->
     <div id="loginModal" class="modal fade" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
