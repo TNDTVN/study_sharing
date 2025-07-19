@@ -46,7 +46,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="/study_sharing/admin/profile"><i class="bi bi-person"></i> Hồ sơ</a></li>
-                        <li><a class="dropdown-item" href="/study_sharing/notification/list_admin"><i class="bi bi-bell"></i> Thông báo</a></li>
+                        <li><a class="dropdown-item" href="/notification/list"><i class="bi bi-bell"></i> Thông báo</a></li>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal"><i class="bi bi-key"></i> Đổi mật khẩu</a></li>
                         <li>
                             <hr class="dropdown-divider">
@@ -114,7 +114,8 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
         </main>
 
-        <!-- Footer -->
+       <!-- Footer -->
+        
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -346,6 +347,7 @@ if (session_status() === PHP_SESSION_NONE) {
     </footer>
 </body>
 </html>
+
     <!-- Modal Đổi mật khẩu -->
     <div id="changePasswordModal" class="modal fade" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
