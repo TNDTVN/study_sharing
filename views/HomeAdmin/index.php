@@ -43,17 +43,180 @@
         </div>
     </div>
 </div>
-
-<!-- Nút điều hướng nhanh -->
-<div class="row g-4">
+<!-- Biểu đồ thống kê -->
+<div class="row g-4 mb-5">
     <div class="col-12">
-        <h3 class="mb-3 text-primary">Hành động nhanh</h3>
-        <div class="d-flex flex-wrap gap-3">
-            <a href="/study_sharing/Account/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-people me-2"></i> Quản lý người dùng</a>
-            <a href="/study_sharing/category/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-folder me-2"></i> Quản lý danh mục</a>
-            <a href="/study_sharing/tag/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-tag me-2"></i> Quản lý thẻ</a>
-            <a href="/study_sharing/AdminDocument/admin_manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-file-earmark-text me-2"></i> Quản lý tài liệu</a>
-            <a href="/course/manage" class="btn btn-outline-primary quick-action-btn"><i class="bi bi-book me-2"></i> Quản lý khóa học</a>
+        <h3 class="mb-4 text-primary"><i class="bi bi-bar-chart me-2"></i> Thống kê chi tiết</h3>
+        <div class="row g-4">
+            <!-- Biểu đồ cột: Tổng quan -->
+            <div class="col-md-6">
+                <div class="card dashboard-card card-users shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-bar-chart-fill card-icon text-primary"></i>
+                            <h5 class="card-title ms-2">Tổng quan số lượng</h5>
+                        </div>
+                        <canvas id="overviewChart" style="max-height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
+            <!-- Biểu đồ tròn: Phân phối tài liệu theo danh mục -->
+            <div class="col-md-6">
+                <div class="card dashboard-card card-documents shadow-sm h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="bi bi-pie-chart-fill card-icon text-primary"></i>
+                            <h5 class="card-title ms-2">Phân phối tài liệu theo danh mục</h5>
+                        </div>
+                        <canvas id="categoryDistributionChart" style="max-height: 300px;"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<style>
+    .dashboard-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+    }
+    .card-icon {
+        font-size: 2rem;
+        color: #3b82f6;
+    }
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    canvas {
+        width: 100% !important;
+    }
+</style>
+
+<script>
+    // Cấu hình chung cho Chart.js
+    Chart.defaults.font.family = "'Inter', 'Helvetica', 'Arial', sans-serif";
+    Chart.defaults.font.size = 14;
+
+    // Biểu đồ cột: Tổng quan
+    const overviewChart = new Chart(document.getElementById('overviewChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: ['Người dùng', 'Tài liệu', 'Khóa học', 'Danh mục'],
+            datasets: [{
+                label: 'Số lượng',
+                data: [<?php echo $totalUsers; ?>, <?php echo $totalDocuments; ?>, <?php echo $totalCourses; ?>, <?php echo $totalCategories; ?>],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.7)',  // Xanh primary (đồng bộ card-users)
+                    'rgba(239, 68, 68, 0.7)',   // Đỏ (đồng bộ card-documents)
+                    'rgba(16, 185, 129, 0.7)',  // Xanh lá (đồng bộ card-courses)
+                    'rgba(168, 85, 247, 0.7)'   // Tím (đồng bộ card-categories)
+                ],
+                borderColor: [
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(239, 68, 68, 1)',
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(168, 85, 247, 1)'
+                ],
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: { size: 16 },
+                    bodyFont: { size: 14 },
+                    padding: 10
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Số lượng',
+                        font: { size: 16 }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Hạng mục',
+                        font: { size: 16 }
+                    },
+                    grid: {
+                        display: false
+                    }
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+
+    // Biểu đồ tròn: Phân phối tài liệu theo danh mục
+    const categoryDistributionChart = new Chart(document.getElementById('categoryDistributionChart').getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: [<?php foreach ($documentsByCategory as $category) { echo "'" . htmlspecialchars($category['category_name']) . "',"; } ?>],
+            datasets: [{
+                data: [<?php foreach ($documentsByCategory as $category) { echo $category['count'] . ","; } ?>],
+                backgroundColor: [
+                    'rgba(59, 130, 246, 0.7)',
+                    'rgba(239, 68, 68, 0.7)',
+                    'rgba(16, 185, 129, 0.7)',
+                    'rgba(168, 85, 247, 0.7)',
+                    'rgba(234, 179, 8, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(59, 130, 246, 1)',
+                    'rgba(239, 68, 68, 1)',
+                    'rgba(16, 185, 129, 1)',
+                    'rgba(168, 85, 247, 1)',
+                    'rgba(234, 179, 8, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 15,
+                        padding: 20,
+                        font: { size: 14 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleFont: { size: 16 },
+                    bodyFont: { size: 14 },
+                    padding: 10
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeOutQuart'
+            }
+        }
+    });
+</script>

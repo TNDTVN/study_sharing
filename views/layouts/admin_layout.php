@@ -94,7 +94,6 @@ if (session_status() === PHP_SESSION_NONE) {
             </a>
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="/study_sharing/AdminCourse/manage"><i class="bi bi-gear"></i> Quản lý khóa học</a></li>
-                <li><a class="dropdown-item" href="/study_sharing/AdminCourse/approve"><i class="bi bi-check-circle"></i> Phê duyệt khóa học</a></li>
                 <li><a class="dropdown-item" href="/study_sharing/AdminCourse/statistics"><i class="bi bi-bar-chart"></i> Thống kê khóa học</a></li>
             </ul>
             <!-- Notification Link -->
@@ -305,7 +304,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         <h3>Liên Hệ</h3>
                         <p>
                             <i class="fas fa-phone"></i>
-                            <a href="tel:0338111591">0338 111 591</a>
+                            <a href="tel:0898543919">089 854 3919</a>
                         </p>
                         <p>
                             <i class="fas fa-envelope"></i>

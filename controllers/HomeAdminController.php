@@ -40,6 +40,7 @@ class HomeAdminController
         $totalDocuments = $documentModel->countDocuments();
         $totalCourses = $courseModel->countCourses();
         $totalCategories = $categoryModel->countCategories();
+        $documentsByCategory = $documentModel->countDocumentsByCategory();
 
         $title = 'Bảng điều khiển Admin';
         ob_start();

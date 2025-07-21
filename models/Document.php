@@ -80,4 +80,13 @@ class Document
         $stmt = $this->db->query($query);
         return $stmt->fetchColumn();
     }
+    public function countDocumentsByCategory()
+    {
+        $query = "SELECT c.category_name, COUNT(d.document_id) as count 
+                FROM documents d 
+                JOIN categories c ON d.category_id = c.category_id 
+                GROUP BY c.category_id, c.category_name";
+        $stmt = $this->db->query($query);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
