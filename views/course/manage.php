@@ -68,11 +68,14 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo $course['member_count'] ?? 0; ?></td>
                             <td><?php echo htmlspecialchars($course['status']); ?></td>
                             <td>
-                                <button class="btn btn-outline-warning btn-sm edit-btn" data-bs-toggle="modal" data-bs-target="#editCourseModal"
+                                <button class="btn btn-outline-info btn-sm view-btn" title="Xem chi tiết khóa học" data-course-id="<?php echo $course['course_id']; ?>">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm edit-btn" data-bs-toggle="modal" data-bs-target="#editCourseModal" title="Chỉnh sửa khóa học"
                                     onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($course)); ?>)">
                                     <i class="fa fa-edit"></i>
                                 </button>
-                                <button class="btn btn-outline-danger btn-sm delete-btn" onclick="deleteCourse(<?php echo (int)$course['course_id']; ?>)">
+                                <button class="btn btn-outline-danger btn-sm delete-btn" title="Xóa khóa học" onclick="deleteCourse(<?php echo (int)$course['course_id']; ?>)">
                                     <i class="fa fa-trash"></i>
                                 </button>
                             </td>
@@ -99,6 +102,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         </nav>
     </div>
 
+    <!-- Modal thêm khóa học -->
     <div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -148,6 +152,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                                         <option value="open">Mở</option>
                                         <option value="in_progress">Đang học</option>
                                         <option value="closed">Đã đóng</option>
+                                        35
                                     </select>
                                     <div class="invalid-feedback">Vui lòng chọn trạng thái.</div>
                                 </div>
@@ -175,6 +180,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
     </div>
 
+    <!-- Modal chỉnh sửa khóa học -->
     <div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
@@ -247,6 +253,36 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                             Cập nhật khóa học
                         </button>
                     </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal xem chi tiết khóa học -->
+    <div class="modal fade" id="courseDetailModal" tabindex="-1" aria-labelledby="courseDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="courseDetailModalLabel">Chi tiết khóa học</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="course-details">
+                        <p><strong>ID:</strong> <span id="detail-course-id"></span></p>
+                        <p><strong>Tên khóa học:</strong> <span id="detail-course-name"></span></p>
+                        <p><strong>Mô tả:</strong> <span id="detail-description"></span></p>
+                        <p><strong>Người tạo:</strong> <span id="detail-creator"></span></p>
+                        <p><strong>Số thành viên tối đa:</strong> <span id="detail-max-members"></span></p>
+                        <p><strong>Số thành viên hiện tại:</strong> <span id="detail-member-count"></span></p>
+                        <p><strong>Link học:</strong> <span id="detail-learn-link"></span></p>
+                        <p><strong>Ngày bắt đầu:</strong> <span id="detail-start-date"></span></p>
+                        <p><strong>Ngày kết thúc:</strong> <span id="detail-end-date"></span></p>
+                        <p><strong>Trạng thái:</strong> <span id="detail-status"></span></p>
+                        <p><strong>Ngày tạo:</strong> <span id="detail-created-at"></span></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 </div>
             </div>
         </div>
@@ -368,4 +404,60 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                 });
         }
     }
+
+    // Xử lý nút xem chi tiết
+    document.querySelectorAll('.view-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const courseId = this.getAttribute('data-course-id');
+
+            // Gửi yêu cầu AJAX để lấy chi tiết khóa học
+            fetch('/study_sharing/AdminCourse/getCourseDetails', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        course_id: courseId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Cập nhật nội dung modal
+                        document.getElementById('detail-course-id').textContent = data.course.course_id;
+                        document.getElementById('detail-course-name').textContent = data.course.course_name;
+                        document.getElementById('detail-description').textContent = data.course.description || 'Không có mô tả';
+                        document.getElementById('detail-creator').textContent = data.course.username || 'N/A';
+                        document.getElementById('detail-max-members').textContent = data.course.max_members || '50';
+                        document.getElementById('detail-member-count').textContent = data.course.member_count || '0';
+                        document.getElementById('detail-learn-link').textContent = data.course.learn_link || 'Không có link';
+                        document.getElementById('detail-start-date').textContent = data.course.start_date || 'Chưa xác định';
+                        document.getElementById('detail-end-date').textContent = data.course.end_date || 'Chưa xác định';
+                        document.getElementById('detail-status').textContent = data.course.status || 'Không xác định';
+                        document.getElementById('detail-created-at').textContent = data.course.created_at || 'Không xác định';
+
+                        // Hiển thị modal
+                        const modal = new bootstrap.Modal(document.getElementById('courseDetailModal'));
+                        modal.show();
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Đã xảy ra lỗi khi lấy chi tiết khóa học.');
+                });
+        });
+    });
 </script>
+
+<style>
+    .modal-body p {
+        margin-bottom: 10px;
+    }
+
+    .modal-body strong {
+        display: inline-block;
+        width: 200px;
+    }
+</style>
