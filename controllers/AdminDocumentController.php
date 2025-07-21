@@ -553,75 +553,130 @@ class AdminDocumentController
         }
 
         try {
+            // 1. Thống kê tổng quan
+            $stats = [];
+
             // Tổng số tài liệu
             $totalStmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM documents");
             $totalStmt->execute();
-            $totalDocuments = $totalStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $stats['total_documents'] = $totalStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-            // Số tài liệu theo danh mục
-            $categoryStmt = $this->pdo->prepare("
-                SELECT c.category_name, COUNT(d.document_id) as document_count
-                FROM categories c
-                LEFT JOIN documents d ON c.category_id = d.category_id
-                GROUP BY c.category_id, c.category_name
-                ORDER BY c.category_name
-            ");
-            $categoryStmt->execute();
-            $documentsByCategory = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Số tài liệu theo loại tệp
-            $fileTypeStmt = $this->pdo->prepare("
-                SELECT 
-                    CASE 
-                        WHEN file_path LIKE '%.pdf' THEN 'PDF'
-                        WHEN file_path LIKE '%.docx' THEN 'DOCX'
-                        WHEN file_path LIKE '%.pptx' THEN 'PPTX'
-                        ELSE 'Khác'
-                    END as file_type,
-                    COUNT(*) as document_count
-                FROM documents
-                GROUP BY file_type
-            ");
-            $fileTypeStmt->execute();
-            $documentsByFileType = $fileTypeStmt->fetchAll(PDO::FETCH_ASSOC);
-
-            // Tổng số lượt tải xuống
-            $downloadStmt = $this->pdo->prepare("SELECT COUNT(*) as total_downloads FROM downloads");
+            // Tổng lượt tải
+            $downloadStmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM downloads");
             $downloadStmt->execute();
-            $totalDownloads = $downloadStmt->fetch(PDO::FETCH_ASSOC)['total_downloads'];
+            $stats['total_downloads'] = $downloadStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-            // Top 5 tài liệu được tải nhiều nhất
-            $topDocumentsStmt = $this->pdo->prepare("
-                SELECT d.document_id, d.title, COUNT(dw.download_id) as download_count
-                FROM documents d
-                LEFT JOIN downloads dw ON d.document_id = dw.document_id
-                GROUP BY d.document_id, d.title
-                ORDER BY download_count DESC
-                LIMIT 5
-            ");
-            $topDocumentsStmt->execute();
-            $topDocuments = $topDocumentsStmt->fetchAll(PDO::FETCH_ASSOC);
+            // Tổng bình luận
+            $commentStmt = $this->pdo->prepare("SELECT COUNT(*) as total FROM comments");
+            $commentStmt->execute();
+            $stats['total_comments'] = $commentStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-            // Dữ liệu cho biểu đồ (số tài liệu theo tháng trong năm hiện tại)
+            // Đánh giá trung bình
+            $ratingStmt = $this->pdo->prepare("SELECT AVG(rating_value) as avg FROM ratings");
+            $ratingStmt->execute();
+            $stats['avg_rating'] = round($ratingStmt->fetch(PDO::FETCH_ASSOC)['avg'], 1);
+
+            // Thống kê tài liệu theo định dạng file
+            $fileTypeStmt = $this->pdo->prepare("
+            SELECT SUBSTRING_INDEX(file_path, '.', -1) as file_type, 
+                   COUNT(*) as count 
+            FROM documents 
+            GROUP BY file_type
+        ");
+            $fileTypeStmt->execute();
+            $stats['file_type_counts'] = $fileTypeStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // 2. Thống kê theo danh mục
+            $categoryStmt = $this->pdo->prepare("
+            SELECT c.category_name,
+                   COUNT(d.document_id) as document_count,
+                   COUNT(DISTINCT dl.download_id) as download_count,
+                   COUNT(DISTINCT cm.comment_id) as comment_count,
+                   AVG(r.rating_value) as avg_rating
+            FROM categories c
+            LEFT JOIN documents d ON c.category_id = d.category_id
+            LEFT JOIN downloads dl ON d.document_id = dl.document_id
+            LEFT JOIN comments cm ON d.document_id = cm.document_id
+            LEFT JOIN ratings r ON d.document_id = r.document_id
+            GROUP BY c.category_id, c.category_name
+            ORDER BY c.category_name
+        ");
+            $categoryStmt->execute();
+            $stats['categories'] = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // 3. Thống kê theo thời gian
             $currentYear = date('Y');
             $monthlyStmt = $this->pdo->prepare("
-                SELECT MONTH(upload_date) as month, COUNT(*) as document_count
-                FROM documents
-                WHERE YEAR(upload_date) = :year
-                GROUP BY MONTH(upload_date)
-                ORDER BY month
-            ");
+            SELECT 
+                MONTH(upload_date) as month,
+                COUNT(DISTINCT d.document_id) as upload_count,
+                COUNT(DISTINCT dl.download_id) as download_count,
+                COUNT(DISTINCT cm.comment_id) as comment_count
+            FROM documents d
+            LEFT JOIN downloads dl ON d.document_id = dl.document_id
+            LEFT JOIN comments cm ON d.document_id = cm.document_id
+            WHERE YEAR(d.upload_date) = :year
+            GROUP BY MONTH(upload_date)
+            ORDER BY month
+        ");
             $monthlyStmt->bindValue(':year', $currentYear, PDO::PARAM_INT);
             $monthlyStmt->execute();
-            $documentsByMonth = $monthlyStmt->fetchAll(PDO::FETCH_ASSOC);
+            $monthlyData = $monthlyStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Chuẩn bị dữ liệu cho biểu đồ
-            $months = array_fill(1, 12, 0);
-            foreach ($documentsByMonth as $row) {
-                $months[$row['month']] = (int)$row['document_count'];
+            // Điền đầy đủ 12 tháng
+            $stats['monthly'] = array_fill(1, 12, [
+                'upload_count' => 0,
+                'download_count' => 0,
+                'comment_count' => 0
+            ]);
+
+            foreach ($monthlyData as $row) {
+                $stats['monthly'][$row['month']] = [
+                    'upload_count' => $row['upload_count'],
+                    'download_count' => $row['download_count'],
+                    'comment_count' => $row['comment_count']
+                ];
             }
 
-            $title = 'Thống kê tài liệu';
+            // 4. Thống kê tài liệu phổ biến
+            // Top 5 tài liệu tải nhiều nhất
+            $topDownloadsStmt = $this->pdo->prepare("
+            SELECT d.document_id, d.title, COUNT(dl.download_id) as download_count
+            FROM documents d
+            LEFT JOIN downloads dl ON d.document_id = dl.document_id
+            GROUP BY d.document_id, d.title
+            ORDER BY download_count DESC
+            LIMIT 5
+        ");
+            $topDownloadsStmt->execute();
+            $stats['top_downloads'] = $topDownloadsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Top 5 tài liệu bình luận nhiều nhất
+            $topCommentsStmt = $this->pdo->prepare("
+            SELECT d.document_id, d.title, COUNT(cm.comment_id) as comment_count
+            FROM documents d
+            LEFT JOIN comments cm ON d.document_id = cm.document_id
+            GROUP BY d.document_id, d.title
+            ORDER BY comment_count DESC
+            LIMIT 5
+        ");
+            $topCommentsStmt->execute();
+            $stats['top_comments'] = $topCommentsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Top 5 tài liệu đánh giá cao nhất
+            $topRatingsStmt = $this->pdo->prepare("
+            SELECT d.document_id, d.title, AVG(r.rating_value) as avg_rating
+            FROM documents d
+            LEFT JOIN ratings r ON d.document_id = r.document_id
+            GROUP BY d.document_id, d.title
+            HAVING avg_rating IS NOT NULL
+            ORDER BY avg_rating DESC
+            LIMIT 5
+        ");
+            $topRatingsStmt->execute();
+            $stats['top_ratings'] = $topRatingsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $title = 'Thống kê hệ thống';
             $pdo = $this->pdo;
             ob_start();
             require __DIR__ . '/../views/document/admin_statistics.php';

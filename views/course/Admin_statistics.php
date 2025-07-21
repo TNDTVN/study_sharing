@@ -73,6 +73,12 @@
         </div>
     </div>
 </div>
+<style>
+    .container.py-5 {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+</style>
 
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

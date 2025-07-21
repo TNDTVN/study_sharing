@@ -138,6 +138,54 @@ class AdminCourseController
         }
     }
 
+    public function getCourseDetails()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xem chi tiết khóa học!']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $course_id = (int)($data['course_id'] ?? 0);
+
+        if ($course_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ!']);
+            exit;
+        }
+
+        try {
+            $query = "SELECT c.*, a.username, 
+                    (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
+                  FROM courses c
+                  LEFT JOIN accounts a ON c.creator_id = a.account_id
+                  WHERE c.course_id = :course_id";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $course = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if ($course) {
+                echo json_encode(['success' => true, 'course' => $course]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại!']);
+            }
+        } catch (PDOException $e) {
+            error_log("Get course details error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
+    }
 
     public function admin_add()
     {
@@ -349,7 +397,7 @@ class AdminCourseController
         }
         exit;
     }
-    public function statistics()
+    public function Admin_statistics()
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -391,7 +439,7 @@ class AdminCourseController
             // Tạo nội dung và hiển thị layout
             $title = 'Thống kê khóa học';
             ob_start();
-            require __DIR__ . '/../views/course/statistics.php';
+            require __DIR__ . '/../views/course/Admin_statistics.php';
             $content = ob_get_clean();
             require __DIR__ . '/../views/layouts/admin_layout.php';
         } catch (PDOException $e) {

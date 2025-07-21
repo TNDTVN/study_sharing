@@ -170,7 +170,7 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="addDocumentDescription" class="form-label">Mô tả</label>
-                                <textarea class="form-control" id="addDocumentDescription" name="description" rows="4"></textarea>
+                                <textarea class="form-control" id="addDocumentDescription" name="description" rows="4" style="height: 123px;"></textarea>
                             </div>
                             <div class="mb-3">
                                 <label for="addDocumentVisibility" class="form-label">Chế độ hiển thị</label>

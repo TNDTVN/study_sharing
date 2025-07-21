@@ -94,6 +94,7 @@ if (session_status() === PHP_SESSION_NONE) {
             </a>
             <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="/study_sharing/AdminCourse/manage"><i class="bi bi-gear"></i> Quản lý khóa học</a></li>
+                <li><a class="dropdown-item" href="/study_sharing/AdminCourse/approve"><i class="bi bi-check-circle"></i> Phê duyệt khóa học</a></li>
                 <li><a class="dropdown-item" href="/study_sharing/AdminCourse/statistics"><i class="bi bi-bar-chart"></i> Thống kê khóa học</a></li>
             </ul>
             <!-- Notification Link -->
