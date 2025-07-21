@@ -204,7 +204,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                     $docDetails = $docStmt->fetch(PDO::FETCH_ASSOC);
                                     ?>
                                     <tr>
-                                        <td>
+                                        <td class="document-title-1">
                                             <span class="document-title view-btn"
                                                 data-id="<?php echo $doc['document_id']; ?>"
                                                 data-title="<?php echo htmlspecialchars($docDetails['title']); ?>"

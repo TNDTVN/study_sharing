@@ -61,3 +61,7 @@ h2 {
 .content {
     padding-top: 30px;
 }
+
+.document-title-1 {
+    max-width: 256px;
+}
