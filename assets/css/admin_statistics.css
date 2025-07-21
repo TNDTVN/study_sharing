@@ -1,0 +1,63 @@
+.stat-card {
+    transition: transform 0.3s ease;
+    border-radius: 10px;
+    color: white;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+}
+
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #eaeaea;
+}
+
+h2 {
+    color: #2c3e50;
+    font-weight: 600;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+    margin-bottom: 25px;
+}
+
+.table th {
+    background-color: #3498db;
+    color: white;
+}
+
+.badge-stat {
+    font-size: 0.9rem;
+    padding: 0.35em 0.65em;
+}
+
+.document-title {
+    cursor: pointer;
+    color: #2c3e50;
+}
+
+.document-title:hover {
+    color: #3498db;
+}
+
+.py-5 {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.content {
+    padding-top: 30px;
+}
