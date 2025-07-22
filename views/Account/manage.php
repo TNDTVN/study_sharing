@@ -21,9 +21,14 @@ if (session_status() === PHP_SESSION_NONE) {
     .status-banned {
         color: red;
     }
+
+    .container.py-5 {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
 </style>
 <div class="container mt-4">
-    <h2 class="mb-4"><?php echo htmlspecialchars($title); ?></h2>
+    <h2 class="mb-4 text-primary"><?php echo htmlspecialchars($title); ?></h2>
 
     <?php if (isset($_SESSION['message'])): ?>
         <div class="alert alert-<?php echo htmlspecialchars($_SESSION['message_type']); ?> alert-dismissible fade show" role="alert">

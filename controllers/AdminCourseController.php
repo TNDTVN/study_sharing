@@ -397,7 +397,7 @@ class AdminCourseController
         }
         exit;
     }
-    public function Admin_statistics()
+    public function statistics()
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
