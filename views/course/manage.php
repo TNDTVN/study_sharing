@@ -498,7 +498,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     .container.py-5 {
-        padding-top: 0 !important;
+        padding-top: 1rem !important;
         padding-bottom: 0 !important;
     }
 
