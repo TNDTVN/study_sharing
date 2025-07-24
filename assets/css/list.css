@@ -1,0 +1,139 @@
+.document-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 10px;
+    overflow: hidden;
+    border: none;
+    height: 100%;
+}
+
+.document-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.document-card .card-body {
+    padding: 1.5rem;
+}
+
+.document-card .card-title a {
+    color: #2c3e50;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.document-card .card-title a:hover {
+    color: #3498db;
+}
+
+.document-card .file-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #3498db;
+}
+
+.document-card .file-icon.pdf {
+    color: #e74c3c;
+}
+
+.document-card .file-icon.docx {
+    color: #2c3e50;
+}
+
+.document-card .file-icon.pptx {
+    color: #e67e22;
+}
+
+.rating-stars .star {
+    font-size: 18px;
+    color: #ddd;
+    position: relative;
+    display: inline-block;
+}
+
+.rating-stars .star.filled {
+    color: #f39c12;
+}
+
+.document-meta {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-bottom: 0.5rem;
+}
+
+.document-meta i {
+    margin-right: 5px;
+    width: 18px;
+    text-align: center;
+}
+
+.tag-badge {
+    margin-right: 5px;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: normal;
+    background-color: #f8f9fa;
+    color: #7f8c8d;
+    border: 1px solid #eee;
+}
+
+.filter-section {
+    background-color: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #3498db;
+    border-color: #3498db;
+}
+
+.pagination .page-link {
+    color: #3498db;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: #bdc3c7;
+    margin-bottom: 1rem;
+}
+
+.sort-options {
+    margin-bottom: 1.5rem;
+}
+
+.sort-options .btn-group .btn {
+    font-size: 0.85rem;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #3498db;
+    border-color: #3498db;
+    color: white;
+}
+
+.pagination .page-link {
+    color: #3498db;
+    transition: all 0.2s;
+}
+
+.pagination .page-link:hover {
+    background-color: #f8f9fa;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: #6c757d;
+}
+
+.pagination .page-item:not(.active):not(.disabled) .page-link:hover {
+    background-color: #e9ecef;
+}

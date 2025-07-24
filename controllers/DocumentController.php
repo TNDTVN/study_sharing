@@ -50,16 +50,26 @@ class DocumentController
         $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
         $file_type = (isset($_GET['file_type']) && in_array(trim($_GET['file_type']), $valid_file_types)) ? trim($_GET['file_type']) : '';
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-        $perPage = 10;
+        $perPage = 9;
 
-        $sql = "SELECT d.*, c.category_name, u.full_name, co.course_name 
-                FROM documents d 
-                LEFT JOIN categories c ON d.category_id = c.category_id
-                LEFT JOIN users u ON d.account_id = u.account_id
-                LEFT JOIN courses co ON d.course_id = co.course_id";
+        // Tham số sắp xếp
+        $sort = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
+        $valid_sorts = ['newest', 'top_rated', 'most_downloaded']; // Bỏ 'most_viewed'
+        $sort = in_array($sort, $valid_sorts) ? $sort : 'newest';
+
+        // Xây dựng câu truy vấn chính
+        $sql = "SELECT d.*, c.category_name, u.full_name, co.course_name, 
+            (SELECT COUNT(*) FROM downloads WHERE document_id = d.document_id) as download_count,
+            (SELECT AVG(rating_value) FROM ratings WHERE document_id = d.document_id) as avg_rating
+            FROM documents d 
+            LEFT JOIN categories c ON d.category_id = c.category_id
+            LEFT JOIN users u ON d.account_id = u.account_id
+            LEFT JOIN courses co ON d.course_id = co.course_id";
+
         $bindParams = [];
         $hasWhere = false;
 
+        // Phần điều kiện WHERE giữ nguyên
         if (isset($_SESSION['account_id'])) {
             $sql .= " WHERE (d.visibility = 'public' OR d.account_id = :account_id)";
             $bindParams[':account_id'] = $_SESSION['account_id'];
@@ -91,6 +101,23 @@ class DocumentController
             $hasWhere = true;
         }
 
+        // Thêm ORDER BY tùy theo loại sắp xếp
+        switch ($sort) {
+            case 'top_rated':
+                $sql .= " ORDER BY avg_rating DESC";
+                break;
+            case 'most_downloaded':
+                $sql .= " ORDER BY download_count DESC";
+                break;
+            case 'newest':
+            default:
+                $sql .= " ORDER BY d.upload_date DESC";
+                break;
+        }
+
+        $sql .= " LIMIT :offset, :perPage";
+
+        // Phần đếm tổng số bản ghi (giữ nguyên)
         $countSql = "SELECT COUNT(*) FROM documents d";
         $countBindParams = [];
         $hasCountWhere = false;
@@ -133,7 +160,7 @@ class DocumentController
         $countStmt->execute();
         $total = $countStmt->fetchColumn();
 
-        $sql .= " ORDER BY d.upload_date DESC LIMIT :offset, :perPage";
+        // Thực thi truy vấn chính
         $stmt = $this->db->prepare($sql);
         foreach ($bindParams as $key => $value) {
             $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
@@ -143,6 +170,7 @@ class DocumentController
         $stmt->execute();
         $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Lấy danh mục và các thông tin khác
         $categories = $this->category->getAllCategories();
 
         foreach ($documents as &$doc) {
@@ -151,11 +179,15 @@ class DocumentController
             $tagsStmt->execute();
             $doc['tags'] = $tagsStmt->fetchAll(PDO::FETCH_COLUMN);
 
-            $ratingStmt = $this->db->prepare("SELECT AVG(rating_value) as avg_rating FROM ratings WHERE document_id = :document_id");
-            $ratingStmt->bindValue(':document_id', $doc['document_id'], PDO::PARAM_INT);
-            $ratingStmt->execute();
-            $rating = $ratingStmt->fetch(PDO::FETCH_ASSOC);
-            $doc['avg_rating'] = $rating['avg_rating'] ? round($rating['avg_rating'], 1) : 0;
+            // Đã có avg_rating từ câu truy vấn chính
+            $doc['avg_rating'] = $doc['avg_rating'] ? round($doc['avg_rating'], 1) : 0;
+
+            // Lấy số lượng đánh giá
+            $ratingCountStmt = $this->db->prepare("SELECT COUNT(*) as rating_count FROM ratings WHERE document_id = :document_id");
+            $ratingCountStmt->bindValue(':document_id', $doc['document_id'], PDO::PARAM_INT);
+            $ratingCountStmt->execute();
+            $ratingCount = $ratingCountStmt->fetch(PDO::FETCH_ASSOC);
+            $doc['rating_count'] = $ratingCount['rating_count'] ? $ratingCount['rating_count'] : 0;
         }
         unset($doc);
 
@@ -164,6 +196,8 @@ class DocumentController
         $title = 'Danh sách tài liệu';
         $layout = 'layout.php';
         ob_start();
+
+        // Truyền biến sort vào view
         require __DIR__ . '/../views/document/list.php';
         $content = ob_get_clean();
         $pdo = $this->db;

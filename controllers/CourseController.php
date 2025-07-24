@@ -22,13 +22,18 @@ class CourseController
 
     public function list()
     {
+        $valid_sorts = ['newest', 'popular', 'name'];
         $query = isset($_GET['query']) ? trim($_GET['query']) : '';
+        $sort = isset($_GET['sort']) && in_array($_GET['sort'], $valid_sorts) ? $_GET['sort'] : 'newest';
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-        $perPage = 10;
+        $perPage = 9;
 
-        $sql = "SELECT c.*, u.full_name 
-                FROM courses c 
-                LEFT JOIN users u ON c.creator_id = u.account_id";
+        // Build main query
+        $sql = "SELECT c.*, u.full_name, 
+            (SELECT COUNT(*) FROM course_members WHERE course_id = c.course_id) as member_count
+            FROM courses c 
+            LEFT JOIN users u ON c.creator_id = u.account_id";
+
         $bindParams = [];
         $hasWhere = false;
 
@@ -40,6 +45,21 @@ class CourseController
             $hasWhere = true;
         }
 
+        // Add sorting
+        switch ($sort) {
+            case 'popular':
+                $sql .= " ORDER BY member_count DESC";
+                break;
+            case 'name':
+                $sql .= " ORDER BY c.course_name ASC";
+                break;
+            case 'newest':
+            default:
+                $sql .= " ORDER BY c.created_at DESC";
+                break;
+        }
+
+        // Count query
         $countSql = "SELECT COUNT(*) FROM courses c";
         $countBindParams = [];
         if ($query !== '') {
@@ -55,7 +75,8 @@ class CourseController
         $countStmt->execute();
         $total = $countStmt->fetchColumn();
 
-        $sql .= " ORDER BY c.created_at DESC LIMIT :offset, :perPage";
+        // Main query with pagination
+        $sql .= " LIMIT :offset, :perPage";
         $stmt = $this->db->prepare($sql);
         foreach ($bindParams as $key => $value) {
             $stmt->bindValue($key, $value, PDO::PARAM_STR);
