@@ -22,3 +22,13 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     });
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Xử lý khi click nút đăng nhập trong empty state
+    document.querySelectorAll('[data-bs-target="#loginModal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Có thể thêm logic lưu URL hiện tại để redirect sau khi đăng nhập
+            localStorage.setItem('redirectAfterLogin', window.location.href);
+        });
+    });
+});

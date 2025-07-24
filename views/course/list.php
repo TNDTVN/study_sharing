@@ -11,11 +11,6 @@ $sort = $sort ?? 'newest';
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Danh sách khóa học</h1>
-        <?php if (isset($_SESSION['account_id']) && $_SESSION['account_role'] === 'teacher'): ?>
-            <a href="/study_sharing/course/create" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> Tạo khóa học mới
-            </a>
-        <?php endif; ?>
     </div>
 
     <!-- Filter Section -->
@@ -63,10 +58,16 @@ $sort = $sort ?? 'newest';
             <i class="bi bi-book"></i>
             <h3>Không tìm thấy khóa học</h3>
             <p class="text-muted">Hãy thử thay đổi tiêu chí tìm kiếm hoặc tạo khóa học mới</p>
-            <?php if (isset($_SESSION['account_id']) && $_SESSION['account_role'] === 'teacher'): ?>
-                <a href="/study_sharing/course/create" class="btn btn-primary mt-3">
-                    <i class="bi bi-plus-circle"></i> Tạo khóa học
+            <?php if (isset($_SESSION['account_id']) && $_SESSION['role'] === 'teacher'): ?>
+                <a href="/study_sharing/course/create" class="btn btn-primary mt-3" style="padding: 0.4rem 0.8rem; font-size: 0.875rem;">
+                    <i class="bi bi-plus-circle" style="font-size: 0.8rem; margin-right: 4px;"></i> Tạo khóa học
                 </a>
+            <?php elseif (!isset($_SESSION['account_id'])): ?>
+                <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#loginModal" style="padding: 0.4rem 0.8rem; font-size: 0.875rem;">
+                    <i class="bi bi-plus-circle" style="font-size: 0.8rem; margin-right: 4px;"></i> Đăng nhập để tạo khóa học
+                </button>
+            <?php else: ?>
+                <p class="text-muted">Chỉ giáo viên mới có thể tạo khóa học</p>
             <?php endif; ?>
         </div>
     <?php else: ?>

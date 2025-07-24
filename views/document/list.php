@@ -76,9 +76,15 @@ $totalPages = $totalPages ?? 1;
             <i class="bi bi-file-earmark-excel"></i>
             <h3>Không tìm thấy tài liệu</h3>
             <p class="text-muted">Hãy thử thay đổi tiêu chí tìm kiếm hoặc tải lên tài liệu mới</p>
-            <a href="/study_sharing/document/create" class="btn btn-primary mt-3">
-                <i class="bi bi-upload"></i> Tải lên tài liệu
-            </a>
+            <?php if (isset($_SESSION['account_id'])): ?>
+                <a href="/study_sharing/document/create" class="btn btn-primary mt-3" style="padding: 0.4rem 0.8rem; font-size: 0.875rem;">
+                    <i class="bi bi-upload" style="font-size: 0.8rem; margin-right: 4px;"></i> Tải lên tài liệu
+                </a>
+            <?php else: ?>
+                <button class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#loginModal" style="padding: 0.4rem 0.8rem; font-size: 0.875rem;">
+                    <i class="bi bi-upload" style="font-size: 0.8rem; margin-right: 4px;"></i> Đăng nhập để tải lên
+                </button>
+            <?php endif; ?>
         </div>
     <?php else: ?>
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
