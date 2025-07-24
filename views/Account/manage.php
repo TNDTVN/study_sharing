@@ -76,7 +76,13 @@ if (session_status() === PHP_SESSION_NONE) {
                             <td><?php echo htmlspecialchars($user['role']); ?></td>
                             <td>
                                 <span class="status-<?php echo htmlspecialchars($user['status']); ?>">
-                                    <?php echo htmlspecialchars($user['status']); ?>
+                                    <?php if ($user['status'] === 'active'): ?>
+                                        <i class="fa fa-check-circle"></i> Hoạt động
+                                    <?php elseif ($user['status'] === 'inactive'): ?>
+                                        <i class="fa fa-pause-circle"></i> Không hoạt động
+                                    <?php else: ?>
+                                        <i class="fa fa-ban"></i> Bị khóa
+                                    <?php endif; ?>
                                 </span>
                             </td>
                             <td>
@@ -331,3 +337,41 @@ if (session_status() === PHP_SESSION_NONE) {
         }
     }
 </script>
+<style>
+    .content {
+        padding-top: 0px;
+    }
+
+    .status-active {
+        color: green;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-inactive {
+        color: orange;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-banned {
+        color: red;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .container.py-5 {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .action-buttons .btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+    }
+</style>

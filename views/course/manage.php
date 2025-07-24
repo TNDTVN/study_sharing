@@ -67,9 +67,14 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo htmlspecialchars($course['username'] ?? 'N/A'); ?></td>
                             <td><?php echo $course['member_count'] ?? 0; ?></td>
                             <td>
-                                <span class="badge status-<?php echo htmlspecialchars($course['status']); ?>">
-                                    <i class="bi bi-<?php echo $course['status'] === 'open' ? 'unlock' : ($course['status'] === 'in_progress' ? 'play-circle' : 'lock'); ?> me-1"></i>
-                                    <?php echo htmlspecialchars($course['status'] === 'open' ? 'Mở' : ($course['status'] === 'in_progress' ? 'Đang học' : 'Đã đóng')); ?>
+                                <span class="status-<?php echo htmlspecialchars($course['status']); ?>">
+                                    <?php if ($course['status'] === 'open'): ?>
+                                        <i class="fa fa-check-circle"></i> Mở
+                                    <?php elseif ($course['status'] === 'in_progress'): ?>
+                                        <i class="fa fa-pause-circle"></i> Đang học
+                                    <?php else: ?>
+                                        <i class="fa fa-ban"></i> Đã đóng
+                                    <?php endif; ?>
                                 </span>
                             </td>
                             <td>
@@ -457,11 +462,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 </script>
 
 <style>
-    .container.py-5 {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-    }
-
     .modal-body p {
         margin-bottom: 10px;
 
@@ -472,47 +472,40 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         width: 200px;
     }
 
-    /* Style cho trạng thái */
+    .content {
+        padding-top: 0px;
+    }
+
     .status-open {
-        background-color: #28a745;
-        /* Màu xanh lá cho trạng thái 'Mở' */
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        display: inline-block;
+        color: green;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .status-in_progress {
-        background-color: #ffc107;
-        /* Màu vàng cho trạng thái 'Đang học' */
-        color: black;
-        padding: 2px 8px;
-        border-radius: 4px;
-        display: inline-block;
+        color: orange;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .status-closed {
-        background-color: #dc3545;
-        /* Màu đỏ cho trạng thái 'Đã đóng' */
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        display: inline-block;
+        color: red;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
-    /* Nếu không dùng badge, chỉ đổi màu chữ */
-    td.status-open {
-        color: #28a745;
-        font-weight: bold;
+    .container.py-5 {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
     }
 
-    td.status-in_progress {
-        color: #ffc107;
-        font-weight: bold;
-    }
-
-    td.status-closed {
-        color: #dc3545;
-        font-weight: bold;
+    .action-buttons .btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
     }
 </style>
