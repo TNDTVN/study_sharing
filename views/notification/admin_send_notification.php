@@ -16,329 +16,317 @@ $students = array_filter($users, fn($user) => isset($user['role']) && $user['rol
 $admins = array_filter($users, fn($user) => isset($user['role']) && $user['role'] === 'admin');
 $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['role'] === 'teacher');
 ?>
-<!DOCTYPE html>
-<html lang="vi">
+<style>
+    :root {
+        --primary: #ff6b6b;
+        --secondary: #ff8787;
+        --accent: #4cc9f0;
+        --background: #f4f7fa;
+        --card-bg: #ffffff;
+        --text: #2d3436;
+        --border: #e0e6ed;
+        --shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    }
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($title); ?></title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <style>
-        :root {
-            --primary: #ff6b6b;
-            --secondary: #ff8787;
-            --accent: #4cc9f0;
-            --background: #f4f7fa;
-            --card-bg: #ffffff;
-            --text: #2d3436;
-            --border: #e0e6ed;
-            --shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-        }
+    body {
+        background: linear-gradient(to bottom, var(--background), #dfe6e9);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text);
+        line-height: 1.6;
+    }
 
-        body {
-            background: linear-gradient(to bottom, var(--background), #dfe6e9);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            color: var(--text);
-            line-height: 1.6;
-        }
+    .content {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
 
-        .content {
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
+    .container.py-5 {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
 
-        .container.py-5 {
-            padding-top: 0 !important;
-            padding-bottom: 0 !important;
-        }
+    .card {
+        border: none;
+        border-radius: 16px;
+        background: var(--card-bg);
+        box-shadow: var(--shadow);
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
 
-        .card {
-            border: none;
-            border-radius: 16px;
-            background: var(--card-bg);
-            box-shadow: var(--shadow);
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
-        }
+    .card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    }
 
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-        }
+    .card-header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border-radius: 16px 16px 0 0;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
 
-        .card-header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 16px 16px 0 0;
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+    .card-header i {
+        font-size: 2rem;
+        color: #fff;
+    }
 
-        .card-header i {
-            font-size: 2rem;
-            color: #fff;
+    .card-header h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    .alert {
+        border-radius: 12px;
+        border-left: 5px solid;
+        border-color: #28a745;
+        position: relative;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .alert-danger {
+        border-color: #dc3545;
+    }
+
+    .alert i {
+        font-size: 1.5rem;
+        vertical-align: middle;
+    }
+
+    .table-responsive {
+        max-height: 300px;
+        overflow-y: auto;
+        border-radius: 8px;
+    }
+
+    .table thead th {
+        background: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+
+    .table tr.table-success {
+        background: rgba(40, 167, 69, 0.1);
+    }
+
+    .table tr.table-warning {
+        background: rgba(255, 193, 7, 0.1);
+    }
+
+    .table tr.table-danger {
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 0.2rem rgba(255, 107, 107, 0.25);
+    }
+
+    .textarea-container {
+        position: relative;
+    }
+
+    .char-counter {
+        position: absolute;
+        bottom: -1.5rem;
+        right: 0;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .char-counter.warning {
+        color: #dc3545;
+        font-weight: 500;
+    }
+
+    .target-selector {
+        display: flex;
+        gap: 1rem;
+        margin: 1.5rem 0;
+    }
+
+    .target-option {
+        flex: 1;
+        padding: 1.25rem;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--card-bg);
+        transition: all 0.3s ease;
+    }
+
+    .target-option:hover {
+        background: rgba(255, 107, 107, 0.05);
+        border-color: var(--primary);
+    }
+
+    .target-option.active {
+        border-color: var(--primary);
+        background: rgba(255, 107, 107, 0.1);
+        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+    }
+
+    .target-option i {
+        font-size: 2rem;
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .target-option.active i {
+        color: var(--secondary);
+    }
+
+    .search-container {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+    }
+
+    .search-input {
+        padding-left: 2.5rem;
+        border-radius: 10px;
+    }
+
+    .user-list {
+        max-height: 250px;
+        overflow-y: auto;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--card-bg);
+    }
+
+    .user-list .list-group-item {
+        border: none;
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 1.25rem;
+        transition: background 0.2s ease;
+    }
+
+    .user-list .list-group-item:hover {
+        background: rgba(255, 107, 107, 0.05);
+    }
+
+    .user-list .list-group-item:last-child {
+        border-bottom: none;
+    }
+
+    .role-badge {
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .badge-admin {
+        background: rgba(108, 117, 125, 0.2);
+        color: #495057;
+    }
+
+    .badge-teacher {
+        background: rgba(32, 201, 151, 0.2);
+        color: #0a7e5e;
+    }
+
+    .badge-student {
+        background: rgba(13, 110, 253, 0.2);
+        color: #0d6efd;
+    }
+
+    .btn-send {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        width: 100%;
+
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-send:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(255, 107, 107, 0.3);
+    }
+
+    .toast {
+        border-radius: 10px;
+        box-shadow: var(--shadow);
+    }
+
+    .toast-header {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: #fff;
+        border-radius: 10px 10px 0 0;
+    }
+
+    .toast-header .btn-close {
+        filter: invert(1);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        opacity: 0.3;
+        margin-bottom: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .target-selector {
+            flex-direction: column;
         }
 
         .card-header h3 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #fff;
-            margin: 0;
-        }
-
-        .card-body {
-            padding: 2rem;
-        }
-
-        .alert {
-            border-radius: 12px;
-            border-left: 5px solid;
-            border-color: #28a745;
-            position: relative;
-            padding: 1.5rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        .alert-danger {
-            border-color: #dc3545;
-        }
-
-        .alert i {
-            font-size: 1.5rem;
-            vertical-align: middle;
-        }
-
-        .table-responsive {
-            max-height: 300px;
-            overflow-y: auto;
-            border-radius: 8px;
-        }
-
-        .table thead th {
-            background: #f8f9fa;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-
-        .table tr.table-success {
-            background: rgba(40, 167, 69, 0.1);
-        }
-
-        .table tr.table-warning {
-            background: rgba(255, 193, 7, 0.1);
-        }
-
-        .table tr.table-danger {
-            background: rgba(220, 53, 69, 0.1);
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: var(--text);
-            margin-bottom: 0.5rem;
-        }
-
-        .form-control,
-        .form-select {
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            padding: 0.75rem 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus,
-        .form-select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 0.2rem rgba(255, 107, 107, 0.25);
-        }
-
-        .textarea-container {
-            position: relative;
-        }
-
-        .char-counter {
-            position: absolute;
-            bottom: -1.5rem;
-            right: 0;
-            font-size: 0.85rem;
-            color: #6c757d;
-        }
-
-        .char-counter.warning {
-            color: #dc3545;
-            font-weight: 500;
-        }
-
-        .target-selector {
-            display: flex;
-            gap: 1rem;
-            margin: 1.5rem 0;
-        }
-
-        .target-option {
-            flex: 1;
-            padding: 1.25rem;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            text-align: center;
-            cursor: pointer;
-            background: var(--card-bg);
-            transition: all 0.3s ease;
-        }
-
-        .target-option:hover {
-            background: rgba(255, 107, 107, 0.05);
-            border-color: var(--primary);
-        }
-
-        .target-option.active {
-            border-color: var(--primary);
-            background: rgba(255, 107, 107, 0.1);
-            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+            font-size: 1.25rem;
         }
 
         .target-option i {
-            font-size: 2rem;
-            color: var(--primary);
-            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
         }
+    }
+</style>
 
-        .target-option.active i {
-            color: var(--secondary);
-        }
-
-        .search-container {
-            position: relative;
-            margin-bottom: 1rem;
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-        }
-
-        .search-input {
-            padding-left: 2.5rem;
-            border-radius: 10px;
-        }
-
-        .user-list {
-            max-height: 250px;
-            overflow-y: auto;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            background: var(--card-bg);
-        }
-
-        .user-list .list-group-item {
-            border: none;
-            border-bottom: 1px solid var(--border);
-            padding: 0.75rem 1.25rem;
-            transition: background 0.2s ease;
-        }
-
-        .user-list .list-group-item:hover {
-            background: rgba(255, 107, 107, 0.05);
-        }
-
-        .user-list .list-group-item:last-child {
-            border-bottom: none;
-        }
-
-        .role-badge {
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .badge-admin {
-            background: rgba(108, 117, 125, 0.2);
-            color: #495057;
-        }
-
-        .badge-teacher {
-            background: rgba(32, 201, 151, 0.2);
-            color: #0a7e5e;
-        }
-
-        .badge-student {
-            background: rgba(13, 110, 253, 0.2);
-            color: #0d6efd;
-        }
-
-        .btn-send {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border: none;
-            border-radius: 10px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-        }
-
-        .btn-send:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 15px rgba(255, 107, 107, 0.3);
-        }
-
-        .toast {
-            border-radius: 10px;
-            box-shadow: var(--shadow);
-        }
-
-        .toast-header {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: #fff;
-            border-radius: 10px 10px 0 0;
-        }
-
-        .toast-header .btn-close {
-            filter: invert(1);
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 2rem;
-            color: #6c757d;
-        }
-
-        .empty-state i {
-            font-size: 3rem;
-            opacity: 0.3;
-            margin-bottom: 1rem;
-        }
-
-        @media (max-width: 768px) {
-            .target-selector {
-                flex-direction: column;
-            }
-
-            .card-header h3 {
-                font-size: 1.25rem;
-            }
-
-            .target-option i {
-                font-size: 1.5rem;
-            }
-        }
-    </style>
-</head>
-
-<body>
-
-
-    <div class="col-lg-12">
+<div class="container-fluid px-2 py-4">
+    <div class="mx-auto">
         <div class="card">
             <div class="card-header">
                 <i class="bi bi-megaphone"></i>
@@ -592,161 +580,159 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                 </form>
             </div>
         </div>
+    </div>
+</div>
 
 
 
-
-        <div class="toast-container position-fixed bottom-0 end-0 p-3">
-            <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header">
-                    <strong class="me-auto">Thông báo</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body"></div>
-            </div>
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto">Thông báo</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
+        <div class="toast-body"></div>
+    </div>
+</div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        <script>
-            const accounts = <?php
-                                $filtered_users = array_filter($users, function ($user) use ($current_user_id) {
-                                    return isset($user['account_id'], $user['full_name'], $user['username'], $user['role']) &&
-                                        $user['account_id'] != $current_user_id;
-                                });
-                                echo json_encode($filtered_users, JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
-                                ?>;
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const accounts = <?php
+                        $filtered_users = array_filter($users, function ($user) use ($current_user_id) {
+                            return isset($user['account_id'], $user['full_name'], $user['username'], $user['role']) &&
+                                $user['account_id'] != $current_user_id;
+                        });
+                        echo json_encode($filtered_users, JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+                        ?>;
 
-            // Debounce function to limit the frequency of search calls
-            function debounce(func, wait) {
-                let timeout;
-                return function executedFunction(...args) {
-                    const later = () => {
-                        clearTimeout(timeout);
-                        func(...args);
-                    };
-                    clearTimeout(timeout);
-                    timeout = setTimeout(later, wait);
-                };
+    // Debounce function to limit the frequency of search calls
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Search accounts function
+    function searchAccounts(containerId, searchInputId) {
+        const searchInputElement = document.getElementById(searchInputId);
+        if (!searchInputElement) return;
+        const searchInput = searchInputElement.value.toLowerCase().trim();
+        const items = document.querySelectorAll(`#${containerId} .list-group-item[data-account-id]`);
+        const noResults = document.getElementById(`${containerId.split('_')[0]}_no_results`);
+        let hasVisibleItems = false;
+        items.forEach(item => {
+            const searchText = item.textContent.toLowerCase();
+            const isVisible = searchText.includes(searchInput);
+            item.style.display = isVisible ? '' : 'none';
+            if (isVisible) hasVisibleItems = true;
+        });
+        if (noResults) {
+            noResults.classList.toggle('d-none', hasVisibleItems || items.length === 0);
+        }
+    }
+
+    // Debounced search function
+    const debouncedSearchAccounts = debounce(searchAccounts, 300);
+
+    function selectTarget(targetType) {
+        document.querySelectorAll('.target-option').forEach(option => {
+            option.classList.remove('active');
+        });
+        document.querySelector(`.target-option[data-target="${targetType}"]`).classList.add('active');
+        document.getElementById('target_type').value = targetType;
+        document.getElementById('role_options').style.display = targetType === 'role' ? 'block' : 'none';
+        document.getElementById('account_options').style.display = targetType === 'account' ? 'block' : 'none';
+        if (targetType === 'role') {
+            toggleRoleOptions();
+        } else {
+            document.getElementById('admin_options').style.display = 'none';
+            document.getElementById('teacher_options').style.display = 'none';
+            document.getElementById('student_options').style.display = 'none';
+        }
+        debouncedSearchAccounts('admin_options', 'admin_search')();
+        debouncedSearchAccounts('teacher_options', 'teacher_search')();
+        debouncedSearchAccounts('student_options', 'student_search')();
+        debouncedSearchAccounts('account_options', 'account_search')();
+    }
+
+    function toggleRoleOptions() {
+        const role = document.getElementById('role')?.value;
+        if (!role) return;
+        document.getElementById('admin_options').style.display = role === 'admin' ? 'block' : 'none';
+        document.getElementById('teacher_options').style.display = role === 'teacher' ? 'block' : 'none';
+        document.getElementById('student_options').style.display = role === 'student' ? 'block' : 'none';
+        document.getElementById('admin_search').value = '';
+        document.getElementById('teacher_search').value = '';
+        document.getElementById('student_search').value = '';
+        debouncedSearchAccounts('admin_options', 'admin_search')();
+        debouncedSearchAccounts('teacher_options', 'teacher_search')();
+        debouncedSearchAccounts('student_options', 'student_search')();
+    }
+
+    function toggleSelectAll(name, checkboxId) {
+        const checkbox = document.getElementById(checkboxId);
+        checkbox.checked = !checkbox.checked;
+        const checkboxes = document.getElementsByName(name);
+        for (const cb of checkboxes) {
+            if (cb.parentElement.style.display !== 'none') {
+                cb.checked = checkbox.checked;
             }
+        }
+    }
 
-            // Search accounts function
-            function searchAccounts(containerId, searchInputId) {
-                const searchInputElement = document.getElementById(searchInputId);
-                if (!searchInputElement) return;
-                const searchInput = searchInputElement.value.toLowerCase().trim();
-                const items = document.querySelectorAll(`#${containerId} .list-group-item[data-account-id]`);
-                const noResults = document.getElementById(`${containerId.split('_')[0]}_no_results`);
-                let hasVisibleItems = false;
-                items.forEach(item => {
-                    const searchText = item.textContent.toLowerCase();
-                    const isVisible = searchText.includes(searchInput);
-                    item.style.display = isVisible ? '' : 'none';
-                    if (isVisible) hasVisibleItems = true;
-                });
-                if (noResults) {
-                    noResults.classList.toggle('d-none', hasVisibleItems || items.length === 0);
-                }
+    function updateCharCount() {
+        const message = document.getElementById('message')?.value || '';
+        const charCount = document.getElementById('char_count');
+        const remaining = 500 - message.length;
+        if (charCount) {
+            charCount.textContent = `${remaining} ký tự còn lại`;
+            charCount.classList.toggle('warning', remaining < 50);
+        }
+    }
+
+    function confirmSendNotification() {
+        const message = document.getElementById('message')?.value.trim();
+        if (!message) {
+            showToast('Vui lòng nhập nội dung thông báo!');
+            return;
+        }
+        const targetType = document.getElementById('target_type')?.value;
+        if (targetType === 'role') {
+            const role = document.getElementById('role')?.value;
+            if (!role) {
+                showToast('Vui lòng chọn vai trò!');
+                return;
             }
+        }
+        if (confirm('Bạn có chắc chắn muốn gửi thông báo này?')) {
+            document.getElementById('notificationForm')?.submit();
+        }
+    }
 
-            // Debounced search function
-            const debouncedSearchAccounts = debounce(searchAccounts, 300);
+    function showToast(message) {
+        const toastEl = document.getElementById('notificationToast');
+        if (!toastEl) return;
+        toastEl.querySelector('.toast-body').textContent = message;
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+    }
 
-            function selectTarget(targetType) {
-                document.querySelectorAll('.target-option').forEach(option => {
-                    option.classList.remove('active');
-                });
-                document.querySelector(`.target-option[data-target="${targetType}"]`).classList.add('active');
-                document.getElementById('target_type').value = targetType;
-                document.getElementById('role_options').style.display = targetType === 'role' ? 'block' : 'none';
-                document.getElementById('account_options').style.display = targetType === 'account' ? 'block' : 'none';
-                if (targetType === 'role') {
-                    toggleRoleOptions();
-                } else {
-                    document.getElementById('admin_options').style.display = 'none';
-                    document.getElementById('teacher_options').style.display = 'none';
-                    document.getElementById('student_options').style.display = 'none';
-                }
-                debouncedSearchAccounts('admin_options', 'admin_search')();
-                debouncedSearchAccounts('teacher_options', 'teacher_search')();
-                debouncedSearchAccounts('student_options', 'student_search')();
-                debouncedSearchAccounts('account_options', 'account_search')();
-            }
-
-            function toggleRoleOptions() {
-                const role = document.getElementById('role')?.value;
-                if (!role) return;
-                document.getElementById('admin_options').style.display = role === 'admin' ? 'block' : 'none';
-                document.getElementById('teacher_options').style.display = role === 'teacher' ? 'block' : 'none';
-                document.getElementById('student_options').style.display = role === 'student' ? 'block' : 'none';
-                document.getElementById('admin_search').value = '';
-                document.getElementById('teacher_search').value = '';
-                document.getElementById('student_search').value = '';
-                debouncedSearchAccounts('admin_options', 'admin_search')();
-                debouncedSearchAccounts('teacher_options', 'teacher_search')();
-                debouncedSearchAccounts('student_options', 'student_search')();
-            }
-
-            function toggleSelectAll(name, checkboxId) {
-                const checkbox = document.getElementById(checkboxId);
-                checkbox.checked = !checkbox.checked;
-                const checkboxes = document.getElementsByName(name);
-                for (const cb of checkboxes) {
-                    if (cb.parentElement.style.display !== 'none') {
-                        cb.checked = checkbox.checked;
-                    }
-                }
-            }
-
-            function updateCharCount() {
-                const message = document.getElementById('message')?.value || '';
-                const charCount = document.getElementById('char_count');
-                const remaining = 500 - message.length;
-                if (charCount) {
-                    charCount.textContent = `${remaining} ký tự còn lại`;
-                    charCount.classList.toggle('warning', remaining < 50);
-                }
-            }
-
-            function confirmSendNotification() {
-                const message = document.getElementById('message')?.value.trim();
-                if (!message) {
-                    showToast('Vui lòng nhập nội dung thông báo!');
-                    return;
-                }
-                const targetType = document.getElementById('target_type')?.value;
-                if (targetType === 'role') {
-                    const role = document.getElementById('role')?.value;
-                    if (!role) {
-                        showToast('Vui lòng chọn vai trò!');
-                        return;
-                    }
-                }
-                if (confirm('Bạn có chắc chắn muốn gửi thông báo này?')) {
-                    document.getElementById('notificationForm')?.submit();
-                }
-            }
-
-            function showToast(message) {
-                const toastEl = document.getElementById('notificationToast');
-                if (!toastEl) return;
-                toastEl.querySelector('.toast-body').textContent = message;
-                const toast = new bootstrap.Toast(toastEl);
-                toast.show();
-            }
-
-            document.addEventListener('DOMContentLoaded', () => {
-                const targetTypeElement = document.getElementById('target_type');
-                if (targetTypeElement) {
-                    selectTarget(targetTypeElement.value || 'all');
-                }
-                debouncedSearchAccounts('admin_options', 'admin_search')();
-                debouncedSearchAccounts('teacher_options', 'teacher_search')();
-                debouncedSearchAccounts('student_options', 'student_search')();
-                debouncedSearchAccounts('account_options', 'account_search')();
-                updateCharCount();
-            });
-        </script>
-</body>
-
-</html>
+    document.addEventListener('DOMContentLoaded', () => {
+        const targetTypeElement = document.getElementById('target_type');
+        if (targetTypeElement) {
+            selectTarget(targetTypeElement.value || 'all');
+        }
+        debouncedSearchAccounts('admin_options', 'admin_search')();
+        debouncedSearchAccounts('teacher_options', 'teacher_search')();
+        debouncedSearchAccounts('student_options', 'student_search')();
+        debouncedSearchAccounts('account_options', 'account_search')();
+        updateCharCount();
+    });
+</script>
 <?php ob_end_flush(); ?>
