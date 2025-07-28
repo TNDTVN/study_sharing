@@ -3,7 +3,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 if (!isset($_SESSION['account_id']) || !in_array($_SESSION['role'], ['teacher', 'student'])) {
-    header('Location: /study_sharing/login');
+    header('Location: /study_sharing/');
     exit;
 }
 $keyword = isset($keyword) ? htmlspecialchars($keyword, ENT_QUOTES | ENT_SUBSTITUTE) : '';
