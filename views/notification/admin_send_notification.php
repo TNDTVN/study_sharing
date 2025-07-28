@@ -18,316 +18,324 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
 ?>
 <style>
     :root {
-        --primary: #ff6b6b;
-        --secondary: #ff8787;
-        --accent: #4cc9f0;
-        --background: #f4f7fa;
-        --card-bg: #ffffff;
-        --text: #2d3436;
-        --border: #e0e6ed;
-        --shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
-    }
+    --blue-50: #EFF6FF;
+    --blue-100: #DBEAFE;
+    --blue-300: #93C5FD;
+    --blue-500: #3B82F6; /* Primary blue */
+    --blue-600: #2563EB;
+    --blue-700: #1D4ED8;
+    --blue-800: #1E40AF;
+    --gray-100: #F3F4F6;
+    --gray-600: #4B5563;
+    --white: #FFFFFF;
+    --border: #D1D5DB;
+    --shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    --red-100: #FEE2E2;
+    --red-500: #EF4444;
+    --yellow-50: #FEFCE8;
+}
 
-    body {
-        background: linear-gradient(to bottom, var(--background), #dfe6e9);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        color: var(--text);
-        line-height: 1.6;
-    }
+body {
+    background: linear-gradient(to bottom, var(--gray-100), var(--blue-50));
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--blue-800);
+    line-height: 1.6;
+}
 
-    .content {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-    }
+.content {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
 
-    .container.py-5 {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-    }
+.container.py-5 {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
 
-    .card {
-        border: none;
-        border-radius: 16px;
-        background: var(--card-bg);
-        box-shadow: var(--shadow);
-        transition: transform 0.1s ease, box-shadow 0.1s ease;
-    }
+.card {
+    border: none;
+    border-radius: 16px;
+    background: var(--white);
+    box-shadow: var(--shadow);
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
 
-    .card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-    }
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
 
-    .card-header {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border-radius: 16px 16px 0 0;
-        padding: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
+.card-header {
+    background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+    border-radius: 16px 16px 0 0;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
 
-    .card-header i {
-        font-size: 2rem;
-        color: #fff;
+.card-header i {
+    font-size: 2rem;
+    color: var(--white);
+}
+
+.card-header h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--white);
+    margin: 0;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+.alert {
+    border-radius: 12px;
+    border-left: 5px solid;
+    border-color: var(--blue-500);
+    position: relative;
+    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.alert-danger {
+    border-color: var(--red-500);
+}
+
+.alert i {
+    font-size: 1.5rem;
+    vertical-align: middle;
+}
+
+.table-responsive {
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 8px;
+}
+
+.table thead th {
+    background: var(--blue-50);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.table tr.table-success {
+    background: var(--blue-100);
+}
+
+.table tr.table-warning {
+    background: var(--yellow-50);
+}
+
+.table tr.table-danger {
+    background: var(--red-100);
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--blue-800);
+    margin-bottom: 0.5rem;
+}
+
+.form-control,
+.form-select {
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--blue-500);
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+}
+
+.textarea-container {
+    position: relative;
+}
+
+.char-counter {
+    position: absolute;
+    bottom: -1.5rem;
+    right: 0;
+    font-size: 0.85rem;
+    color: var(--gray-600);
+}
+
+.char-counter.warning {
+    color: var(--red-500);
+    font-weight: 500;
+}
+
+.target-selector {
+    display: flex;
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.target-option {
+    flex: 1;
+    padding: 1.25rem;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    background: var(--white);
+    transition: all 0.3s ease;
+}
+
+.target-option:hover {
+    background: var(--blue-50);
+    border-color: var(--blue-500);
+}
+
+.target-option.active {
+    border-color: var(--blue-500);
+    background: var(--blue-100);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.target-option i {
+    font-size: 2rem;
+    color: var(--blue-600);
+    margin-bottom: 0.5rem;
+}
+
+.target-option.active i {
+    color: var(--blue-700);
+}
+
+.search-container {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--gray-600);
+}
+
+.search-input {
+    padding-left: 2.5rem;
+    border-radius: 10px;
+}
+
+.user-list {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--white);
+}
+
+.user-list .list-group-item {
+    border: none;
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1.25rem;
+    transition: background 0.2s ease;
+}
+
+.user-list .list-group-item:hover {
+    background: var(--blue-50);
+}
+
+.user-list .list-group-item:last-child {
+    border-bottom: none;
+}
+
+.role-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-admin {
+    background: var(--blue-100);
+    color: var(--blue-800);
+}
+
+.badge-teacher {
+    background: var(--blue-100);
+    color: var(--blue-800);
+}
+
+.badge-student {
+    background: var(--blue-100);
+    color: var(--blue-800);
+}
+
+.btn-send {
+    background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.btn-send:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(59, 130, 246, 0.3);
+}
+
+.toast {
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+.toast-header {
+    background: linear-gradient(135deg, var(--blue-600), var(--blue-500));
+    color: var(--white);
+    border-radius: 10px 10px 0 0;
+}
+
+.toast-header .btn-close {
+    filter: invert(1);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--gray-600);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    opacity: 0.3;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .target-selector {
+        flex-direction: column;
     }
 
     .card-header h3 {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #fff;
-        margin: 0;
-    }
-
-    .card-body {
-        padding: 2rem;
-    }
-
-    .alert {
-        border-radius: 12px;
-        border-left: 5px solid;
-        border-color: #28a745;
-        position: relative;
-        padding: 1.5rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    .alert-danger {
-        border-color: #dc3545;
-    }
-
-    .alert i {
-        font-size: 1.5rem;
-        vertical-align: middle;
-    }
-
-    .table-responsive {
-        max-height: 300px;
-        overflow-y: auto;
-        border-radius: 8px;
-    }
-
-    .table thead th {
-        background: #f8f9fa;
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-    .table tr.table-success {
-        background: rgba(40, 167, 69, 0.1);
-    }
-
-    .table tr.table-warning {
-        background: rgba(255, 193, 7, 0.1);
-    }
-
-    .table tr.table-danger {
-        background: rgba(220, 53, 69, 0.1);
-    }
-
-    .form-label {
-        font-weight: 600;
-        color: var(--text);
-        margin-bottom: 0.5rem;
-    }
-
-    .form-control,
-    .form-select {
-        border-radius: 10px;
-        border: 1px solid var(--border);
-        padding: 0.75rem 1rem;
-        transition: all 0.3s ease;
-    }
-
-    .form-control:focus,
-    .form-select:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 0.2rem rgba(255, 107, 107, 0.25);
-    }
-
-    .textarea-container {
-        position: relative;
-    }
-
-    .char-counter {
-        position: absolute;
-        bottom: -1.5rem;
-        right: 0;
-        font-size: 0.85rem;
-        color: #6c757d;
-    }
-
-    .char-counter.warning {
-        color: #dc3545;
-        font-weight: 500;
-    }
-
-    .target-selector {
-        display: flex;
-        gap: 1rem;
-        margin: 1.5rem 0;
-    }
-
-    .target-option {
-        flex: 1;
-        padding: 1.25rem;
-        border: 2px solid var(--border);
-        border-radius: 12px;
-        text-align: center;
-        cursor: pointer;
-        background: var(--card-bg);
-        transition: all 0.3s ease;
-    }
-
-    .target-option:hover {
-        background: rgba(255, 107, 107, 0.05);
-        border-color: var(--primary);
-    }
-
-    .target-option.active {
-        border-color: var(--primary);
-        background: rgba(255, 107, 107, 0.1);
-        box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.2);
+        font-size: 1.25rem;
     }
 
     .target-option i {
-        font-size: 2rem;
-        color: var(--primary);
-        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
     }
-
-    .target-option.active i {
-        color: var(--secondary);
-    }
-
-    .search-container {
-        position: relative;
-        margin-bottom: 1rem;
-    }
-
-    .search-icon {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #6c757d;
-    }
-
-    .search-input {
-        padding-left: 2.5rem;
-        border-radius: 10px;
-    }
-
-    .user-list {
-        max-height: 250px;
-        overflow-y: auto;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: var(--card-bg);
-    }
-
-    .user-list .list-group-item {
-        border: none;
-        border-bottom: 1px solid var(--border);
-        padding: 0.75rem 1.25rem;
-        transition: background 0.2s ease;
-    }
-
-    .user-list .list-group-item:hover {
-        background: rgba(255, 107, 107, 0.05);
-    }
-
-    .user-list .list-group-item:last-child {
-        border-bottom: none;
-    }
-
-    .role-badge {
-        padding: 0.4rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 500;
-    }
-
-    .badge-admin {
-        background: rgba(108, 117, 125, 0.2);
-        color: #495057;
-    }
-
-    .badge-teacher {
-        background: rgba(32, 201, 151, 0.2);
-        color: #0a7e5e;
-    }
-
-    .badge-student {
-        background: rgba(13, 110, 253, 0.2);
-        color: #0d6efd;
-    }
-
-    .btn-send {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        border: none;
-        border-radius: 10px;
-        padding: 0.75rem 1.5rem;
-        font-weight: 600;
-        width: 100%;
-
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .btn-send:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 6px 15px rgba(255, 107, 107, 0.3);
-    }
-
-    .toast {
-        border-radius: 10px;
-        box-shadow: var(--shadow);
-    }
-
-    .toast-header {
-        background: linear-gradient(135deg, var(--primary), var(--secondary));
-        color: #fff;
-        border-radius: 10px 10px 0 0;
-    }
-
-    .toast-header .btn-close {
-        filter: invert(1);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 2rem;
-        color: #6c757d;
-    }
-
-    .empty-state i {
-        font-size: 3rem;
-        opacity: 0.3;
-        margin-bottom: 1rem;
-    }
-
-    @media (max-width: 768px) {
-        .target-selector {
-            flex-direction: column;
-        }
-
-        .card-header h3 {
-            font-size: 1.25rem;
-        }
-
-        .target-option i {
-            font-size: 1.5rem;
-        }
-    }
+}
+    
 </style>
 
 <div class="container-fluid px-2 py-4">
     <div class="mx-auto">
-        <div class="card">
+       
             <div class="card-header">
                 <i class="bi bi-megaphone"></i>
                 <h3><?php echo htmlspecialchars($title); ?></h3>
@@ -579,11 +587,9 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                     </button>
                 </form>
             </div>
-        </div>
+        
     </div>
 </div>
-
-
 
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="notificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
