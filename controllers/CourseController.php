@@ -287,4 +287,69 @@ class CourseController
         $pdo = $this->db;
         require __DIR__ . '/../views/layouts/' . $layout;
     }
+    public function createCourseByTeacher()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không được phép']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || $_SESSION['role'] !== 'teacher') {
+            echo json_encode(['success' => false, 'message' => 'Chỉ giáo viên mới có quyền tạo khóa học']);
+            exit;
+        }
+
+        $course_name = trim($_POST['course_name'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $max_members = isset($_POST['max_members']) ? (int)$_POST['max_members'] : 50;
+        $start_date = $_POST['start_date'] ?? null;
+        $end_date = $_POST['end_date'] ?? null;
+        $learn_link = trim($_POST['learn_link'] ?? '');
+
+        if (empty($course_name)) {
+            echo json_encode(['success' => false, 'message' => 'Tên khóa học không được để trống']);
+            exit;
+        }
+
+        try {
+            $creator_id = $_SESSION['account_id'];
+
+            // Gọi hàm tạo khóa học (tự động set created_at, creator_id, course_name, description)
+            $result = $this->course->createCourse($course_name, $description, $creator_id);
+
+            if ($result) {
+                $course_id = $this->db->lastInsertId();
+
+                // Cập nhật các thông tin còn lại như max_members, status = closed, ...
+                $update = $this->db->prepare("
+                UPDATE courses SET 
+                    max_members = :max_members, 
+                    learn_link = :learn_link, 
+                    start_date = :start_date, 
+                    end_date = :end_date, 
+                    status = 'closed' 
+                WHERE course_id = :course_id
+            ");
+                $update->bindValue(':max_members', $max_members, PDO::PARAM_INT);
+                $update->bindValue(':learn_link', $learn_link ?: null, $learn_link ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $update->bindValue(':start_date', $start_date, $start_date ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $update->bindValue(':end_date', $end_date, $end_date ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $update->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+                $update->execute();
+
+                echo json_encode(['success' => true, 'message' => 'Tạo khóa học thành công. Trạng thái mặc định: closed']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Không thể tạo khóa học']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()]);
+        }
+        exit;
+    }
 }
