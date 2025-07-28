@@ -595,7 +595,6 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const accounts = <?php
                         $filtered_users = array_filter($users, function ($user) use ($current_user_id) {
@@ -655,10 +654,10 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
             document.getElementById('teacher_options').style.display = 'none';
             document.getElementById('student_options').style.display = 'none';
         }
-        debouncedSearchAccounts('admin_options', 'admin_search')();
-        debouncedSearchAccounts('teacher_options', 'teacher_search')();
-        debouncedSearchAccounts('student_options', 'student_search')();
-        debouncedSearchAccounts('account_options', 'account_search')();
+        debouncedSearchAccounts('admin_options', 'admin_search');
+        debouncedSearchAccounts('teacher_options', 'teacher_search');
+        debouncedSearchAccounts('student_options', 'student_search');
+        debouncedSearchAccounts('account_options', 'account_search');
     }
 
     function toggleRoleOptions() {
@@ -670,9 +669,9 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
         document.getElementById('admin_search').value = '';
         document.getElementById('teacher_search').value = '';
         document.getElementById('student_search').value = '';
-        debouncedSearchAccounts('admin_options', 'admin_search')();
-        debouncedSearchAccounts('teacher_options', 'teacher_search')();
-        debouncedSearchAccounts('student_options', 'student_search')();
+        debouncedSearchAccounts('admin_options', 'admin_search');
+        debouncedSearchAccounts('teacher_options', 'teacher_search');
+        debouncedSearchAccounts('student_options', 'student_search');
     }
 
     function toggleSelectAll(name, checkboxId) {
@@ -728,10 +727,10 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
         if (targetTypeElement) {
             selectTarget(targetTypeElement.value || 'all');
         }
-        debouncedSearchAccounts('admin_options', 'admin_search')();
-        debouncedSearchAccounts('teacher_options', 'teacher_search')();
-        debouncedSearchAccounts('student_options', 'student_search')();
-        debouncedSearchAccounts('account_options', 'account_search')();
+        debouncedSearchAccounts('admin_options', 'admin_search');
+        debouncedSearchAccounts('teacher_options', 'teacher_search');
+        debouncedSearchAccounts('student_options', 'student_search');
+        debouncedSearchAccounts('account_options', 'account_search');
         updateCharCount();
     });
 </script>
