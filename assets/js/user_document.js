@@ -21,6 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateVersionFileNameDisplay = document.getElementById('updateVersionFileName');
     const successModal = new bootstrap.Modal(document.getElementById('successModal'));
     const successModalMessage = document.getElementById('successModalMessage');
+    const viewDocumentModal = document.getElementById('viewDocumentModal');
+    let pdfDoc = null;
+    let currentPage = 1;
+    let totalPages = 0;
 
     // Initialize PDF.js worker
     if (typeof pdfjsLib !== 'undefined') {
@@ -298,9 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Xử lý nút xem chi tiết
-    let pdfDoc = null;
-    let totalPages = 0;
-
     viewButtons.forEach(button => {
         button.addEventListener('click', () => {
             const id = button.getAttribute('data-id');
@@ -330,6 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const documentContainer = document.getElementById('viewDocumentContainer');
             pdfDoc = null;
+            currentPage = 1;
             totalPages = 0;
 
             fetch(filePath, { method: 'HEAD' })
@@ -346,31 +348,48 @@ document.addEventListener('DOMContentLoaded', () => {
                     documentContainer.innerHTML = '<p>Lỗi khi kiểm tra tệp. <a href="' + filePath + '" download>Vui lòng tải xuống để xem.</a></p>';
                 });
 
-            const viewModal = new bootstrap.Modal(document.getElementById('viewDocumentModal'));
+            const viewModal = new bootstrap.Modal(viewDocumentModal);
             viewModal.show();
         });
     });
 
-    // Reset trạng thái khi modal đóng
-    document.getElementById('viewDocumentModal').addEventListener('hidden.bs.modal', () => {
-        pdfDoc = null;
-        totalPages = 0;
-        document.getElementById('viewDocumentContainer').innerHTML = '';
-        document.getElementById('pageInfo').textContent = '';
-    });
-
-    // Reset trạng thái khi modal lịch sử phiên bản đóng
-    document.getElementById('versionModal').addEventListener('hidden.bs.modal', () => {
-        const versionModal = document.getElementById('versionModal');
-        const tbody = document.getElementById('versionTableBody');
-        tbody.innerHTML = '';
-        versionModal.classList.remove('show');
-        versionModal.style.display = 'none';
+    // Reset trạng thái khi modal đóng và khôi phục cuộn
+    function resetModalState(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.remove('show');
+        modal.style.display = 'none';
         document.body.classList.remove('modal-open');
+        document.body.style.overflow = 'auto';
         const modalBackdrop = document.querySelector('.modal-backdrop');
         if (modalBackdrop) {
             modalBackdrop.remove();
         }
+    }
+
+    viewDocumentModal.addEventListener('hidden.bs.modal', () => {
+        pdfDoc = null;
+        currentPage = 1;
+        totalPages = 0;
+        document.getElementById('viewDocumentContainer').innerHTML = '';
+        document.getElementById('pageInfo').textContent = '';
+        resetModalState('viewDocumentModal');
+    });
+
+    document.getElementById('versionModal').addEventListener('hidden.bs.modal', () => {
+        document.getElementById('versionTableBody').innerHTML = '';
+        resetModalState('versionModal');
+    });
+
+    document.getElementById('editDocumentModal').addEventListener('hidden.bs.modal', () => {
+        resetModalState('editDocumentModal');
+    });
+
+    document.getElementById('updateVersionModal').addEventListener('hidden.bs.modal', () => {
+        resetModalState('updateVersionModal');
+    });
+
+    document.getElementById('successModal').addEventListener('hidden.bs.modal', () => {
+        resetModalState('successModal');
     });
 
     // Xử lý nút xem lịch sử phiên bản
@@ -395,9 +414,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Hàm hiển thị file preview
-    function renderPage(pageNum, container) {
+    function renderPage(pageNum, container, scale = 1.0) {
         pdfDoc.getPage(pageNum).then(page => {
-            const viewport = page.getViewport({ scale: 1.0 });
+            const viewport = page.getViewport({ scale });
             const canvas = document.createElement('canvas');
             canvas.setAttribute('data-page', pageNum);
             const context = canvas.getContext('2d');
@@ -409,14 +428,19 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.style.borderBottom = '1px solid #dee2e6';
             canvas.style.marginBottom = '10px';
             container.appendChild(canvas);
-            page.render({ canvasContext: context, viewport: viewport });
+            page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
+                // Đảm bảo canvas hiển thị đúng
+                canvas.style.display = 'block';
+            });
+        }).catch(error => {
+            console.error('Error rendering page:', error);
         });
     }
 
     function updatePageInfo() {
         const pageInfo = document.getElementById('pageInfo');
         if (pdfDoc && totalPages > 0) {
-            pageInfo.textContent = `Tổng số trang: ${totalPages}`;
+            pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
         } else {
             pageInfo.textContent = '';
         }
@@ -433,16 +457,14 @@ document.addEventListener('DOMContentLoaded', () => {
             pdfjsLib.getDocument(fileUrl).promise.then(function(pdf) {
                 pdfDoc = pdf;
                 totalPages = pdf.numPages;
-                if (totalPages > 50) {
-                    container.innerHTML = '<p>Tài liệu có quá nhiều trang để hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
-                    return;
-                }
                 container.innerHTML = '';
-                for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-                    renderPage(pageNum, container);
-                }
+                renderPage(currentPage, container);
                 updatePageInfo();
                 container.scrollTop = 0;
+
+                // Xử lý nút điều hướng
+                document.getElementById('prevPage').disabled = currentPage === 1;
+                document.getElementById('nextPage').disabled = currentPage === totalPages;
             }).catch(function(error) {
                 console.error('Error loading PDF:', error);
                 container.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
@@ -469,6 +491,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }).then(() => {
                         container.scrollTop = 0;
                         document.getElementById('pageInfo').textContent = '';
+                        document.getElementById('prevPage').disabled = true;
+                        document.getElementById('nextPage').disabled = true;
                     }).catch(error => {
                         console.error('Error rendering DOCX:', error);
                         container.innerHTML = '<p>Tài liệu DOCX không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
@@ -502,16 +526,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         pdfjsLib.getDocument(data.pdfPath).promise.then(function(pdf) {
                             pdfDoc = pdf;
                             totalPages = pdf.numPages;
-                            if (totalPages > 50) {
-                                container.innerHTML = '<p>Tài liệu có quá nhiều trang để hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
-                                return;
-                            }
                             container.innerHTML = '';
-                            for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-                                renderPage(pageNum, container);
-                            }
+                            renderPage(currentPage, container);
                             updatePageInfo();
                             container.scrollTop = 0;
+                            document.getElementById('prevPage').disabled = currentPage === 1;
+                            document.getElementById('nextPage').disabled = currentPage === totalPages;
                         }).catch(function(error) {
                             console.error('Error loading converted PDF:', error);
                             container.innerHTML = '<p>Tài liệu PPTX không thể hiển thị: Lỗi khi tải PDF đã chuyển đổi. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
@@ -527,6 +547,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         } else {
             container.innerHTML = '<p>Định dạng file không được hỗ trợ. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+            document.getElementById('prevPage').disabled = true;
+            document.getElementById('nextPage').disabled = true;
         }
     }
+
+    // Xử lý điều hướng trang
+    document.getElementById('prevPage').addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            const container = document.getElementById('viewDocumentContainer');
+            container.innerHTML = '';
+            renderPage(currentPage, container);
+            updatePageInfo();
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+        }
+    });
+
+    document.getElementById('nextPage').addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            const container = document.getElementById('viewDocumentContainer');
+            container.innerHTML = '';
+            renderPage(currentPage, container);
+            updatePageInfo();
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+        }
+    });
 });

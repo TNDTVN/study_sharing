@@ -803,6 +803,10 @@ class DocumentController
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
+
+        $itemsPerPage = 9;
+        $this->itemsPerPage = $itemsPerPage;
+
         // Logic lấy dữ liệu tài liệu, phân trang, tìm kiếm...
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
