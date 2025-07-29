@@ -4,6 +4,7 @@ namespace App;
 
 use App\Notification;
 use App\User;
+use Exception;
 
 class NotificationController
 {
@@ -150,5 +151,29 @@ class NotificationController
         }
         echo json_encode(['success' => false]);
         exit;
+    }
+
+    public function createNotification($account_id, $message, $is_read = false, $course_id = null)
+    {
+        try {
+            $userStmt = $this->pdo->prepare("SELECT COUNT(*) FROM accounts WHERE account_id = :account_id");
+
+            $userStmt->execute();
+            if ($userStmt->fetchColumn() == 0) {
+                error_log("Create notification failed: Invalid account_id $account_id");
+                return false;
+            }
+
+            $stmt = $this->pdo->prepare("
+            INSERT INTO notifications (account_id, message, is_read, created_at, course_id)
+            VALUES (:account_id, :message, :is_read, NOW(), :course_id)
+        ");
+
+            $stmt->execute();
+            return true;
+        } catch (Exception $e) {
+            error_log("Create notification error: " . $e->getMessage());
+            return false;
+        }
     }
 }

@@ -21,7 +21,6 @@ use App\AdminDocumentController;
 use App\TagController;
 use App\NotificationController;
 use App\NotificationAdminController;
-// thêm controller khác nếu cần
 
 session_start();
 
@@ -32,12 +31,7 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 // Định nghĩa các tuyến đường tĩnh
 $staticRoutes = [
-    // 'auth/reset_password' => [
-    //     'method' => 'GET',
-    //     'view' => __DIR__ . '/views/auth/reset_password.php',
-    //     'title' => 'Đặt lại mật khẩu',
-    //     'layout' => 'layout.php'
-    // ],
+    // Thêm các tuyến đường tĩnh nếu cần
 ];
 
 // Định nghĩa các controller được phép
@@ -56,7 +50,6 @@ $allowedControllers = [
     'NotificationController' => NotificationController::class,
     'NotificationAdminController' => NotificationAdminController::class,
     'AdminCourseController' => AdminCourseController::class,
-    // Thêm các controller khác nếu cần
 ];
 
 // Xử lý tuyến đường
@@ -75,6 +68,7 @@ function handleRoute($uri, $method, $pdo, $staticRoutes, $allowedControllers)
             exit;
         } else {
             http_response_code(405);
+            header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Method not allowed']);
             exit;
         }
@@ -86,13 +80,14 @@ function handleRoute($uri, $method, $pdo, $staticRoutes, $allowedControllers)
     $action = !empty($parts[1]) ? $parts[1] : 'index';
     $params = array_slice($parts, 2);
 
+    error_log("Processing URI: $uri, Controller: $controllerName, Action: $action");
+
     if (array_key_exists($controllerName, $allowedControllers)) {
         $controllerClass = $allowedControllers[$controllerName];
-        error_log("Controller class: $controllerClass");
         if (class_exists($controllerClass)) {
             $controller = new $controllerClass($pdo);
             if (method_exists($controller, $action) && is_callable([$controller, $action])) {
-                if (in_array($method, ['POST', 'GET'])) {
+                if (in_array($method, ['GET', 'POST'])) {
                     ob_start();
                     call_user_func_array([$controller, $action], $params);
                     $output = ob_get_clean();
@@ -102,19 +97,27 @@ function handleRoute($uri, $method, $pdo, $staticRoutes, $allowedControllers)
                     exit;
                 } else {
                     http_response_code(405);
+                    header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'message' => 'Method not allowed']);
                     exit;
                 }
             } else {
                 http_response_code(404);
+                header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => "Action '$action' not found in $controllerName"]);
                 exit;
             }
+        } else {
+            http_response_code(500);
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => "Controller class $controllerClass not found"]);
+            exit;
         }
     }
 
     // Nếu không khớp, trả về 404
     http_response_code(404);
+    header('Content-Type: application/json');
     echo json_encode(['success' => false, 'message' => 'Page not found']);
     exit;
 }

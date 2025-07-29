@@ -4,19 +4,23 @@ namespace App;
 
 use App\Account; // Thay User bằng Account
 use App\Notification;
+use Exception;
 
 class NotificationAdminController
 {
     private $pdo;
-    private $accountModel; // Thay userModel bằng accountModel
+    private $accountModel;
     private $notificationModel;
+    private $courseModel;
     private $current_user_id;
+
 
     public function __construct($pdo)
     {
         $this->pdo = $pdo;
-        $this->accountModel = new Account($pdo); // Sử dụng Account model
+        $this->accountModel = new Account($pdo);
         $this->notificationModel = new Notification($pdo);
+        $this->courseModel = new Course($pdo);
         $this->current_user_id = $_SESSION['user_id'] ?? null;
     }
 
@@ -160,6 +164,67 @@ class NotificationAdminController
             }
         } catch (\Exception $e) {
             return ['status' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
+        }
+    }
+    public function handleOpenCourseRequest()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['user_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xử lý yêu cầu này']);
+            exit;
+        }
+
+
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        error_log("Input data: " . print_r($data, true));
+        $course_id = (int)($data['course_id'] ?? 0);
+        $action = $data['action'] ?? '';
+        $notification_id = (int)($data['notification_id'] ?? 0);
+
+        if ($course_id <= 0 || !in_array($action, ['accept', 'reject'])) {
+            echo json_encode(['success' => false, 'message' => 'Dữ liệu không hợp lệ']);
+            exit;
+        }
+        if ($notification_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID thông báo không hợp lệ']);
+            exit;
+        }
+        if (!is_int($this->current_user_id) || $this->current_user_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID quản trị viên không hợp lệ']);
+            exit;
+        }
+
+        try {
+            $course = $this->courseModel->getCourseById($course_id);
+            if (!$course) {
+                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại']);
+                exit;
+            }
+
+            $notification = $this->notificationModel->getNotificationById($notification_id);
+            if (!$notification || $notification['account_id'] != $this->current_user_id) {
+                echo json_encode(['success' => false, 'message' => 'Thông báo không tồn tại hoặc bạn không có quyền xử lý']);
+                exit;
+            }
+        } catch (Exception $e) {
+            error_log("Handle open course request error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi cơ sở dữ liệu: ' . $e->getMessage()]);
+            exit;
+        } catch (Exception $e) {
+            error_log("Handle open course request error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+            exit;
         }
     }
 }

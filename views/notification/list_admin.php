@@ -24,6 +24,24 @@
                     </div>
                 <?php endforeach; ?>
             </div>
+            <?php
+            // /views/notification/list_admin.php
+            foreach ($notifications as $notification) {
+                $is_open_course_request = strpos($notification['message'], 'yêu cầu mở khóa học') !== false;
+                $course_id = $is_open_course_request ? (int)preg_replace('/[^0-9]/', '', strrchr($notification['message'], '(ID: ')) : 0;
+            ?>
+                <div class="notification">
+                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                    <p><small><?php echo $notification['created_at']; ?></small></p>
+                    <?php if ($is_open_course_request && !$notification['is_read'] && $course_id > 0) { ?>
+                        <button onclick="handleCourseRequest(<?php echo $notification['notification_id']; ?>, <?php echo $course_id; ?>, 'accept')">Chấp nhận</button>
+                        <button onclick="handleCourseRequest(<?php echo $notification['notification_id']; ?>, <?php echo $course_id; ?>, 'reject')">Từ chối</button>
+                    <?php } ?>
+                    <?php if (!$notification['is_read']) { ?>
+                        <button onclick="markRead(<?php echo $notification['notification_id']; ?>)">Đánh dấu đã đọc</button>
+                    <?php } ?>
+                </div>
+            <?php } ?>
 
             <!-- Phân trang -->
             <?php if ($totalPages > 1): ?>
@@ -48,12 +66,61 @@
                 </nav>
             <?php endif; ?>
         <?php else: ?>
+
             <p class="text-muted">Bạn chưa có thông báo nào.</p>
         <?php endif; ?>
     </div>
 </div>
 
 <script>
+    function handleCourseRequest(notificationId, courseId, action) {
+        if (!notificationId || !courseId) {
+            alert('Dữ liệu không hợp lệ');
+            return;
+        }
+        fetch('/study_sharing/notification_admin/handle_open_course_request', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    notification_id: notificationId,
+                    course_id: courseId,
+                    action: action
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Đã xảy ra lỗi khi xử lý yêu cầu');
+            });
+    }
+
+    function markRead(notificationId) {
+        fetch('/study_sharing/notification/mark_read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    notification_id: notificationId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert('Lỗi khi đánh dấu đã đọc');
+                }
+            });
+    }
     document.addEventListener('DOMContentLoaded', function() {
         // Đánh dấu đã đọc
         document.querySelectorAll('.mark-read').forEach(button => {
