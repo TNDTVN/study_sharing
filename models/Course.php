@@ -61,4 +61,27 @@ class Course
         $stmt = $this->db->query($query);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    public function updateCourse($course_id, $course_name, $description, $max_members, $learn_link, $start_date, $end_date)
+    {
+        $query = "UPDATE courses 
+                 SET course_name = :course_name,
+                     description = :description,
+                     max_members = :max_members,
+                     learn_link = :learn_link,
+                     start_date = :start_date,
+                     end_date = :end_date
+                 WHERE course_id = :course_id";
+
+        $stmt = $this->db->prepare($query);
+        $stmt->bindValue(':course_name', $course_name, PDO::PARAM_STR);
+        $stmt->bindValue(':description', $description ?: null, $description ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->bindValue(':max_members', $max_members, PDO::PARAM_INT);
+        $stmt->bindValue(':learn_link', $learn_link ?: null, $learn_link ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->bindValue(':start_date', $start_date, $start_date ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->bindValue(':end_date', $end_date, $end_date ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+
+        return $stmt->execute();
+    }
 }

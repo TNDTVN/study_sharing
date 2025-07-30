@@ -1,195 +1,186 @@
-<div class="container">
-    <h1 class="mb-4">Quản lý khóa học</h1>
+<?php
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+$title = "Quản lý khóa học";
+?>
 
-    <?php if (isset($_SESSION['message'])): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($_SESSION['message_type']); ?> alert-dismissible fade show" role="alert">
-            <?php echo htmlspecialchars($_SESSION['message']); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
-    <?php endif; ?>
+<div class="content-1 px-3">
+    <h1 class="mb-4 text-primary"><i class="bi bi-book me-2"></i> Quản lý khóa học</h1>
 
-    <!-- Form lọc -->
-    <form method="GET" action="/study_sharing/course/manage" class="mb-4">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm khóa học..." value="<?php echo htmlspecialchars($keyword ?? ''); ?>">
-            </div>
-            <div class="col-md-4">
-                <select class="form-control" name="status">
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="open" <?php echo ($status ?? '') === 'open' ? 'selected' : ''; ?>>Mở</option>
-                    <option value="in_progress" <?php echo ($status ?? '') === 'in_progress' ? 'selected' : ''; ?>>Đang diễn ra</option>
-                    <option value="closed" <?php echo ($status ?? '') === 'closed' ? 'selected' : ''; ?>>Đóng</option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">Lọc</button>
-            </div>
-        </div>
-    </form>
-
-    <!-- Danh sách khóa học -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Danh sách khóa học</h5>
-        </div>
-        <div class="card-body">
-            <?php if (empty($courses)): ?>
-                <p class="text-muted">Không tìm thấy khóa học nào.</p>
-            <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Tên khóa học</th>
-                                <th>Mô tả</th>
-                                <th>Thành viên</th>
-                                <th>Trạng thái</th>
-                                <th>Ngày bắt đầu</th>
-                                <th>Ngày kết thúc</th>
-                                <th>Hành động</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($courses as $course): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($course['course_name']); ?></td>
-                                    <td><?php echo htmlspecialchars(substr($course['description'], 0, 50)); ?>...</td>
-                                    <td><?php echo $course['member_count']; ?></td>
-                                    <td>
-                                        <span class="badge bg-<?php
-                                                                echo $course['status'] === 'open' ? 'success' : ($course['status'] === 'in_progress' ? 'warning' : 'danger');
-                                                                ?>">
-                                            <i class="bi bi-<?php
-                                                            echo $course['status'] === 'open' ? 'check-circle' : ($course['status'] === 'in_progress' ? 'play-circle' : 'ban');
-                                                            ?>"></i>
-                                            <?php echo $course['status'] === 'open' ? 'Mở' : ($course['status'] === 'in_progress' ? 'Đang diễn ra' : 'Đóng'); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo $course['start_date'] ? date('d/m/Y', strtotime($course['start_date'])) : '-'; ?></td>
-                                    <td><?php echo $course['end_date'] ? date('d/m/Y', strtotime($course['end_date'])) : '-'; ?></td>
-                                    <td>
-                                        <button class="btn btn-sm btn-info view-course-btn"
-                                            data-course-id="<?php echo $course['course_id']; ?>"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#viewCourseModal">
-                                            <i class="bi bi-eye"></i> Xem
-                                        </button>
-                                        <button class="btn btn-sm btn-warning edit-course-btn"
-                                            data-course-id="<?php echo $course['course_id']; ?>"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editCourseModal">
-                                            <i class="bi bi-pencil"></i> Sửa
-                                        </button>
-                                        <?php if ($course['status'] === 'closed'): ?>
-                                            <button class="btn btn-sm btn-success request-open-btn"
-                                                data-course-id="<?php echo $course['course_id']; ?>">
-                                                <i class="bi bi-unlock"></i> Yêu cầu mở
-                                            </button>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-        </div>
+    <div class="d-flex justify-content-between mb-4">
+        <form class="input-group w-75" method="GET" action="/study_sharing/Course/manage">
+            <input type="text" class="form-control" name="keyword" placeholder="Tìm kiếm theo tên khóa học hoặc mô tả" value="<?php echo htmlspecialchars($_GET['keyword'] ?? ''); ?>" aria-label="Tìm kiếm khóa học">
+            <select class="form-select" name="status">
+                <option value="">Tất cả trạng thái</option>
+                <option value="open" <?php echo ($status ?? '') === 'open' ? 'selected' : ''; ?>>Mở</option>
+                <option value="in_progress" <?php echo ($status ?? '') === 'in_progress' ? 'selected' : ''; ?>>Đang học</option>
+                <option value="closed" <?php echo ($status ?? '') === 'closed' ? 'selected' : ''; ?>>Đã đóng</option>
+            </select>
+            <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
+        </form>
+        <a href="/study_sharing/Course/createCourseByTeacher" class="btn btn-success"><i class="bi bi-plus-circle"></i> Thêm khóa học</a>
     </div>
 
-    <!-- Phân trang -->
-    <?php if ($totalPages > 1): ?>
-        <nav class="mt-4">
-            <ul class="pagination justify-content-center">
-                <?php if ($page > 1): ?>
-                    <li class="page-item">
-                        <a class="page-link" href="?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&status=<?php echo urlencode($status ?? ''); ?>">Trước</a>
-                    </li>
+    <?php if (!empty($_SESSION['message'])): ?>
+        <div class="alert alert-<?php echo $_SESSION['message_type'] ?? 'info'; ?> alert-dismissible fade show" role="alert">
+            <?php echo htmlspecialchars($_SESSION['message']); ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
+        </div>
+    <?php endif; ?>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">STT</th>
+                    <th scope="col">Tên khóa học</th>
+                    <th scope="col">Số thành viên</th>
+                    <th scope="col">Trạng thái</th>
+                    <th scope="col">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($courses)): ?>
+                    <tr>
+                        <td colspan="5" class="text-center">Không tìm thấy khóa học nào!</td>
+                    </tr>
+                <?php else: ?>
+                    <?php foreach ($courses as $index => $course): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($offset + $index + 1); ?></td>
+                            <td><?php echo htmlspecialchars($course['course_name']); ?></td>
+                            <td><?php echo $course['member_count'] ?? 0; ?></td>
+                            <td>
+                                <span class="status-<?php echo htmlspecialchars($course['status']); ?>">
+                                    <?php if ($course['status'] === 'open'): ?>
+                                        <i class="fa fa-check-circle"></i> Mở
+                                    <?php elseif ($course['status'] === 'in_progress'): ?>
+                                        <i class="fa fa-pause-circle"></i> Đang học
+                                    <?php else: ?>
+                                        <i class="fa fa-ban"></i> Đã đóng
+                                    <?php endif; ?>
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-outline-info btn-sm view-btn" title="Xem chi tiết khóa học" data-course-id="<?php echo $course['course_id']; ?>">
+                                    <i class="fa fa-eye"></i>
+                                </button>
+                                <button class="btn btn-outline-warning btn-sm edit-btn" data-bs-toggle="modal" data-bs-target="#editCourseModal" title="Chỉnh sửa khóa học"
+                                    onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($course)); ?>)">
+                                    <i class="fa fa-edit"></i>
+                                </button>
+                                <?php if ($course['status'] === 'closed'): ?>
+                                    <button class="btn btn-outline-primary btn-sm request-open-btn" title="Yêu cầu mở khóa học" onclick="requestOpenCourse(<?php echo (int)$course['course_id']; ?>)">
+                                        <i class="fa fa-unlock"></i>
+                                    </button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
                 <?php endif; ?>
+            </tbody>
+        </table>
+
+        <nav aria-label="Course pagination">
+            <ul class="pagination justify-content-center">
+                <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&status=<?php echo urlencode($status ?? ''); ?>">Trước</a>
+                </li>
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
                         <a class="page-link" href="?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&status=<?php echo urlencode($status ?? ''); ?>"><?php echo $i; ?></a>
                     </li>
                 <?php endfor; ?>
-                <?php if ($page < $totalPages): ?>
-                    <li class="page-item">
-                        <a class="page-link" href="?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&status=<?php echo urlencode($status ?? ''); ?>">Sau</a>
-                    </li>
-                <?php endif; ?>
+                <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
+                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&status=<?php echo urlencode($status ?? ''); ?>">Sau</a>
+                </li>
             </ul>
         </nav>
-    <?php endif; ?>
+    </div>
 
-    <!-- Modal xem chi tiết khóa học -->
-    <div id="viewCourseModal" class="modal fade" tabindex="-1" aria-labelledby="viewCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+    <!-- Modal chỉnh sửa khóa học -->
+    <div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header bg-info text-white">
-                    <h5 class="modal-title" id="viewCourseModalLabel">Chi tiết khóa học</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="editCourseModalLabel">Chỉnh sửa khóa học</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="viewCourseMessage"></div>
-                    <div id="courseDetails">
-                        <p><strong>Tên khóa học:</strong> <span id="view_course_name"></span></p>
-                        <p><strong>Mô tả:</strong> <span id="view_description"></span></p>
-                        <p><strong>Số thành viên tối đa:</strong> <span id="view_max_members"></span></p>
-                        <p><strong>Link học tập:</strong> <a id="view_learn_link" href="#" target="_blank"></a></p>
-                        <p><strong>Ngày bắt đầu:</strong> <span id="view_start_date"></span></p>
-                        <p><strong>Ngày kết thúc:</strong> <span id="view_end_date"></span></p>
-                        <p><strong>Trạng thái:</strong> <span id="view_status"></span></p>
-                        <p><strong>Ngày tạo:</strong> <span id="view_created_at"></span></p>
-                    </div>
+                    <form id="editCourseForm" method="POST" action="/study_sharing/Course/editCourseByTeacher" class="needs-validation" novalidate>
+                        <input type="hidden" id="edit_course_id" name="course_id">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_course_name" class="form-label">Tên khóa học <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="edit_course_name" name="course_name" required>
+                                    <div class="invalid-feedback">Vui lòng nhập tên khóa học.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit_max_members" class="form-label">Số thành viên tối đa <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control" id="edit_max_members" name="max_members" min="1" required>
+                                    <div class="invalid-feedback">Vui lòng nhập số thành viên tối đa (lớn hơn 0).</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_description" class="form-label">Mô tả</label>
+                                    <textarea class="form-control" id="edit_description" name="description" rows="4"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit_learn_link" class="form-label">Link học tập</label>
+                                    <input type="url" class="form-control" id="edit_learn_link" name="learn_link" placeholder="https://example.com">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_start_date" class="form-label">Ngày bắt đầu</label>
+                                    <input type="date" class="form-control" id="edit_start_date" name="start_date">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit_end_date" class="form-label">Ngày kết thúc</label>
+                                    <input type="date" class="form-control" id="edit_end_date" name="end_date">
+                                </div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                            Cập nhật khóa học
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modal chỉnh sửa khóa học -->
-    <div id="editCourseModal" class="modal fade" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <!-- Modal xem chi tiết khóa học -->
+    <div class="modal fade" id="courseDetailModal" tabindex="-1" aria-labelledby="courseDetailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="editCourseModalLabel">Chỉnh sửa khóa học</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="courseDetailModalLabel">Chi tiết khóa học</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="editCourseMessage"></div>
-                    <form id="editCourseForm" method="POST" class="needs-validation" novalidate>
-                        <input type="hidden" name="course_id" id="edit_course_id">
-                        <div class="mb-3">
-                            <label for="edit_course_name" class="form-label">Tên khóa học <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="edit_course_name" name="course_name" required>
-                            <div class="invalid-feedback">Vui lòng nhập tên khóa học.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_description" class="form-label">Mô tả</label>
-                            <textarea class="form-control" id="edit_description" name="description" rows="5"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_max_members" class="form-label">Số lượng thành viên tối đa <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control" id="edit_max_members" name="max_members" min="1" required>
-                            <div class="invalid-feedback">Vui lòng nhập số lượng thành viên tối đa (lớn hơn 0).</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_learn_link" class="form-label">Link học tập</label>
-                            <input type="url" class="form-control" id="edit_learn_link" name="learn_link" placeholder="https://example.com">
-                            <div class="invalid-feedback">Vui lòng nhập URL hợp lệ.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_start_date" class="form-label">Ngày bắt đầu</label>
-                            <input type="date" class="form-control" id="edit_start_date" name="start_date">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit_end_date" class="form-label">Ngày kết thúc</label>
-                            <input type="date" class="form-control" id="edit_end_date" name="end_date">
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                            Cập nhật
-                        </button>
-                    </form>
+                    <div id="course-details">
+                        <p><strong>ID:</strong> <span id="detail-course-id"></span></p>
+                        <p><strong>Tên khóa học:</strong> <span id="detail-course-name"></span></p>
+                        <p><strong>Mô tả:</strong> <span id="detail-description"></span></p>
+                        <p><strong>Số thành viên tối đa:</strong> <span id="detail-max-members"></span></p>
+                        <p><strong>Số thành viên hiện tại:</strong> <span id="detail-member-count"></span></p>
+                        <p><strong>Link học:</strong> <span id="detail-learn-link"></span></p>
+                        <p><strong>Ngày bắt đầu:</strong> <span id="detail-start-date"></span></p>
+                        <p><strong>Ngày kết thúc:</strong> <span id="detail-end-date"></span></p>
+                        <p><strong>Trạng thái:</strong> <span id="detail-status"></span></p>
+                        <p><strong>Ngày tạo:</strong> <span id="detail-created-at"></span></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
                 </div>
             </div>
         </div>
@@ -197,138 +188,180 @@
 </div>
 
 <script>
-    // Xem chi tiết khóa học
-    document.querySelectorAll('.view-course-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const courseId = this.getAttribute('data-course-id');
-            fetch('/study_sharing/course/getCourseDetails', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        course_id: courseId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('view_course_name').textContent = data.course.course_name;
-                        document.getElementById('view_description').textContent = data.course.description || 'Không có mô tả';
-                        document.getElementById('view_max_members').textContent = data.course.max_members || 'Không giới hạn';
-                        const learnLink = document.getElementById('view_learn_link');
-                        learnLink.href = data.course.learn_link || '#';
-                        learnLink.textContent = data.course.learn_link || 'Không có link';
-                        document.getElementById('view_start_date').textContent = data.course.start_date ? new Date(data.course.start_date).toLocaleDateString('vi-VN') : '-';
-                        document.getElementById('view_end_date').textContent = data.course.end_date ? new Date(data.course.end_date).toLocaleDateString('vi-VN') : '-';
-                        document.getElementById('view_status').textContent = data.course.status === 'open' ? 'Mở' :
-                            data.course.status === 'in_progress' ? 'Đang diễn ra' : 'Đóng';
-                        document.getElementById('view_created_at').textContent = data.course.created_at ? new Date(data.course.created_at).toLocaleDateString('vi-VN') : '-';
-                        document.getElementById('viewCourseMessage').innerHTML = '';
-                    } else {
-                        document.getElementById('viewCourseMessage').innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('viewCourseMessage').innerHTML = `<div class="alert alert-danger">Lỗi: ${error.message}</div>`;
-                });
+    (function() {
+        'use strict';
+        const forms = document.querySelectorAll('.needs-validation');
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
         });
-    });
+    })();
 
-    // Chỉnh sửa khóa học
-    document.querySelectorAll('.edit-course-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const courseId = this.getAttribute('data-course-id');
-            fetch('/study_sharing/course/getCourseDetails', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        course_id: courseId
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        document.getElementById('edit_course_id').value = data.course.course_id;
-                        document.getElementById('edit_course_name').value = data.course.course_name;
-                        document.getElementById('edit_description').value = data.course.description || '';
-                        document.getElementById('edit_max_members').value = data.course.max_members || 50;
-                        document.getElementById('edit_learn_link').value = data.course.learn_link || '';
-                        document.getElementById('edit_start_date').value = data.course.start_date || '';
-                        document.getElementById('edit_end_date').value = data.course.end_date || '';
-                    } else {
-                        document.getElementById('editCourseMessage').innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('editCourseMessage').innerHTML = `<div class="alert alert-danger">Lỗi: ${error.message}</div>`;
-                });
-        });
-    });
+    document.getElementById('editCourseForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const submitButton = this.querySelector('button[type="submit"]');
+        const spinner = submitButton.querySelector('.spinner-border');
 
-    // Xử lý form chỉnh sửa
-    document.getElementById('editCourseForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        if (this.checkValidity()) {
-            let submitButton = this.querySelector('button[type="submit"]');
-            let spinner = submitButton.querySelector('.spinner-border');
-            submitButton.disabled = true;
-            spinner.classList.remove('d-none');
-
-            let formData = new FormData(this);
-            fetch('/study_sharing/course/edit', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    let messageDiv = document.getElementById('editCourseMessage');
-                    messageDiv.innerHTML = `<div class="alert alert-${data.success ? 'success' : 'danger'}">${data.message}</div>`;
-                    if (data.success) {
-                        setTimeout(() => location.reload(), 1000);
-                    }
-                })
-                .finally(() => {
-                    submitButton.disabled = false;
-                    spinner.classList.add('d-none');
-                });
-        } else {
+        if (!this.checkValidity()) {
             this.classList.add('was-validated');
+            return;
         }
+
+        spinner.classList.remove('d-none');
+        submitButton.disabled = true;
+
+        const formData = new FormData(this);
+        fetch('/study_sharing/Course/editCourseByTeacher', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                spinner.classList.add('d-none');
+                submitButton.disabled = false;
+                alert(data.message);
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('editCourseModal')).hide();
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                spinner.classList.add('d-none');
+                submitButton.disabled = false;
+                console.error('Lỗi fetch:', error);
+                alert('Lỗi server khi cập nhật khóa học.');
+            });
     });
 
+    function fillEditModal(course) {
+        console.log('Course data:', course); // Log để kiểm tra dữ liệu
+        document.getElementById('edit_course_id').value = course.course_id || '';
+        document.getElementById('edit_course_name').value = course.course_name || '';
+        document.getElementById('edit_description').value = course.description || '';
+        document.getElementById('edit_max_members').value = course.max_members || 50;
+        document.getElementById('edit_learn_link').value = course.learn_link || '';
+        document.getElementById('edit_start_date').value = course.start_date || '';
+        document.getElementById('edit_end_date').value = course.end_date || '';
+    }
 
-    document.querySelectorAll('.request-open-btn').forEach(button => {
+    function requestOpenCourse(courseId) {
+        if (!Number.isInteger(courseId) || courseId <= 0) {
+            alert('ID khóa học không hợp lệ!');
+            return;
+        }
+        if (confirm('Bạn có muốn gửi yêu cầu mở khóa học này?')) {
+            fetch('/study_sharing/Course/requestOpenCourse', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        course_id: courseId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi fetch:', error);
+                    alert('Lỗi server khi gửi yêu cầu mở khóa học.');
+                });
+        }
+    }
+
+    document.querySelectorAll('.view-btn').forEach(button => {
         button.addEventListener('click', function() {
             const courseId = this.getAttribute('data-course-id');
-            if (!courseId || courseId <= 0) {
-                alert('ID khóa học không hợp lệ');
-                return;
-            }
-            if (confirm('Bạn có chắc chắn muốn gửi yêu cầu mở khóa học này tới admin?')) {
-                fetch('/study_sharing/course/requestOpenCourse', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            course_id: parseInt(courseId)
-                        })
+            fetch('/study_sharing/Course/getCourseDetails', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        course_id: courseId
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        alert(data.message);
-                        if (data.success) {
-                            location.reload();
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        alert('Lỗi khi gửi yêu cầu: ' + error.message);
-                    });
-            }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('Course details:', data.course); // Log để kiểm tra dữ liệu
+                        document.getElementById('detail-course-id').textContent = data.course.course_id || '';
+                        document.getElementById('detail-course-name').textContent = data.course.course_name || '';
+                        document.getElementById('detail-description').textContent = data.course.description || 'Không có mô tả';
+                        document.getElementById('detail-max-members').textContent = data.course.max_members || '50';
+                        document.getElementById('detail-member-count').textContent = data.course.member_count || '0';
+                        document.getElementById('detail-learn-link').textContent = data.course.learn_link || 'Không có link';
+                        document.getElementById('detail-start-date').textContent = data.course.start_date || 'Chưa xác định';
+                        document.getElementById('detail-end-date').textContent = data.course.end_date || 'Chưa xác định';
+                        document.getElementById('detail-status').textContent = data.course.status || 'Không xác định';
+                        document.getElementById('detail-created-at').textContent = data.course.created_at || 'Không xác định';
+                        const modal = new bootstrap.Modal(document.getElementById('courseDetailModal'));
+                        modal.show();
+                    } else {
+                        alert('Lỗi: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi:', error);
+                    alert('Đã xảy ra lỗi khi lấy chi tiết khóa học.');
+                });
         });
     });
 </script>
+
+<style>
+    .modal-body p {
+        margin-bottom: 10px;
+    }
+
+    .modal-body strong {
+        display: inline-block;
+        width: 200px;
+    }
+
+    .content {
+        padding-top: 0px;
+    }
+
+    .status-open {
+        color: green;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-in_progress {
+        color: orange;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-closed {
+        color: red;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .container.py-5 {
+        padding-top: 1rem !important;
+        padding-bottom: 0 !important;
+    }
+
+    .action-buttons .btn {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+    }
+</style>
