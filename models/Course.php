@@ -3,6 +3,7 @@
 namespace App;
 
 use PDO;
+use Exception;
 
 class Course
 {
@@ -11,6 +12,46 @@ class Course
     public function __construct($db)
     {
         $this->db = $db;
+    }
+
+    /**
+     * Cập nhật trạng thái của khóa học
+     *
+     * @param int $course_id ID của khóa học
+     * @param string $status Trạng thái mới của khóa học (active, rejected, pending)
+     * @return bool Trả về true nếu cập nhật thành công, false nếu thất bại
+     * @throws Exception Nếu course_id hoặc status không hợp lệ
+     */
+    public function updateCourseStatus(int $course_id, string $status): bool
+    {
+        // Kiểm tra course_id hợp lệ
+        if ($course_id <= 0) {
+            throw new Exception('ID khóa học không hợp lệ.');
+        }
+
+        // Kiểm tra trạng thái hợp lệ
+        $allowedStatuses = ['active', 'rejected', 'pending'];
+        if (!in_array($status, $allowedStatuses)) {
+            throw new Exception('Trạng thái không hợp lệ. Trạng thái phải là: ' . implode(', ', $allowedStatuses));
+        }
+
+        try {
+            $query = "UPDATE courses SET status = :status WHERE course_id = :course_id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':status', $status, PDO::PARAM_STR);
+            $stmt->bindParam(':course_id', $course_id, PDO::PARAM_INT);
+            $success = $stmt->execute();
+
+            if (!$success) {
+                error_log("Failed to update course status for course_id: $course_id, status: $status");
+                return false;
+            }
+
+            return true;
+        } catch (Exception $e) {
+            error_log("Error updating course status for course_id: $course_id, status: $status. Error: " . $e->getMessage());
+            throw new Exception('Lỗi khi cập nhật trạng thái khóa học: ' . $e->getMessage());
+        }
     }
 
     public function getCourseById($course_id)

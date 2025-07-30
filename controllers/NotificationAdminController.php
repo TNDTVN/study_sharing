@@ -2,9 +2,11 @@
 
 namespace App;
 
-use App\Account; // Thay User bằng Account
+use App\Account;
 use App\Notification;
 use Exception;
+use HTMLPurifier;
+use HTMLPurifier_Config;
 
 class NotificationAdminController
 {
@@ -13,7 +15,7 @@ class NotificationAdminController
     private $notificationModel;
     private $courseModel;
     private $current_user_id;
-
+    private $purifier;
 
     public function __construct($pdo)
     {
@@ -22,26 +24,38 @@ class NotificationAdminController
         $this->notificationModel = new Notification($pdo);
         $this->courseModel = new Course($pdo);
         $this->current_user_id = $_SESSION['user_id'] ?? null;
+
+        // Khởi tạo HTMLPurifier
+        $config = HTMLPurifier_Config::createDefault();
+        $config->set('HTML.Allowed', 'p,b,i,u,strong,em,a[href],ul,ol,li,br');
+
+        $this->purifier = new HTMLPurifier($config);
     }
 
     public function admin_send_notification()
     {
         global $pdo;
 
-        $accountModel = new \App\Account($pdo); // Sử dụng Account model
-        $users = $accountModel->getAllAccounts(); // Lấy từ bảng accounts
+        $accountModel = new \App\Account($pdo);
+        $users = $accountModel->getAllAccounts();
         $response = null;
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $message = trim($_POST['message'] ?? '');
-            $target_type = $_POST['target_type'] ?? 'all';
-            $target_ids = $_POST['target_ids'] ?? [];
-            $role = $_POST['role'] ?? null;
-            $admin_ids = $_POST['admin_ids'] ?? [];
-            $teacher_ids = $_POST['teacher_ids'] ?? [];
-            $student_ids = $_POST['student_ids'] ?? [];
+            $message = $_POST['message'] ?? '';
+            // Làm sạch nội dung HTML từ TinyMCE
+            $message = $this->purifier->purify(trim($message));
+            if (empty($message)) {
+                $response = ['status' => false, 'message' => 'Nội dung thông báo không được để trống.'];
+            } else {
+                $target_type = $_POST['target_type'] ?? 'all';
+                $target_ids = $_POST['target_ids'] ?? [];
+                $role = $_POST['role'] ?? null;
+                $admin_ids = $_POST['admin_ids'] ?? [];
+                $teacher_ids = $_POST['teacher_ids'] ?? [];
+                $student_ids = $_POST['student_ids'] ?? [];
 
-            $response = $this->sendNotification($message, $target_type, $target_ids, $role, $admin_ids, $teacher_ids, $student_ids);
+                $response = $this->sendNotification($message, $target_type, $target_ids, $role, $admin_ids, $teacher_ids, $student_ids);
+            }
         }
 
         $title = "Gửi thông báo đến người dùng";
@@ -53,8 +67,38 @@ class NotificationAdminController
         require __DIR__ . '/../views/layouts/admin_layout.php';
     }
 
+    private function sendToUser(int $account_id, string $message, array &$results): void
+    {
+        if ($account_id == $this->current_user_id) {
+            $results[] = [
+                'account_id' => $account_id,
+                'status' => 'skipped',
+                'message' => 'Không thể gửi thông báo cho chính bạn.'
+            ];
+            return;
+        }
+
+        $user = $this->accountModel->getAccountById($account_id);
+        if (!$user) {
+            $results[] = [
+                'account_id' => $account_id,
+                'status' => 'failed',
+                'message' => 'Người dùng không tồn tại.'
+            ];
+            return;
+        }
+
+        $success = $this->notificationModel->createNotification($account_id, $message, false);
+        $results[] = [
+            'account_id' => $account_id,
+            'status' => $success ? 'sent' : 'failed'
+        ];
+    }
+
     public function sendNotification(string $message, string $target_type, array $target_ids = [], ?string $role = null, array $admin_ids = [], array $teacher_ids = [], array $student_ids = []): array
     {
+
+
         $results = [];
 
         if (empty($message)) {
@@ -63,22 +107,16 @@ class NotificationAdminController
 
         try {
             if ($target_type === 'all') {
-                $users = $this->accountModel->getAllAccounts(); // Sử dụng accountModel
+                $users = $this->accountModel->getAllAccounts();
                 foreach ($users as $user) {
-                    if ($user['account_id'] == $this->current_user_id) {
-                        continue;
-                    }
-                    $success = $this->notificationModel->createNotification($user['account_id'], $message, false);
-                    $results[] = [
-                        'account_id' => $user['account_id'],
-                        'status' => $success ? 'sent' : 'failed'
-                    ];
+                    $this->sendToUser($user['account_id'], $message, $results);
                 }
                 return ['status' => true, 'message' => 'Đã gửi thông báo đến tất cả người dùng (trừ tài khoản của bạn).', 'results' => $results];
             } elseif ($target_type === 'role') {
                 if (empty($role) || !in_array($role, ['admin', 'teacher', 'student'])) {
                     return ['status' => false, 'message' => 'Vai trò không hợp lệ.'];
                 }
+
                 $selected_ids = [];
                 if ($role === 'admin' && !empty($admin_ids)) {
                     $selected_ids = $admin_ids;
@@ -90,44 +128,17 @@ class NotificationAdminController
 
                 if (!empty($selected_ids)) {
                     foreach ($selected_ids as $account_id) {
-                        if ($account_id == $this->current_user_id) {
-                            $results[] = [
-                                'account_id' => $account_id,
-                                'status' => 'skipped',
-                                'message' => 'Không thể gửi thông báo cho chính bạn.'
-                            ];
-                            continue;
-                        }
-                        $user = $this->accountModel->getAccountById($account_id); // Sử dụng accountModel
-                        if (!$user || $user['role'] !== $role) {
-                            $results[] = [
-                                'account_id' => $account_id,
-                                'status' => 'failed',
-                                'message' => 'Người dùng không tồn tại hoặc không thuộc vai trò này.'
-                            ];
-                            continue;
-                        }
-                        $success = $this->notificationModel->createNotification($account_id, $message, false);
-                        $results[] = [
-                            'account_id' => $account_id,
-                            'status' => $success ? 'sent' : 'failed'
-                        ];
+                        $this->sendToUser($account_id, $message, $results);
                     }
                     return ['status' => true, 'message' => "Đã gửi thông báo đến các tài khoản được chọn trong vai trò $role (trừ tài khoản của bạn).", 'results' => $results];
                 }
-                $users = $this->accountModel->getUsersByRole($role); // Sử dụng accountModel
+
+                $users = $this->accountModel->getUsersByRole($role);
                 if (empty($users)) {
                     return ['status' => false, 'message' => 'Không tìm thấy người dùng với vai trò này.'];
                 }
                 foreach ($users as $user) {
-                    if ($user['account_id'] == $this->current_user_id) {
-                        continue;
-                    }
-                    $success = $this->notificationModel->createNotification($user['account_id'], $message, false);
-                    $results[] = [
-                        'account_id' => $user['account_id'],
-                        'status' => $success ? 'sent' : 'failed'
-                    ];
+                    $this->sendToUser($user['account_id'], $message, $results);
                 }
                 return ['status' => true, 'message' => "Đã gửi thông báo đến tất cả người dùng có vai trò $role (trừ tài khoản của bạn).", 'results' => $results];
             } elseif ($target_type === 'account') {
@@ -135,28 +146,7 @@ class NotificationAdminController
                     return ['status' => false, 'message' => 'Vui lòng chọn ít nhất một tài khoản.'];
                 }
                 foreach ($target_ids as $account_id) {
-                    if ($account_id == $this->current_user_id) {
-                        $results[] = [
-                            'account_id' => $account_id,
-                            'status' => 'skipped',
-                            'message' => 'Không thể gửi thông báo cho chính bạn.'
-                        ];
-                        continue;
-                    }
-                    $user = $this->accountModel->getAccountById($account_id); // Sử dụng accountModel
-                    if (!$user) {
-                        $results[] = [
-                            'account_id' => $account_id,
-                            'status' => 'failed',
-                            'message' => 'Người dùng không tồn tại.'
-                        ];
-                        continue;
-                    }
-                    $success = $this->notificationModel->createNotification($account_id, $message, false);
-                    $results[] = [
-                        'account_id' => $account_id,
-                        'status' => $success ? 'sent' : 'failed'
-                    ];
+                    $this->sendToUser($account_id, $message, $results);
                 }
                 return ['status' => true, 'message' => 'Đã gửi thông báo đến các tài khoản được chọn (trừ tài khoản của bạn).', 'results' => $results];
             } else {
@@ -166,6 +156,7 @@ class NotificationAdminController
             return ['status' => false, 'message' => 'Lỗi: ' . $e->getMessage()];
         }
     }
+
     public function handleOpenCourseRequest()
     {
         header('Content-Type: application/json');
@@ -183,8 +174,6 @@ class NotificationAdminController
             echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xử lý yêu cầu này']);
             exit;
         }
-
-
 
         $data = json_decode(file_get_contents('php://input'), true);
         error_log("Input data: " . print_r($data, true));
@@ -213,17 +202,36 @@ class NotificationAdminController
             }
 
             $notification = $this->notificationModel->getNotificationById($notification_id);
-            if (!$notification || $notification['account_id'] != $this->current_user_id) {
-                echo json_encode(['success' => false, 'message' => 'Thông báo không tồn tại hoặc bạn không có quyền xử lý']);
+            if (!$notification) {
+                echo json_encode(['success' => false, 'message' => 'Thông báo không tồn tại']);
                 exit;
             }
-        } catch (Exception $e) {
-            error_log("Handle open course request error: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Lỗi cơ sở dữ liệu: ' . $e->getMessage()]);
+
+            // Thực hiện hành động (chấp nhận hoặc từ chối khóa học)
+            if ($action === 'accept') {
+                $this->courseModel->updateCourseStatus($course_id, 'active');
+                $this->notificationModel->createNotification(
+                    $course['created_by'],
+                    $this->purifier->purify("Yêu cầu mở khóa học '{$course['course_name']}' đã được chấp nhận."),
+                    false
+                );
+            } else {
+                $this->courseModel->updateCourseStatus($course_id, 'rejected');
+                $this->notificationModel->createNotification(
+                    $course['created_by'],
+                    $this->purifier->purify("Yêu cầu mở khóa học '{$course['course_name']}' đã bị từ chối."),
+                    false
+                );
+            }
+
+            // Đánh dấu thông báo là đã đọc
+            $this->notificationModel->markAsRead($notification_id, $notification['account_id']);
+
+            echo json_encode(['success' => true, 'message' => 'Yêu cầu đã được xử lý thành công']);
             exit;
         } catch (Exception $e) {
             error_log("Handle open course request error: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()]);
             exit;
         }
     }

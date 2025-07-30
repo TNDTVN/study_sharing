@@ -22,7 +22,6 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
         --blue-100: #DBEAFE;
         --blue-300: #93C5FD;
         --blue-500: #3B82F6;
-        /* Primary blue */
         --blue-600: #2563EB;
         --blue-700: #1D4ED8;
         --blue-800: #1E40AF;
@@ -333,9 +332,30 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
     }
 </style>
 
+<script src="https://cdn.tiny.cloud/1/8jab93a4jz197bwfnazpkclma7cgywld668apl220hkv9p2e/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+<script>
+    tinymce.init({
+        selector: '#tiny',
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview', 'anchor',
+            'searchreplace', 'visualblocks', 'fullscreen', 'insertdatetime', 'media', 'table',
+            'help', 'wordcount'
+        ],
+        toolbar: 'undo redo | bold italic backcolor | alignleft aligncenter alignright alignjustify | ' +
+            'bullist numlist outdent indent | removeformat | link image media table help',
+        setup: function(editor) {
+            editor.on('input', function() {
+                updateCharCount();
+            });
+            editor.on('change', function() {
+                updateCharCount();
+            });
+        }
+    });
+</script>
+
 <div class="container-fluid px-2 py-4">
     <div class="mx-auto">
-
         <h2><i class="bi bi-megaphone"></i> <?php echo htmlspecialchars($title); ?></h2>
 
         <div class="card-body">
@@ -388,8 +408,8 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
             <!-- Form gửi thông báo -->
             <form method="POST" id="notificationForm">
                 <div class="mb-4 textarea-container">
-                    <label for="message" class="form-label">Nội dung thông báo <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="message" name="message" rows="5" maxlength="500" placeholder="Nhập nội dung thông báo..." required oninput="updateCharCount()"><?php echo htmlspecialchars($_POST['message'] ?? ''); ?></textarea>
+                    <label for="tiny" class="form-label">Nội dung thông báo <span class="text-danger">*</span></label>
+                    <textarea id="tiny" name="message" placeholder="Nhập nội dung thông báo..." required><?php echo htmlspecialchars($_POST['message'] ?? ''); ?></textarea>
                     <div class="char-counter" id="char_count">500 ký tự còn lại</div>
                 </div>
 
@@ -417,7 +437,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                         <label for="role" class="form-label">Chọn vai trò</label>
                         <select class="form-select" id="role" name="role" onchange="toggleRoleOptions()">
                             <option value="" <?php echo !isset($_POST['role']) ? 'selected' : ''; ?>>Chọn vai trò</option>
-                            <option value="admin" <?php echo (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                            <option value="admin" <?php echo (isset($_POST['role']) && $_POST['role'] === 'sadmin') ? 'selected' : ''; ?>>Admin</option>
                             <option value="teacher" <?php echo (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'selected' : ''; ?>>Giáo viên</option>
                             <option value="student" <?php echo (isset($_POST['role']) && $_POST['role'] === 'student') ? 'selected' : ''; ?>>Học sinh</option>
                         </select>
@@ -448,7 +468,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                                             <input class="form-check-input me-3" type="checkbox" name="admin_ids[]" value="<?php echo htmlspecialchars($user['account_id']); ?>" <?php echo (isset($_POST['admin_ids']) && in_array($user['account_id'], $_POST['admin_ids'])) ? 'checked' : ''; ?>>
                                             <div>
                                                 <div class="fw-medium"><?php echo htmlspecialchars($user['full_name']); ?></div>
-                                                <div class="d-flex align-items-center gap-2">
+                                                <div class="d-flex align-items- center gap-2">
                                                     <small class="text-muted">@<?php echo htmlspecialchars($user['username']); ?></small>
                                                     <span class="role-badge badge-admin">Admin</span>
                                                 </div>
@@ -585,7 +605,6 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                 </button>
             </form>
         </div>
-
     </div>
 </div>
 
@@ -690,9 +709,13 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
     }
 
     function updateCharCount() {
-        const message = document.getElementById('message')?.value || '';
+        const editor = tinymce.get('tiny');
+        if (!editor) return;
+        const content = editor.getContent({
+            format: 'text'
+        }).trim();
         const charCount = document.getElementById('char_count');
-        const remaining = 500 - message.length;
+        const remaining = 500 - content.length;
         if (charCount) {
             charCount.textContent = `${remaining} ký tự còn lại`;
             charCount.classList.toggle('warning', remaining < 50);
@@ -700,9 +723,20 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
     }
 
     function confirmSendNotification() {
-        const message = document.getElementById('message')?.value.trim();
+        const editor = tinymce.get('tiny');
+        if (!editor) {
+            showToast('Trình soạn thảo chưa được khởi tạo!');
+            return;
+        }
+        const message = editor.getContent().trim();
         if (!message) {
             showToast('Vui lòng nhập nội dung thông báo!');
+            return;
+        }
+        if (editor.getContent({
+                format: 'text'
+            }).trim().length > 500) {
+            showToast('Nội dung thông báo vượt quá 500 ký tự!');
             return;
         }
         const targetType = document.getElementById('target_type')?.value;
@@ -714,6 +748,8 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
             }
         }
         if (confirm('Bạn có chắc chắn muốn gửi thông báo này?')) {
+            // Đặt nội dung từ TinyMCE vào input ẩn để gửi form
+            document.getElementById('tiny').value = message;
             document.getElementById('notificationForm')?.submit();
         }
     }
@@ -728,6 +764,12 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
 
     document.addEventListener('DOMContentLoaded', () => {
         const targetTypeElement = document.getElementById('target_type');
+        const currentUserId = <?php echo json_encode($current_user_id, JSON_INVALID_UTF8_SUBSTITUTE); ?>;
+        if (!currentUserId) {
+            showToast('Không thể xác định người dùng hiện tại. Vui lòng đăng nhập lại.');
+            document.getElementById('notificationForm')?.setAttribute('disabled', 'true');
+            return;
+        }
         if (targetTypeElement) {
             selectTarget(targetTypeElement.value || 'all');
         }
