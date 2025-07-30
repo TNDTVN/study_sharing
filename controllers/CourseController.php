@@ -12,6 +12,7 @@ class CourseController
     private $user;
     private $notification;
     private $courseModel;
+
     public function __construct($db)
     {
         $this->db = $db;
@@ -29,11 +30,10 @@ class CourseController
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 9;
 
-        // Build main query
         $sql = "SELECT c.*, u.full_name, 
-            (SELECT COUNT(*) FROM course_members WHERE course_id = c.course_id) as member_count
-            FROM courses c 
-            LEFT JOIN users u ON c.creator_id = u.account_id";
+                (SELECT COUNT(*) FROM course_members WHERE course_id = c.course_id) as member_count
+                FROM courses c 
+                LEFT JOIN users u ON c.creator_id = u.account_id";
 
         $bindParams = [];
         $hasWhere = false;
@@ -46,7 +46,6 @@ class CourseController
             $hasWhere = true;
         }
 
-        // Add sorting
         switch ($sort) {
             case 'popular':
                 $sql .= " ORDER BY member_count DESC";
@@ -60,7 +59,6 @@ class CourseController
                 break;
         }
 
-        // Count query
         $countSql = "SELECT COUNT(*) FROM courses c";
         $countBindParams = [];
         if ($query !== '') {
@@ -76,7 +74,6 @@ class CourseController
         $countStmt->execute();
         $total = $countStmt->fetchColumn();
 
-        // Main query with pagination
         $sql .= " LIMIT :offset, :perPage";
         $stmt = $this->db->prepare($sql);
         foreach ($bindParams as $key => $value) {
@@ -288,14 +285,13 @@ class CourseController
         $pdo = $this->db;
         require __DIR__ . '/../views/layouts/' . $layout;
     }
+
     public function createCourseByTeacher()
     {
-        // Khởi động session nếu chưa có
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        // Kiểm tra quyền giảng viên
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'teacher') {
             if (str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
                 header('Content-Type: application/json');
@@ -309,7 +305,6 @@ class CourseController
             }
         }
 
-        // Nếu là GET, hiển thị form tạo khóa học
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $title = 'Tạo khóa học mới';
             $layout = 'layout.php';
@@ -321,17 +316,14 @@ class CourseController
             return;
         }
 
-        // Nếu không phải POST, trả về lỗi
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Phương thức không được phép']);
             exit;
         }
 
-        // Xử lý yêu cầu POST (tạo khóa học)
         header('Content-Type: application/json');
 
-        // Lấy dữ liệu từ form
         $course_name = trim($_POST['course_name'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $max_members = isset($_POST['max_members']) ? (int)$_POST['max_members'] : 50;
@@ -339,7 +331,6 @@ class CourseController
         $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
         $learn_link = trim($_POST['learn_link'] ?? '');
 
-        // Kiểm tra dữ liệu đầu vào
         if (empty($course_name)) {
             echo json_encode(['success' => false, 'message' => 'Tên khóa học không được để trống']);
             exit;
@@ -363,13 +354,11 @@ class CourseController
         try {
             $creator_id = $_SESSION['account_id'];
 
-            // Tạo khóa học mới
             $result = $this->course->createCourse($course_name, $description, $creator_id);
 
             if ($result) {
                 $course_id = $this->db->lastInsertId();
 
-                // Cập nhật thông tin bổ sung
                 $update = $this->db->prepare("
                     UPDATE courses SET 
                         max_members = :max_members, 
@@ -386,7 +375,6 @@ class CourseController
                 $update->bindValue(':course_id', $course_id, PDO::PARAM_INT);
                 $update->execute();
 
-                // Gửi thông báo cho giảng viên
                 $message = "Khóa học \"" . htmlspecialchars($course_name) . "\" đã được tạo thành công. Vui lòng mở khóa học để học sinh tham gia.";
                 $this->notification->createNotification($creator_id, $message, false);
 
@@ -403,27 +391,22 @@ class CourseController
 
     public function editCourseByTeacher()
     {
-        // Đảm bảo trả về JSON
         header('Content-Type: application/json');
 
-        // Khởi động session
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        // Kiểm tra quyền giảng viên
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'teacher') {
             echo json_encode(['success' => false, 'message' => 'Chỉ giảng viên mới có quyền chỉnh sửa khóa học']);
             exit;
         }
 
-        // Chỉ chấp nhận POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             echo json_encode(['success' => false, 'message' => 'Phương thức không được phép']);
             exit;
         }
 
-        // Lấy dữ liệu từ form
         $course_id = (int)($_POST['course_id'] ?? 0);
         $course_name = trim($_POST['course_name'] ?? '');
         $description = trim($_POST['description'] ?? '');
@@ -431,70 +414,78 @@ class CourseController
         $learn_link = trim($_POST['learn_link'] ?? '');
         $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
         $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
-        $status = in_array($_POST['status'] ?? '', ['open', 'in_progress', 'closed']) ? $_POST['status'] : 'open';
 
-        // Kiểm tra dữ liệu đầu vào
-        if ($course_id <= 0 || empty($course_name) || $max_members <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID khóa học, tên khóa học và số lượng thành viên tối đa là bắt buộc']);
+        if ($course_id <= 0 || empty($course_name)) {
+            echo json_encode(['success' => false, 'message' => 'ID khóa học và tên khóa học là bắt buộc']);
             exit;
         }
 
-        // Kiểm tra URL học tập
+        if ($max_members <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Số lượng thành viên tối đa phải lớn hơn 0']);
+            exit;
+        }
+
         if ($learn_link && !filter_var($learn_link, FILTER_VALIDATE_URL)) {
             echo json_encode(['success' => false, 'message' => 'Link học tập không hợp lệ']);
             exit;
         }
 
-        // Kiểm tra ngày hợp lệ
         if ($start_date && $end_date && strtotime($end_date) < strtotime($start_date)) {
             echo json_encode(['success' => false, 'message' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu']);
             exit;
         }
 
         try {
-            // Kiểm tra khóa học tồn tại và quyền sở hữu
+            $this->db->beginTransaction();
+
             $currentCourse = $this->courseModel->getCourseById($course_id);
             if (!$currentCourse) {
+                $this->db->rollBack();
                 echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại']);
                 exit;
             }
 
             if ($currentCourse['creator_id'] != $_SESSION['account_id']) {
+                $this->db->rollBack();
                 echo json_encode(['success' => false, 'message' => 'Bạn không có quyền chỉnh sửa khóa học này']);
                 exit;
             }
 
-            // Cập nhật khóa học
-            $query = "UPDATE courses
-                      SET course_name = :course_name,
-                          description = :description,
-                          max_members = :max_members,
-                          learn_link = :learn_link,
-                          start_date = :start_date,
-                          end_date = :end_date,
-                          status = :status
-                      WHERE course_id = :course_id";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindValue(':course_name', $course_name, PDO::PARAM_STR);
-            $stmt->bindValue(':description', $description ?: null, $description ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':max_members', $max_members, PDO::PARAM_INT);
-            $stmt->bindValue(':learn_link', $learn_link ?: null, $learn_link ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':start_date', $start_date, $start_date ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':end_date', $end_date, $end_date ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':status', $status, PDO::PARAM_STR);
-            $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+            $memberStmt = $this->db->prepare("SELECT COUNT(*) FROM course_members WHERE course_id = :course_id");
+            $memberStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+            $memberStmt->execute();
+            $current_members = $memberStmt->fetchColumn();
 
-            if ($stmt->execute()) {
-                // Gửi thông báo cho giảng viên
-                $message = "Khóa học \"" . htmlspecialchars($course_name) . "\" đã được cập nhật thành công.";
+            if ($max_members < $current_members) {
+                $this->db->rollBack();
+                echo json_encode(['success' => false, 'message' => "Số thành viên tối đa phải lớn hơn hoặc bằng số thành viên hiện tại ($current_members)"]);
+                exit;
+            }
+
+            $result = $this->courseModel->updateCourse(
+                $course_id,
+                $course_name,
+                $description,
+                $max_members,
+                $learn_link,
+                $start_date,
+                $end_date
+            );
+
+            if ($result) {
+                $this->db->commit();
+
+                $message = "Khóa học \"" . htmlspecialchars($course_name) . "\" (ID: $course_id) đã được cập nhật thành công.";
                 $this->notification->createNotification($_SESSION['account_id'], $message, false);
 
                 echo json_encode(['success' => true, 'message' => 'Cập nhật khóa học thành công']);
             } else {
+                $this->db->rollBack();
                 echo json_encode(['success' => false, 'message' => 'Không thể cập nhật khóa học']);
             }
         } catch (Exception $e) {
-            error_log("Edit course error: " . $e->getMessage());
+            $this->db->rollBack();
+            error_log("Lỗi chỉnh sửa khóa học: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
         }
         exit;
@@ -502,12 +493,10 @@ class CourseController
 
     public function manage()
     {
-        // Khởi động session
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        // Kiểm tra quyền giảng viên
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'teacher') {
             $_SESSION['message'] = 'Chỉ giảng viên mới có quyền quản lý khóa học';
             $_SESSION['message_type'] = 'danger';
@@ -518,19 +507,16 @@ class CourseController
         try {
             $pdo = $this->db;
 
-            // Lấy thông tin người dùng hiện tại
             $user = $this->user->getUserById($_SESSION['account_id']);
 
-            // Lấy các tham số lọc từ URL
             $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
             $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
             $status = isset($_GET['status']) && in_array(trim($_GET['status']), ['open', 'in_progress', 'closed']) ? trim($_GET['status']) : '';
             $itemsPerPage = 5;
             $offset = ($page - 1) * $itemsPerPage;
 
-            // Xây dựng truy vấn
             $query = "SELECT c.*, 
-                    (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
+                     (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
                   FROM courses c
                   WHERE c.creator_id = :creator_id";
             $params = [':creator_id' => $_SESSION['account_id']];
@@ -556,7 +542,6 @@ class CourseController
             $stmt->execute();
             $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Đếm tổng số khóa học (cho phân trang)
             $countQuery = "SELECT COUNT(*) as total FROM courses WHERE creator_id = :creator_id";
             $countParams = [':creator_id' => $_SESSION['account_id']];
 
@@ -579,7 +564,6 @@ class CourseController
             $totalCourses = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
             $totalPages = ceil($totalCourses / $itemsPerPage);
 
-            // Tạo nội dung và hiển thị layout
             $title = 'Quản lý khóa học';
             ob_start();
             require __DIR__ . '/../views/course/teacher_manage.php';
@@ -670,6 +654,7 @@ class CourseController
         }
         exit;
     }
+
     public function getCourseDetails()
     {
         header('Content-Type: application/json');
@@ -698,7 +683,7 @@ class CourseController
 
         try {
             $query = "SELECT c.*, a.username, 
-                    (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
+                     (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
                   FROM courses c
                   LEFT JOIN accounts a ON c.creator_id = a.account_id
                   WHERE c.course_id = :course_id";
@@ -708,6 +693,7 @@ class CourseController
             $course = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if ($course) {
+                error_log("Course details: " . print_r($course, true)); // Log để kiểm tra dữ liệu
                 echo json_encode(['success' => true, 'course' => $course]);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại!']);
