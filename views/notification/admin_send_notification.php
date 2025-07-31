@@ -332,7 +332,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
     }
 </style>
 
-<script src="https://cdn.tiny.cloud/1/8jab93a4jz197bwfnazpkclma7cgywld668apl220hkv9p2e/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+<script src="https://cdn.tiny.cloud/1/1ltwngmor0as1pm1fyqud4iuiz9xu5p3es2xwfwtg7rh12zk/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
 <script>
     tinymce.init({
         selector: '#tiny',

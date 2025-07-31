@@ -12,7 +12,9 @@
                 <?php foreach ($notifications as $notification): ?>
                     <div class="list-group-item d-flex justify-content-between align-items-start <?php echo $notification['is_read'] ? 'text-secondary' : 'fw-bold'; ?>">
                         <div>
-                            <p class="mb-1"><?php echo htmlspecialchars($notification['message']); ?></p>
+                            <div class="notification-content" style="max-height: 200px; overflow-y: auto;">
+                                <?php echo $notification['message']; ?>
+                            </div>
                             <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($notification['created_at'])); ?></small>
                         </div>
                         <div>
@@ -52,6 +54,125 @@
         <?php endif; ?>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Đánh dấu đã đọc
+        document.querySelectorAll('.mark-read').forEach(button => {
+            button.addEventListener('click', function() {
+                const notificationId = this.getAttribute('data-id');
+                fetch('/study_sharing/notification/markRead', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `notification_id=${notificationId}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            button.closest('.list-group-item').classList.remove('fw-bold');
+                            button.closest('.list-group-item').classList.add('text-secondary');
+                            button.remove();
+                        } else {
+                            alert('Có lỗi xảy ra khi đánh dấu đã đọc.');
+                        }
+                    });
+            });
+        });
+
+        // Xóa thông báo
+        document.querySelectorAll('.delete-notification').forEach(button => {
+            button.addEventListener('click', function() {
+                if (confirm('Bạn có chắc chắn muốn xóa thông báo này?')) {
+                    const notificationId = this.getAttribute('data-id');
+                    fetch('/study_sharing/notification/delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `notification_id=${notificationId}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                button.closest('.list-group-item').remove();
+                            } else {
+                                alert('Có lỗi xảy ra khi xóa thông báo.');
+                            }
+                        });
+                }
+            });
+        });
+
+        // Đánh dấu tất cả đã đọc
+        document.getElementById('markAllRead').addEventListener('click', function() {
+            fetch('/study_sharing/notification/markAllRead', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `user_id=<?php echo $_SESSION['account_id']; ?>`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.querySelectorAll('.list-group-item').forEach(item => {
+                            item.classList.remove('fw-bold');
+                            item.classList.add('text-secondary');
+                            const markReadButton = item.querySelector('.mark-read');
+                            if (markReadButton) markReadButton.remove();
+                        });
+                    } else {
+                        alert('Có lỗi xảy ra khi đánh dấu tất cả đã đọc.');
+                    }
+                });
+        });
+
+        // Xóa tất cả thông báo
+        document.getElementById('deleteAll').addEventListener('click', function() {
+            if (confirm('Bạn có chắc chắn muốn xóa tất cả thông báo?')) {
+                fetch('/study_sharing/notification/deleteAll', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `user_id=<?php echo $_SESSION['account_id']; ?>`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.querySelector('.list-group').innerHTML = '<p class="text-muted">Bạn chưa có thông báo nào.</p>';
+                            document.getElementById('markAllRead').remove();
+                            document.getElementById('deleteAll').remove();
+                        } else {
+                            alert('Có lỗi xảy ra khi xóa tất cả thông báo.');
+                        }
+                    });
+            }
+        });
+    });
+</script>
+
+<style>
+    .notification-content {
+        word-wrap: break-word;
+    }
+
+    .notification-content img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .notification-content a {
+        color: #1D4ED8;
+        text-decoration: underline;
+    }
+
+    .notification-content a:hover {
+        color: #2563EB;
+    }
+</style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

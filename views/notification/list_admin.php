@@ -12,7 +12,9 @@
                 <?php foreach ($notifications as $notification): ?>
                     <div class="list-group-item d-flex justify-content-between align-items-start <?php echo $notification['is_read'] ? 'text-secondary' : 'fw-bold'; ?>">
                         <div>
-                            <p class="mb-1"><?php echo htmlspecialchars($notification['message']); ?></p>
+                            <div class="notification-content" style="max-height: 200px; overflow-y: auto;">
+                                <?php echo $notification['message']; ?>
+                            </div>
                             <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($notification['created_at'])); ?></small>
                         </div>
                         <div>
@@ -22,26 +24,10 @@
                             <button class="btn btn-outline-danger btn-sm delete-notification" data-id="<?php echo $notification['notification_id']; ?>"><i class="bi bi-trash"></i></button>
                         </div>
                     </div>
+
+
                 <?php endforeach; ?>
             </div>
-            <?php
-            // /views/notification/list_admin.php
-            foreach ($notifications as $notification) {
-                $is_open_course_request = strpos($notification['message'], 'yêu cầu mở khóa học') !== false;
-                $course_id = $is_open_course_request ? (int)preg_replace('/[^0-9]/', '', strrchr($notification['message'], '(ID: ')) : 0;
-            ?>
-                <div class="notification">
-                    <p><?php echo htmlspecialchars($notification['message']); ?></p>
-                    <p><small><?php echo $notification['created_at']; ?></small></p>
-                    <?php if ($is_open_course_request && !$notification['is_read'] && $course_id > 0) { ?>
-                        <button onclick="handleCourseRequest(<?php echo $notification['notification_id']; ?>, <?php echo $course_id; ?>, 'accept')">Chấp nhận</button>
-                        <button onclick="handleCourseRequest(<?php echo $notification['notification_id']; ?>, <?php echo $course_id; ?>, 'reject')">Từ chối</button>
-                    <?php } ?>
-                    <?php if (!$notification['is_read']) { ?>
-                        <button onclick="markRead(<?php echo $notification['notification_id']; ?>)">Đánh dấu đã đọc</button>
-                    <?php } ?>
-                </div>
-            <?php } ?>
 
             <!-- Phân trang -->
             <?php if ($totalPages > 1): ?>
@@ -66,42 +52,12 @@
                 </nav>
             <?php endif; ?>
         <?php else: ?>
-
             <p class="text-muted">Bạn chưa có thông báo nào.</p>
         <?php endif; ?>
     </div>
 </div>
 
 <script>
-    function handleCourseRequest(notificationId, courseId, action) {
-        if (!notificationId || !courseId) {
-            alert('Dữ liệu không hợp lệ');
-            return;
-        }
-        fetch('/study_sharing/notification_admin/handle_open_course_request', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    notification_id: notificationId,
-                    course_id: courseId,
-                    action: action
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.success) {
-                    location.reload();
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Đã xảy ra lỗi khi xử lý yêu cầu');
-            });
-    }
-
     function markRead(notificationId) {
         fetch('/study_sharing/notification/mark_read', {
                 method: 'POST',
@@ -121,6 +77,7 @@
                 }
             });
     }
+
     document.addEventListener('DOMContentLoaded', function() {
         // Đánh dấu đã đọc
         document.querySelectorAll('.mark-read').forEach(button => {
@@ -218,3 +175,28 @@
         });
     });
 </script>
+
+<style>
+    .container.py-5 {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .notification-content {
+        word-wrap: break-word;
+    }
+
+    .notification-content img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .notification-content a {
+        color: #1D4ED8;
+        text-decoration: underline;
+    }
+
+    .notification-content a:hover {
+        color: #2563EB;
+    }
+</style>
