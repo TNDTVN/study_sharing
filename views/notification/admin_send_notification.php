@@ -437,7 +437,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                         <label for="role" class="form-label">Chọn vai trò</label>
                         <select class="form-select" id="role" name="role" onchange="toggleRoleOptions()">
                             <option value="" <?php echo !isset($_POST['role']) ? 'selected' : ''; ?>>Chọn vai trò</option>
-                            <option value="admin" <?php echo (isset($_POST['role']) && $_POST['role'] === 'sadmin') ? 'selected' : ''; ?>>Admin</option>
+                            <option value="admin" <?php echo (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
                             <option value="teacher" <?php echo (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'selected' : ''; ?>>Giáo viên</option>
                             <option value="student" <?php echo (isset($_POST['role']) && $_POST['role'] === 'student') ? 'selected' : ''; ?>>Học sinh</option>
                         </select>
@@ -468,7 +468,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                                             <input class="form-check-input me-3" type="checkbox" name="admin_ids[]" value="<?php echo htmlspecialchars($user['account_id']); ?>" <?php echo (isset($_POST['admin_ids']) && in_array($user['account_id'], $_POST['admin_ids'])) ? 'checked' : ''; ?>>
                                             <div>
                                                 <div class="fw-medium"><?php echo htmlspecialchars($user['full_name']); ?></div>
-                                                <div class="d-flex align-items- center gap-2">
+                                                <div class="d-flex align-items-center gap-2">
                                                     <small class="text-muted">@<?php echo htmlspecialchars($user['username']); ?></small>
                                                     <span class="role-badge badge-admin">Admin</span>
                                                 </div>
@@ -624,7 +624,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                             return isset($user['account_id'], $user['full_name'], $user['username'], $user['role']) &&
                                 $user['account_id'] != $current_user_id;
                         });
-                        echo json_encode($filtered_users, JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
+                        echo json_encode(array_values($filtered_users), JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
                         ?>;
 
     // Debounce function to limit the frequency of search calls
