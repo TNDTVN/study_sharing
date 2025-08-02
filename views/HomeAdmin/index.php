@@ -80,20 +80,28 @@
     .dashboard-card {
         transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
+
     .dashboard-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
     }
+
     .card-icon {
         font-size: 2rem;
         color: #3b82f6;
     }
+
     .card-title {
         font-size: 1.25rem;
         font-weight: 600;
     }
+
     canvas {
         width: 100% !important;
+    }
+
+    .content {
+        padding: 0px;
     }
 </style>
 
@@ -111,10 +119,10 @@
                 label: 'Số lượng',
                 data: [<?php echo $totalUsers; ?>, <?php echo $totalDocuments; ?>, <?php echo $totalCourses; ?>, <?php echo $totalCategories; ?>],
                 backgroundColor: [
-                    'rgba(59, 130, 246, 0.7)',  // Xanh primary (đồng bộ card-users)
-                    'rgba(239, 68, 68, 0.7)',   // Đỏ (đồng bộ card-documents)
-                    'rgba(16, 185, 129, 0.7)',  // Xanh lá (đồng bộ card-courses)
-                    'rgba(168, 85, 247, 0.7)'   // Tím (đồng bộ card-categories)
+                    'rgba(59, 130, 246, 0.7)', // Xanh primary (đồng bộ card-users)
+                    'rgba(239, 68, 68, 0.7)', // Đỏ (đồng bộ card-documents)
+                    'rgba(16, 185, 129, 0.7)', // Xanh lá (đồng bộ card-courses)
+                    'rgba(168, 85, 247, 0.7)' // Tím (đồng bộ card-categories)
                 ],
                 borderColor: [
                     'rgba(59, 130, 246, 1)',
@@ -135,8 +143,12 @@
                 },
                 tooltip: {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: { size: 16 },
-                    bodyFont: { size: 14 },
+                    titleFont: {
+                        size: 16
+                    },
+                    bodyFont: {
+                        size: 14
+                    },
                     padding: 10
                 }
             },
@@ -146,7 +158,9 @@
                     title: {
                         display: true,
                         text: 'Số lượng',
-                        font: { size: 16 }
+                        font: {
+                            size: 16
+                        }
                     },
                     grid: {
                         color: 'rgba(0, 0, 0, 0.1)'
@@ -156,7 +170,9 @@
                     title: {
                         display: true,
                         text: 'Hạng mục',
-                        font: { size: 16 }
+                        font: {
+                            size: 16
+                        }
                     },
                     grid: {
                         display: false
@@ -174,9 +190,13 @@
     const categoryDistributionChart = new Chart(document.getElementById('categoryDistributionChart').getContext('2d'), {
         type: 'pie',
         data: {
-            labels: [<?php foreach ($documentsByCategory as $category) { echo "'" . htmlspecialchars($category['category_name']) . "',"; } ?>],
+            labels: [<?php foreach ($documentsByCategory as $category) {
+                            echo "'" . htmlspecialchars($category['category_name']) . "',";
+                        } ?>],
             datasets: [{
-                data: [<?php foreach ($documentsByCategory as $category) { echo $category['count'] . ","; } ?>],
+                data: [<?php foreach ($documentsByCategory as $category) {
+                            echo $category['count'] . ",";
+                        } ?>],
                 backgroundColor: [
                     'rgba(59, 130, 246, 0.7)',
                     'rgba(239, 68, 68, 0.7)',
@@ -203,13 +223,19 @@
                     labels: {
                         boxWidth: 15,
                         padding: 20,
-                        font: { size: 14 }
+                        font: {
+                            size: 14
+                        }
                     }
                 },
                 tooltip: {
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleFont: { size: 16 },
-                    bodyFont: { size: 14 },
+                    titleFont: {
+                        size: 16
+                    },
+                    bodyFont: {
+                        size: 14
+                    },
                     padding: 10
                 }
             },
