@@ -16,6 +16,8 @@ $title = "Quản lý khóa học";
                 <option value="open" <?php echo ($status ?? '') === 'open' ? 'selected' : ''; ?>>Mở</option>
                 <option value="in_progress" <?php echo ($status ?? '') === 'in_progress' ? 'selected' : ''; ?>>Đang học</option>
                 <option value="closed" <?php echo ($status ?? '') === 'closed' ? 'selected' : ''; ?>>Đã đóng</option>
+                <option value="pending" <?php echo ($status ?? '') === 'pending' ? 'selected' : ''; ?>>Đang duyệt</option>
+                <option value="cancelled" <?php echo ($status ?? '') === 'cancelled' ? 'selected' : ''; ?>>Đã hủy</option>
             </select>
             <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
         </form>
@@ -48,33 +50,42 @@ $title = "Quản lý khóa học";
                     </tr>
                 <?php else: ?>
                     <?php foreach ($courses as $index => $course): ?>
-                        <tr>
+                        <tr data-course-id="<?php echo $course['course_id']; ?>">
                             <td><?php echo htmlspecialchars($offset + $index + 1); ?></td>
                             <td><?php echo htmlspecialchars($course['course_name']); ?></td>
                             <td><?php echo $course['member_count'] ?? 0; ?></td>
                             <td>
                                 <span class="status-<?php echo htmlspecialchars($course['status']); ?>">
-                                    <?php if ($course['status'] === 'open'): ?>
-                                        <i class="fa fa-check-circle"></i> Mở
-                                    <?php elseif ($course['status'] === 'in_progress'): ?>
-                                        <i class="fa fa-pause-circle"></i> Đang học
-                                    <?php else: ?>
-                                        <i class="fa fa-ban"></i> Đã đóng
-                                    <?php endif; ?>
+                                    <?php
+                                    $statusMap = [
+                                        'open' => '<i class="fa fa-check-circle"></i> Mở',
+                                        'in_progress' => '<i class="fa fa-pause-circle"></i> Đang học',
+                                        'closed' => '<i class="fa fa-ban"></i> Đã đóng',
+                                        'pending' => '<i class="fa fa-clock"></i> Đang duyệt',
+                                        'cancelled' => '<i class="fa fa-times-circle"></i> Đã hủy'
+                                    ];
+                                    echo $statusMap[$course['status']] ?? 'Không xác định';
+                                    ?>
                                 </span>
                             </td>
                             <td>
                                 <button class="btn btn-outline-info btn-sm view-btn" title="Xem chi tiết khóa học" data-course-id="<?php echo $course['course_id']; ?>">
                                     <i class="fa fa-eye"></i>
                                 </button>
-                                <button class="btn btn-outline-warning btn-sm edit-btn" data-bs-toggle="modal" data-bs-target="#editCourseModal" title="Chỉnh sửa khóa học"
-                                    onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($course)); ?>)">
-                                    <i class="fa fa-edit"></i>
-                                </button>
-                                <?php if ($course['status'] === 'closed'): ?>
-                                    <button class="btn btn-outline-primary btn-sm request-open-btn" title="Yêu cầu mở khóa học" onclick="requestOpenCourse(<?php echo (int)$course['course_id']; ?>)">
-                                        <i class="fa fa-unlock"></i>
+                                <?php if (in_array($course['status'], ['open', 'in_progress', 'closed'])): ?>
+                                    <button class="btn btn-outline-warning btn-sm edit-btn" data-bs-toggle="modal" data-bs-target="#editCourseModal" title="Chỉnh sửa khóa học"
+                                        onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($course)); ?>)">
+                                        <i class="fa fa-edit"></i>
                                     </button>
+                                    <button class="btn btn-outline-secondary btn-sm manage-members-btn" data-bs-toggle="modal" data-bs-target="#manageMembersModal" title="Quản lý thành viên"
+                                        onclick="loadCourseMembers(<?php echo (int)$course['course_id']; ?>)">
+                                        <i class="fa fa-users"></i>
+                                    </button>
+                                    <?php if ($course['status'] === 'closed'): ?>
+                                        <button class="btn btn-outline-primary btn-sm request-open-btn" title="Yêu cầu mở khóa học" onclick="requestOpenCourse(<?php echo (int)$course['course_id']; ?>)">
+                                            <i class="fa fa-unlock"></i>
+                                        </button>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -122,6 +133,15 @@ $title = "Quản lý khóa học";
                                     <label for="edit_max_members" class="form-label">Số thành viên tối đa <span class="text-danger">*</span></label>
                                     <input type="number" class="form-control" id="edit_max_members" name="max_members" min="1" required>
                                     <div class="invalid-feedback">Vui lòng nhập số thành viên tối đa (lớn hơn 0).</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="edit_status" class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="edit_status" name="status" required>
+                                        <option value="open">Mở</option>
+                                        <option value="in_progress">Đang học</option>
+                                        <option value="closed">Đã đóng</option>
+                                    </select>
+                                    <div class="invalid-feedback">Vui lòng chọn trạng thái.</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -185,6 +205,38 @@ $title = "Quản lý khóa học";
             </div>
         </div>
     </div>
+
+    <!-- Modal quản lý thành viên -->
+    <div class="modal fade" id="manageMembersModal" tabindex="-1" aria-labelledby="manageMembersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="manageMembersModalLabel">Quản lý thành viên</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="members-list">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th scope="col">STT</th>
+                                    <th scope="col">Tên sinh viên</th>
+                                    <th scope="col">Ngày tham gia</th>
+                                    <th scope="col">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="members-table-body">
+                                <!-- Danh sách thành viên sẽ được thêm bằng JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -239,7 +291,7 @@ $title = "Quản lý khóa học";
     });
 
     function fillEditModal(course) {
-        console.log('Course data:', course); // Log để kiểm tra dữ liệu
+        console.log('Course data:', course);
         document.getElementById('edit_course_id').value = course.course_id || '';
         document.getElementById('edit_course_name').value = course.course_name || '';
         document.getElementById('edit_description').value = course.description || '';
@@ -247,6 +299,7 @@ $title = "Quản lý khóa học";
         document.getElementById('edit_learn_link').value = course.learn_link || '';
         document.getElementById('edit_start_date').value = course.start_date || '';
         document.getElementById('edit_end_date').value = course.end_date || '';
+        document.getElementById('edit_status').value = course.status || 'open';
     }
 
     function requestOpenCourse(courseId) {
@@ -293,7 +346,7 @@ $title = "Quản lý khóa học";
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        console.log('Course details:', data.course); // Log để kiểm tra dữ liệu
+                        console.log('Course details:', data.course);
                         document.getElementById('detail-course-id').textContent = data.course.course_id || '';
                         document.getElementById('detail-course-name').textContent = data.course.course_name || '';
                         document.getElementById('detail-description').textContent = data.course.description || 'Không có mô tả';
@@ -302,7 +355,14 @@ $title = "Quản lý khóa học";
                         document.getElementById('detail-learn-link').textContent = data.course.learn_link || 'Không có link';
                         document.getElementById('detail-start-date').textContent = data.course.start_date || 'Chưa xác định';
                         document.getElementById('detail-end-date').textContent = data.course.end_date || 'Chưa xác định';
-                        document.getElementById('detail-status').textContent = data.course.status || 'Không xác định';
+                        const statusMap = {
+                            'open': 'Mở',
+                            'in_progress': 'Đang học',
+                            'closed': 'Đã đóng',
+                            'pending': 'Đang duyệt',
+                            'cancelled': 'Đã hủy'
+                        };
+                        document.getElementById('detail-status').textContent = statusMap[data.course.status] || 'Không xác định';
                         document.getElementById('detail-created-at').textContent = data.course.created_at || 'Không xác định';
                         const modal = new bootstrap.Modal(document.getElementById('courseDetailModal'));
                         modal.show();
@@ -316,6 +376,117 @@ $title = "Quản lý khóa học";
                 });
         });
     });
+
+    let currentManageMembersModal = null; // Biến để lưu instance của modal
+
+    // Hàm tải danh sách thành viên của khóa học
+    function loadCourseMembers(courseId) {
+        if (!Number.isInteger(courseId) || courseId <= 0) {
+            alert('ID khóa học không hợp lệ!');
+            return;
+        }
+
+        fetch('/study_sharing/Course/getCourseMembers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    course_id: courseId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const membersTableBody = document.getElementById('members-table-body');
+                membersTableBody.innerHTML = ''; // Xóa nội dung cũ
+
+                if (data.success && data.members.length > 0) {
+                    data.members.forEach((member, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${member.full_name || 'Ẩn danh'}</td>
+                            <td>${member.join_date || 'Chưa xác định'}</td>
+                            <td>
+                                <button class="btn btn-outline-danger btn-sm remove-member-btn" 
+                                        title="Xóa sinh viên" 
+                                        data-course-id="${courseId}" 
+                                        data-course-member-id="${member.course_member_id}"
+                                        onclick="removeCourseMember(${courseId}, ${member.course_member_id}, '${member.full_name.replace(/'/g, "\\'")}')">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        membersTableBody.appendChild(row);
+                    });
+                } else {
+                    membersTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Không có sinh viên nào trong khóa học!</td></tr>';
+                }
+
+                // Đóng modal cũ nếu đang mở
+                if (currentManageMembersModal) {
+                    currentManageMembersModal.hide();
+                }
+
+                // Mở modal mới
+                currentManageMembersModal = new bootstrap.Modal(document.getElementById('manageMembersModal'), {
+                    backdrop: true
+                });
+                currentManageMembersModal.show();
+
+                // Xóa backdrop khi modal đóng
+                document.getElementById('manageMembersModal').addEventListener('hidden.bs.modal', function() {
+                    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.paddingRight = '';
+                    currentManageMembersModal = null; // Xóa instance
+                }, {
+                    once: true
+                });
+            })
+            .catch(error => {
+                console.error('Lỗi fetch:', error);
+                alert('Đã xảy ra lỗi khi lấy danh sách thành viên.');
+            });
+    }
+
+    // Hàm xóa sinh viên khỏi khóa học
+    function removeCourseMember(courseId, courseMemberId, memberName) {
+        if (!Number.isInteger(courseId) || courseId <= 0 || !Number.isInteger(courseMemberId) || courseMemberId <= 0) {
+            alert('ID khóa học hoặc ID thành viên không hợp lệ!');
+            return;
+        }
+
+        if (confirm(`Bạn có chắc chắn muốn xóa sinh viên "${memberName}" khỏi khóa học này?`)) {
+            fetch('/study_sharing/Course/removeCourseMember', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        course_id: courseId,
+                        course_member_id: courseMemberId
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    if (data.success) {
+                        // Tải lại danh sách thành viên
+                        loadCourseMembers(courseId);
+                        // Cập nhật số thành viên trong bảng khóa học
+                        const memberCountCell = document.querySelector(`tr[data-course-id="${courseId}"] td:nth-child(3)`);
+                        if (memberCountCell) {
+                            memberCountCell.textContent = parseInt(memberCountCell.textContent) - 1;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Lỗi fetch:', error);
+                    alert('Đã xảy ra lỗi khi xóa thành viên.');
+                });
+        }
+    }
 </script>
 
 <style>
@@ -348,6 +519,20 @@ $title = "Quản lý khóa học";
 
     .status-closed {
         color: red;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-pending {
+        color: blue;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .status-cancelled {
+        color: gray;
         display: flex;
         align-items: center;
         gap: 5px;
