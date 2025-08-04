@@ -34,7 +34,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
             <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
         </form>
     </div>
-
+    //haha
     <?php if (!empty($_SESSION['message'])): ?>
         <div class="alert alert-<?php echo $_SESSION['message_type'] ?? 'info'; ?> alert-dismissible fade show" role="alert">
             <?php echo htmlspecialchars($_SESSION['message']); ?>
