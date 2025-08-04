@@ -28,10 +28,11 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                 <option value="open" <?php echo ($status ?? '') === 'open' ? 'selected' : ''; ?>>Mở</option>
                 <option value="in_progress" <?php echo ($status ?? '') === 'in_progress' ? 'selected' : ''; ?>>Đang học</option>
                 <option value="closed" <?php echo ($status ?? '') === 'closed' ? 'selected' : ''; ?>>Đã đóng</option>
+                <option value="pending" <?php echo ($status ?? '') === 'pending' ? 'selected' : ''; ?>>Chờ duyệt</option>
+                <option value="cancelled" <?php echo ($status ?? '') === 'cancelled' ? 'selected' : ''; ?>>Đã hủy</option>
             </select>
             <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
         </form>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addCourseModal" onclick="console.log('Nút thêm khóa học được bấm')"><i class="bi bi-plus-circle"></i> Thêm khóa học</button>
     </div>
 
     <?php if (!empty($_SESSION['message'])): ?>
@@ -68,13 +69,27 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo $course['member_count'] ?? 0; ?></td>
                             <td>
                                 <span class="status-<?php echo htmlspecialchars($course['status']); ?>">
-                                    <?php if ($course['status'] === 'open'): ?>
-                                        <i class="fa fa-check-circle"></i> Mở
-                                    <?php elseif ($course['status'] === 'in_progress'): ?>
-                                        <i class="fa fa-pause-circle"></i> Đang học
-                                    <?php else: ?>
-                                        <i class="fa fa-ban"></i> Đã đóng
-                                    <?php endif; ?>
+                                    <?php
+                                    switch ($course['status']) {
+                                        case 'open':
+                                            echo 'Mở';
+                                            break;
+                                        case 'in_progress':
+                                            echo 'Đang học';
+                                            break;
+                                        case 'closed':
+                                            echo 'Đã đóng';
+                                            break;
+                                        case 'pending':
+                                            echo 'Chờ duyệt';
+                                            break;
+                                        case 'cancelled':
+                                            echo 'Đã hủy';
+                                            break;
+                                        default:
+                                            echo 'Không xác định';
+                                    }
+                                    ?>
                                 </span>
                             </td>
                             <td>
@@ -110,84 +125,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                 </li>
             </ul>
         </nav>
-    </div>
-
-    <!-- Modal thêm khóa học -->
-    <div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="addCourseModalLabel">Thêm khóa học mới</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="addCourseForm" method="POST" action="/study_sharing/AdminCourse/admin_add" class="needs-validation" novalidate>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="course_name" class="form-label">Tên khóa học <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="course_name" name="course_name" required>
-                                    <div class="invalid-feedback">Vui lòng nhập tên khóa học.</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="creator_id" class="form-label">Người tạo <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="creator_id" name="creator_id" required>
-                                        <option value="">-- Chọn người tạo --</option>
-                                        <?php foreach ($accounts as $account): ?>
-                                            <option value="<?php echo $account['account_id']; ?>">
-                                                <?php echo htmlspecialchars($account['username']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <div class="invalid-feedback">Vui lòng chọn người tạo.</div>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="max_members" class="form-label">Số thành viên tối đa <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="max_members" name="max_members" min="1" value="50" required>
-                                    <div class="invalid-feedback">Vui lòng nhập số thành viên tối đa (lớn hơn 0).</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="description" class="form-label">Mô tả</label>
-                                    <textarea class="form-control" id="description" name="description" rows="4"></textarea>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="learn_link" class="form-label">Link học tập</label>
-                                    <input type="url" class="form-control" id="learn_link" name="learn_link" placeholder="https://example.com">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="status" class="form-label">Trạng thái <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="status" name="status" required>
-                                        <option value="open">Mở</option>
-                                        <option value="in_progress">Đang học</option>
-                                        <option value="closed">Đã đóng</option>
-                                        35
-                                    </select>
-                                    <div class="invalid-feedback">Vui lòng chọn trạng thái.</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="start_date" class="form-label">Ngày bắt đầu</label>
-                                    <input type="date" class="form-control" id="start_date" name="start_date">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="end_date" class="form-label">Ngày kết thúc</label>
-                                    <input type="date" class="form-control" id="end_date" name="end_date">
-                                </div>
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100" id="addCourseSubmit">
-                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                            Thêm khóa học
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Modal chỉnh sửa khóa học -->
@@ -241,6 +178,8 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                                         <option value="open">Mở</option>
                                         <option value="in_progress">Đang học</option>
                                         <option value="closed">Đã đóng</option>
+                                        <option value="pending">Chờ duyệt</option>
+                                        <option value="cancelled">Đã hủy</option>
                                     </select>
                                     <div class="invalid-feedback">Vui lòng chọn trạng thái.</div>
                                 </div>
@@ -374,7 +313,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById('edit_learn_link').value = course.learn_link || '';
         document.getElementById('edit_start_date').value = course.start_date || '';
         document.getElementById('edit_end_date').value = course.end_date || '';
-        document.getElementById('edit_status').value = course.status || 'open';
+        document.getElementById('edit_status').value = course.status || 'pending';
     }
 
     function deleteCourse(courseId) {
@@ -443,7 +382,13 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         document.getElementById('detail-learn-link').textContent = data.course.learn_link || 'Không có link';
                         document.getElementById('detail-start-date').textContent = data.course.start_date || 'Chưa xác định';
                         document.getElementById('detail-end-date').textContent = data.course.end_date || 'Chưa xác định';
-                        document.getElementById('detail-status').textContent = data.course.status || 'Không xác định';
+                        document.getElementById('detail-status').textContent = {
+                            'open': 'Mở',
+                            'in_progress': 'Đang học',
+                            'closed': 'Đã đóng',
+                            'pending': 'Chờ duyệt',
+                            'cancelled': 'Đã hủy'
+                        } [data.course.status] || 'Không xác định';
                         document.getElementById('detail-created-at').textContent = data.course.created_at || 'Không xác định';
 
                         // Hiển thị modal
@@ -464,7 +409,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 <style>
     .modal-body p {
         margin-bottom: 10px;
-
     }
 
     .modal-body strong {
@@ -478,23 +422,22 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 
     .status-open {
         color: green;
-        display: flex;
-        align-items: center;
-        gap: 5px;
     }
 
     .status-in_progress {
         color: orange;
-        display: flex;
-        align-items: center;
-        gap: 5px;
     }
 
     .status-closed {
         color: red;
-        display: flex;
-        align-items: center;
-        gap: 5px;
+    }
+
+    .status-pending {
+        color: blue;
+    }
+
+    .status-cancelled {
+        color: gray;
     }
 
     .container.py-5 {
