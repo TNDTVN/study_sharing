@@ -31,19 +31,18 @@ class CourseController
         $perPage = 9;
 
         $sql = "SELECT c.*, u.full_name, 
-                (SELECT COUNT(*) FROM course_members WHERE course_id = c.course_id) as member_count
-                FROM courses c 
-                LEFT JOIN users u ON c.creator_id = u.account_id";
+            (SELECT COUNT(*) FROM course_members WHERE course_id = c.course_id) as member_count
+            FROM courses c 
+            LEFT JOIN users u ON c.creator_id = u.account_id
+            WHERE c.status NOT IN ('pending', 'cancelled')";
 
         $bindParams = [];
-        $hasWhere = false;
+        $hasWhere = true; // Đã có WHERE từ status
 
         if ($query !== '') {
-            $sql .= $hasWhere ? " AND " : " WHERE ";
-            $sql .= "(c.course_name LIKE :query1 OR c.description LIKE :query2)";
+            $sql .= " AND (c.course_name LIKE :query1 OR c.description LIKE :query2)";
             $bindParams[':query1'] = "%$query%";
             $bindParams[':query2'] = "%$query%";
-            $hasWhere = true;
         }
 
         switch ($sort) {
@@ -59,10 +58,10 @@ class CourseController
                 break;
         }
 
-        $countSql = "SELECT COUNT(*) FROM courses c";
+        $countSql = "SELECT COUNT(*) FROM courses c WHERE c.status NOT IN ('pending', 'cancelled')";
         $countBindParams = [];
         if ($query !== '') {
-            $countSql .= " WHERE (c.course_name LIKE :query1 OR c.description LIKE :query2)";
+            $countSql .= " AND (c.course_name LIKE :query1 OR c.description LIKE :query2)";
             $countBindParams[':query1'] = "%$query%";
             $countBindParams[':query2'] = "%$query%";
         }
@@ -360,14 +359,14 @@ class CourseController
                 $course_id = $this->db->lastInsertId();
 
                 $update = $this->db->prepare("
-                    UPDATE courses SET 
-                        max_members = :max_members, 
-                        learn_link = :learn_link, 
-                        start_date = :start_date, 
-                        end_date = :end_date, 
-                        status = 'closed' 
-                    WHERE course_id = :course_id
-                ");
+                UPDATE courses SET 
+                    max_members = :max_members, 
+                    learn_link = :learn_link, 
+                    start_date = :start_date, 
+                    end_date = :end_date, 
+                    status = 'pending' 
+                WHERE course_id = :course_id
+            ");
                 $update->bindValue(':max_members', $max_members, PDO::PARAM_INT);
                 $update->bindValue(':learn_link', $learn_link ?: null, $learn_link ? PDO::PARAM_STR : PDO::PARAM_NULL);
                 $update->bindValue(':start_date', $start_date, $start_date ? PDO::PARAM_STR : PDO::PARAM_NULL);
@@ -375,10 +374,10 @@ class CourseController
                 $update->bindValue(':course_id', $course_id, PDO::PARAM_INT);
                 $update->execute();
 
-                $message = "Khóa học \"" . htmlspecialchars($course_name) . "\" đã được tạo thành công. Vui lòng mở khóa học để học sinh tham gia.";
+                $message = "Khóa học \"" . htmlspecialchars($course_name) . "\" đã được tạo thành công và đang chờ duyệt.";
                 $this->notification->createNotification($creator_id, $message, false);
 
-                echo json_encode(['success' => true, 'message' => 'Tạo khóa học thành công. Trạng thái mặc định: closed']);
+                echo json_encode(['success' => true, 'message' => 'Tạo khóa học thành công. Trạng thái mặc định: đang chờ duyệt']);
             } else {
                 echo json_encode(['success' => false, 'message' => 'Không thể tạo khóa học']);
             }

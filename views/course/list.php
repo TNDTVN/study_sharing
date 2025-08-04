@@ -123,7 +123,7 @@ $sort = $sort ?? 'newest';
                                                 echo 'Đang diễn ra';
                                                 break;
                                             default:
-                                                echo $course['status'];
+                                                echo htmlspecialchars($course['status']);
                                         }
                                         ?>
                                     </span>

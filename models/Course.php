@@ -18,7 +18,7 @@ class Course
      * Cập nhật trạng thái của khóa học
      *
      * @param int $course_id ID của khóa học
-     * @param string $status Trạng thái mới của khóa học (active, rejected, pending)
+     * @param string $status Trạng thái mới của khóa học (open, closed, in_progress, pending, cancelled)
      * @return bool Trả về true nếu cập nhật thành công, false nếu thất bại
      * @throws Exception Nếu course_id hoặc status không hợp lệ
      */
@@ -30,7 +30,7 @@ class Course
         }
 
         // Kiểm tra trạng thái hợp lệ
-        $allowedStatuses = ['active', 'rejected', 'pending'];
+        $allowedStatuses = ['open', 'closed', 'in_progress', 'pending', 'cancelled'];
         if (!in_array($status, $allowedStatuses)) {
             throw new Exception('Trạng thái không hợp lệ. Trạng thái phải là: ' . implode(', ', $allowedStatuses));
         }
@@ -54,6 +54,25 @@ class Course
         }
     }
 
+    /**
+     * Tạo khóa học mới với trạng thái mặc định là 'pending'
+     *
+     * @param string $course_name Tên khóa học
+     * @param string $description Mô tả khóa học
+     * @param int $account_id ID của người tạo khóa học
+     * @return bool Trả về true nếu tạo thành công, false nếu thất bại
+     */
+    public function createCourse($course_name, $description, $account_id)
+    {
+        $query = "INSERT INTO courses (course_name, description, creator_id, status) 
+                  VALUES (:course_name, :description, :account_id, 'pending')";
+        $stmt = $this->db->prepare($query);
+        $stmt->bindParam(':course_name', $course_name, PDO::PARAM_STR);
+        $stmt->bindParam(':description', $description, PDO::PARAM_STR);
+        $stmt->bindParam(':account_id', $account_id, PDO::PARAM_INT);
+        return $stmt->execute();
+    }
+
     public function getCourseById($course_id)
     {
         $query = "SELECT * FROM courses WHERE course_id = :course_id";
@@ -68,16 +87,6 @@ class Course
         $query = "SELECT * FROM courses";
         $stmt = $this->db->query($query);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
-
-    public function createCourse($course_name, $description, $account_id)
-    {
-        $query = "INSERT INTO courses (course_name, description, creator_id) VALUES (:course_name, :description, :account_id)";
-        $stmt = $this->db->prepare($query);
-        $stmt->bindParam(':course_name', $course_name, PDO::PARAM_STR);
-        $stmt->bindParam(':description', $description, PDO::PARAM_STR);
-        $stmt->bindParam(':account_id', $account_id, PDO::PARAM_INT);
-        return $stmt->execute();
     }
 
     public function countCourses()
