@@ -77,3 +77,133 @@
     background: #f8f9fa;
     overflow: hidden;
 }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+    
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+    
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+            background-color: #fff;
+        }
+    
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            border-radius: 12px 12px 0 0;
+            padding: 1rem 1.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+    
+        .card-body {
+            padding: 1.5rem;
+        }
+    
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+        }
+    
+        .btn-primary {
+            background-color: #007bff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            transition: background-color 0.2s;
+        }
+    
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+    
+        .btn-secondary {
+            background-color: #6c757d;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+        }
+    
+        .btn-outline-primary {
+            border-radius: 8px;
+        }
+    
+        .badge {
+            background-color: #e9ecef;
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-right: 0.5rem;
+        }
+    
+        .document-container {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            height: 600px;
+            overflow-y: auto;
+            background-color: #fff;
+        }
+    
+        .rating-stars .star {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.2s;
+        }
+    
+        .rating-stars .star.filled,
+        .rating-stars .star:hover {
+            color: #ffc107;
+        }
+    
+        .comment-item,
+        .reply-item {
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+    
+        .replies {
+            margin-left: 2rem;
+        }
+    
+        .reply-form {
+            margin-top: 1rem;
+        }
+    
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+        }
+    
+        .form-select {
+            border-radius: 8px;
+        }
+    
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+            }
+    
+            .card-header {
+                font-size: 1rem;
+            }
+    
+            .btn {
+                padding: 0.5rem 1rem;
+            }
+        }

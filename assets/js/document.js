@@ -58,11 +58,114 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
     }
 })();
 
+// Xử lý nút "Trở về"
+function initializeBackButton() {
+    const backButton = document.getElementById('backButton');
+    if (backButton) {
+        backButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (document.referrer && document.referrer.includes('/study_sharing/')) {
+                window.history.back();
+            } else {
+                window.location.href = '/study_sharing';
+            }
+        });
+    }
+}
+
+// Xử lý các sao đánh giá
+function initializeRatingStars(ratingStars, documentId, userRating) {
+    const stars = ratingStars.querySelectorAll('.star');
+    if (userRating > 0) {
+        for (let i = 0; i < userRating; i++) {
+            stars[i].classList.add('filled');
+        }
+    }
+    stars.forEach(star => {
+        star.addEventListener('mouseover', function() {
+            const value = parseInt(this.dataset.value);
+            highlightStars(value);
+        });
+        star.addEventListener('mouseout', function() {
+            resetStars(userRating);
+        });
+        star.addEventListener('click', function() {
+            const value = parseInt(this.dataset.value);
+            submitRating(documentId, value);
+        });
+    });
+}
+
+function highlightStars(value) {
+    const stars = document.getElementById('rating-stars').querySelectorAll('.star');
+    stars.forEach(star => {
+        const starValue = parseInt(star.dataset.value);
+        if (starValue <= value) {
+            star.classList.add('filled');
+        } else {
+            star.classList.remove('filled');
+        }
+    });
+}
+
+function resetStars(userRating) {
+    const stars = document.getElementById('rating-stars').querySelectorAll('.star');
+    stars.forEach(star => {
+        star.classList.remove('filled');
+    });
+    if (userRating > 0) {
+        for (let i = 0; i < userRating; i++) {
+            stars[i].classList.add('filled');
+        }
+    }
+}
+
+function submitRating(documentId, ratingValue) {
+    const isLoggedIn = document.querySelector('.nav-item.dropdown.ms-lg-2 .nav-link.dropdown-toggle')?.textContent.trim() !== 'Tài khoản';
+    if (!isLoggedIn) {
+        const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+        loginModal.show();
+        return;
+    }
+
+    fetch('/study_sharing/document/rateDocument', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `document_id=${documentId}&rating_value=${ratingValue}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Đánh giá đã được gửi!');
+            location.reload();
+        } else {
+            alert('Lỗi khi gửi đánh giá: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Lỗi server, vui lòng thử lại!');
+    });
+}
+
 // Xử lý bình luận và trả lời
 document.addEventListener('DOMContentLoaded', function() {
     const commentsContainer = document.getElementById('comments-container');
     const isLoggedIn = commentsContainer.dataset.isLoggedIn === 'true';
     const currentUserId = parseInt(commentsContainer.dataset.currentUserId) || 0;
+
+    // Khởi tạo nút "Trở về"
+    initializeBackButton();
+
+    // Khởi tạo các sao đánh giá
+    const ratingStars = document.getElementById('rating-stars');
+    if (ratingStars) {
+        const documentId = ratingStars.dataset.documentId;
+        const userRating = parseInt(ratingStars.dataset.userRating);
+        initializeRatingStars(ratingStars, documentId, userRating);
+    }
 
     // Xử lý sự kiện click cho trả lời, hủy, và xóa
     commentsContainer.addEventListener('click', function(event) {
@@ -150,14 +253,12 @@ document.addEventListener('DOMContentLoaded', function() {
             submitButton.disabled = true;
             spinner.classList.remove('d-none');
             const formData = new FormData(form);
-            console.log('Form data:', Object.fromEntries(formData));
             fetch('/study_sharing/document/replyComment', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Reply response:', data);
                 const messageDiv = document.createElement('div');
                 messageDiv.className = `alert alert-${data.success ? 'success' : 'danger'} mt-2`;
                 messageDiv.textContent = data.message;
@@ -208,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.success) {
                     data.comments.forEach(comment => {
                         const commentDiv = document.createElement('div');
-                        commentDiv.className = 'border-bottom mb-3 pb-3 comment-item';
+                        commentDiv.className = 'comment-item mb-3';
                         commentDiv.dataset.commentId = comment.comment_id;
 
                         let dropdownHtml = '';
@@ -220,7 +321,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             dropdownHtml = `
                                 <div class="dropdown ms-auto">
                                     <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bi bi-three-dots"></i>
+                                        <i class="fas fa-ellipsis-h"></i>
                                     </button>
                                     <ul class="dropdown-menu">
                                         <li><a class="dropdown-item reply-comment" href="#" data-comment-id="${comment.comment_id}" data-user-id="${comment.account_id}" data-user-name="${comment.user.full_name || 'Ẩn danh'}">Trả lời</a></li>
@@ -235,10 +336,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
 
                         function generateRepliesHtml(replies, documentId, level = 1) {
-                            console.log(`Rendering replies at level ${level}:`, replies);
                             let repliesHtml = '';
                             if (replies && Object.keys(replies).length > 0) {
-                                repliesHtml = `<div class="replies mt-3 ms-${level * 4}">`;
+                                repliesHtml = `<div class="replies mt-3 ms-${level * 3}">`;
                                 Object.values(replies).forEach(reply => {
                                     let replyDropdownHtml = '';
                                     if (isLoggedIn) {
@@ -249,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         replyDropdownHtml = `
                                             <div class="dropdown ms-auto">
                                                 <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                    <i class="bi bi-three-dots"></i>
+                                                    <i class="fas fa-ellipsis-h"></i>
                                                 </button>
                                                 <ul class="dropdown-menu">
                                                     <li><a class="dropdown-item reply-comment" href="#" data-comment-id="${reply.comment_id}" data-user-id="${reply.account_id}" data-user-name="${reply.user.full_name || 'Ẩn danh'}">Trả lời</a></li>
@@ -264,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     }
 
                                     repliesHtml += `
-                                        <div class="border-bottom mb-2 pb-2 reply-item reply-level-${level}" data-comment-id="${reply.comment_id}">
+                                        <div class="reply-item reply-level-${level} mb-2" data-comment-id="${reply.comment_id}">
                                             <div class="d-flex align-items-center mb-1 position-relative">
                                                 <img src="/study_sharing/assets/images/${reply.user.avatar || 'profile.png'}" alt="Avatar" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
                                                 <div>
@@ -324,6 +424,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             ${generateRepliesHtml(comment.replies, documentId)}
                         `;
                         commentsContainer.appendChild(commentDiv);
+
+                        // Khởi tạo lại dropdown cho các phần tử mới
+                        const dropdowns = commentDiv.querySelectorAll('[data-bs-toggle="dropdown"]');
+                        dropdowns.forEach(dropdown => {
+                            new bootstrap.Dropdown(dropdown);
+                        });
                     });
 
                     this.dataset.offset = offset + data.comments.length;
@@ -340,19 +446,28 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+
+    // Xử lý hiển thị tài liệu
+    const versionSelect = document.getElementById('versionSelect');
+    if (versionSelect) {
+        const fileUrl = versionSelect.value;
+        const fileExt = versionSelect.options[versionSelect.selectedIndex].value.split('.').pop().toLowerCase();
+        if (fileUrl) {
+            loadVersion(fileUrl, fileExt);
+        }
+    }
 });
 
 function loadVersion(fileUrl, fileExt) {
     const documentContainer = document.getElementById('document-container');
     documentContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Đang tải...</span></div></div>';
     if (fileExt === 'pdf') {
-        // Hiển thị PDF bằng pdf.js
         pdfjsLib.getDocument(fileUrl).promise.then(function(pdf) {
-            documentContainer.innerHTML = ''; // Xóa spinner
+            documentContainer.innerHTML = '';
             const numPages = pdf.numPages;
             for (let pageNum = 1; pageNum <= numPages; pageNum++) {
                 pdf.getPage(pageNum).then(function(page) {
-                    const scale = 1.0; // Giảm scale để tránh vỡ layout
+                    const scale = 1.0;
                     const viewport = page.getViewport({ scale: scale });
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
@@ -371,24 +486,20 @@ function loadVersion(fileUrl, fileExt) {
             documentContainer.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
         });
     } else if (fileExt === 'docx') {
-        // Kiểm tra xem docx-preview có được tải đúng không
         if (typeof docx === 'undefined' || typeof docx.renderAsync !== 'function') {
             console.error('docx-preview library is not loaded or renderAsync is not available');
             documentContainer.innerHTML = '<p>Thư viện docx-preview không được tải. Vui lòng kiểm tra kết nối mạng hoặc CDN. <a href="' + fileUrl + '" download>Tải xuống để xem.</a></p>';
             return;
         }
 
-        // Hiển thị DOCX bằng docx-preview
         fetch(fileUrl)
             .then(response => {
-                console.log('Fetch response:', response);
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
                 return response.arrayBuffer();
             })
             .then(buffer => {
-                console.log('Buffer loaded:', buffer.byteLength);
                 docx.renderAsync(buffer, documentContainer, null, {
                     ignoreWidth: false,
                     ignoreHeight: false,
@@ -397,7 +508,6 @@ function loadVersion(fileUrl, fileExt) {
                     renderFooters: true,
                     useBase64URL: true
                 }).then(() => {
-                    console.log('DOCX rendered successfully');
                     documentContainer.scrollTop = 0;
                 }).catch(error => {
                     console.error('Error rendering DOCX:', error);
@@ -408,155 +518,56 @@ function loadVersion(fileUrl, fileExt) {
                 console.error('Error loading DOCX:', error);
                 documentContainer.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
             });
-        } else if (fileExt === 'pptx') {
-            // Gọi API chuyển đổi PPTX sang PDF
-            console.log('Requesting PPTX conversion for file:', fileUrl);
-            fetch('/study_sharing/convert_pptx_to_pdf.php?file=' + encodeURIComponent(fileUrl))
-                .then(response => {
-                    // Kiểm tra phản hồi có phải JSON không
-                    const contentType = response.headers.get('content-type');
-                    if (!contentType || !contentType.includes('application/json')) {
-                        return response.text().then(text => {
-                            console.error('Phản hồi không phải JSON:', text);
-                            throw new Error('Phản hồi không phải JSON: ' + text);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (data.success) {
-                        console.log('PDF converted successfully:', data.pdfPath);
-                        // Hiển thị PDF bằng pdf.js
-                        pdfjsLib.getDocument(data.pdfPath).promise.then(function(pdf) {
-                            documentContainer.innerHTML = ''; // Xóa spinner
-                            const numPages = pdf.numPages;
-                            for (let pageNum = 1; pageNum <= numPages; pageNum++) {
-                                pdf.getPage(pageNum).then(function(page) {
-                                    const scale = 1.0;
-                                    const viewport = page.getViewport({ scale: scale });
-                                    const canvas = document.createElement('canvas');
-                                    const context = canvas.getContext('2d');
-                                    canvas.height = viewport.height;
-                                    canvas.width = viewport.width;
-                                    canvas.style.maxWidth = '100%';
-                                    canvas.style.margin = '0 auto';
-                                    canvas.style.display = 'block';
-                                    documentContainer.appendChild(canvas);
-                                    page.render({ canvasContext: context, viewport: viewport });
-                                });
-                            }
-                            documentContainer.scrollTop = 0;
-                        }).catch(function(error) {
-                            console.error('Error loading converted PDF:', error);
-                            documentContainer.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
-                        });
-                    } else {
-                        console.error('Conversion failed:', data.message);
-                        documentContainer.innerHTML = '<p>Tài liệu PPTX không thể hiển thị: ' + data.message + '. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error converting PPTX:', error);
-                    documentContainer.innerHTML = '<p>Tài liệu PPTX không thể hiển thị: ' + error.message + '. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
-                });
-        } else {
+    } else if (fileExt === 'pptx') {
+        fetch('/study_sharing/convert_pptx_to_pdf.php?file=' + encodeURIComponent(fileUrl))
+            .then(response => {
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    return response.text().then(text => {
+                        console.error('Phản hồi không phải JSON:', text);
+                        throw new Error('Phản hồi không phải JSON: ' + text);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    pdfjsLib.getDocument(data.pdfPath).promise.then(function(pdf) {
+                        documentContainer.innerHTML = '';
+                        const numPages = pdf.numPages;
+                        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+                            pdf.getPage(pageNum).then(function(page) {
+                                const scale = 1.0;
+                                const viewport = page.getViewport({ scale: scale });
+                                const canvas = document.createElement('canvas');
+                                const context = canvas.getContext('2d');
+                                canvas.height = viewport.height;
+                                canvas.width = viewport.width;
+                                canvas.style.maxWidth = '100%';
+                                canvas.style.margin = '0 auto';
+                                canvas.style.display = 'block';
+                                documentContainer.appendChild(canvas);
+                                page.render({ canvasContext: context, viewport: viewport });
+                            });
+                        }
+                        documentContainer.scrollTop = 0;
+                    }).catch(function(error) {
+                        console.error('Error loading converted PDF:', error);
+                        documentContainer.innerHTML = '<p>Tài liệu không thể hiển thị. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+                    });
+                } else {
+                    console.error('Conversion failed:', data.message);
+                    documentContainer.innerHTML = '<p>Tài liệu PPTX không thể hiển thị: ' + data.message + '. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error converting PPTX:', error);
+                documentContainer.innerHTML = '<p>Tài liệu PPTX không thể hiển thị: ' + error.message + '. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
+            });
+    } else {
         console.error('Unsupported file extension:', fileExt);
         documentContainer.innerHTML = '<p>Định dạng file không được hỗ trợ. <a href="' + fileUrl + '" download>Vui lòng tải xuống để xem.</a></p>';
     }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const versionSelect = document.getElementById('versionSelect');
-    if (versionSelect) {
-        const fileUrl = versionSelect.value;
-        const fileExt = versionSelect.options[versionSelect.selectedIndex].value.split('.').pop().toLowerCase();
-        if (fileUrl) {
-            loadVersion(fileUrl, fileExt);
-        }
-    }
-
-    const ratingStars = document.getElementById('rating-stars');
-    if (ratingStars) {
-        const documentId = ratingStars.dataset.documentId;
-        const userRating = parseInt(ratingStars.dataset.userRating);
-        initializeRatingStars(ratingStars, documentId, userRating);
-    }
-});
-
-function initializeRatingStars(ratingStars, documentId, userRating) {
-    const stars = ratingStars.querySelectorAll('.star');
-    if (userRating > 0) {
-        for (let i = 0; i < userRating; i++) {
-            stars[i].classList.add('filled');
-        }
-    }
-    stars.forEach(star => {
-        star.addEventListener('mouseover', function() {
-            const value = parseInt(this.dataset.value);
-            highlightStars(value);
-        });
-        star.addEventListener('mouseout', function() {
-            resetStars(userRating);
-        });
-        star.addEventListener('click', function() {
-            const value = parseInt(this.dataset.value);
-            submitRating(documentId, value);
-        });
-    });
-}
-
-function highlightStars(value) {
-    const stars = document.getElementById('rating-stars').querySelectorAll('.star');
-    stars.forEach(star => {
-        const starValue = parseInt(star.dataset.value);
-        if (starValue <= value) {
-            star.classList.add('filled');
-        } else {
-            star.classList.remove('filled');
-        }
-    });
-}
-
-function resetStars(userRating) {
-    const stars = document.getElementById('rating-stars').querySelectorAll('.star');
-    stars.forEach(star => {
-        star.classList.remove('filled');
-    });
-    if (userRating > 0) {
-        for (let i = 0; i < userRating; i++) {
-            stars[i].classList.add('filled');
-        }
-    }
-}
-
-function submitRating(documentId, ratingValue) {
-    const isLoggedIn = document.querySelector('.nav-item.dropdown.ms-lg-2 .nav-link.dropdown-toggle')?.textContent.trim() !== 'Tài khoản';
-    if (!isLoggedIn) {
-        const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-        loginModal.show();
-        return;
-    }
-
-    fetch('/study_sharing/document/rateDocument', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `document_id=${documentId}&rating_value=${ratingValue}`
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('Đánh giá đã được gửi!');
-            location.reload();
-        } else {
-            alert('Lỗi khi gửi đánh giá: ' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Lỗi server, vui lòng thử lại!');
-    });
 }
 
 function recordDownload(documentId, event) {
