@@ -2,6 +2,14 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+
+// Kiểm tra nếu người dùng là admin, chuyển hướng đến trang admin
+if (isset($_SESSION['account_id']) && isset($_SESSION['role']) && $_SESSION['role'] === 'admin') {
+    if ($_SERVER['REQUEST_URI'] !== '/study_sharing/HomeAdmin/index') {
+        header('Location: /study_sharing/HomeAdmin/index');
+        exit;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
