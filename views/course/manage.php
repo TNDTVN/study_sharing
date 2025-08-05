@@ -34,7 +34,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
             <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
         </form>
     </div>
-    //haha
+
     <?php if (!empty($_SESSION['message'])): ?>
         <div class="alert alert-<?php echo $_SESSION['message_type'] ?? 'info'; ?> alert-dismissible fade show" role="alert">
             <?php echo htmlspecialchars($_SESSION['message']); ?>
@@ -62,7 +62,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                     </tr>
                 <?php else: ?>
                     <?php foreach ($courses as $index => $course): ?>
-                        <tr>
+                        <tr data-course-id="<?php echo $course['course_id']; ?>">
                             <td><?php echo htmlspecialchars($offset + $index + 1); ?></td>
                             <td><?php echo htmlspecialchars($course['course_name']); ?></td>
                             <td><?php echo htmlspecialchars($course['username'] ?? 'N/A'); ?></td>
@@ -70,25 +70,14 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                             <td>
                                 <span class="status-<?php echo htmlspecialchars($course['status']); ?>">
                                     <?php
-                                    switch ($course['status']) {
-                                        case 'open':
-                                            echo 'Mở';
-                                            break;
-                                        case 'in_progress':
-                                            echo 'Đang học';
-                                            break;
-                                        case 'closed':
-                                            echo 'Đã đóng';
-                                            break;
-                                        case 'pending':
-                                            echo 'Chờ duyệt';
-                                            break;
-                                        case 'cancelled':
-                                            echo 'Đã hủy';
-                                            break;
-                                        default:
-                                            echo 'Không xác định';
-                                    }
+                                    $statusMap = [
+                                        'open' => '<i class="fa fa-check-circle"></i> Mở',
+                                        'in_progress' => '<i class="fa fa-pause-circle"></i> Đang học',
+                                        'closed' => '<i class="fa fa-ban"></i> Đã đóng',
+                                        'pending' => '<i class="fa fa-clock"></i> Chờ duyệt',
+                                        'cancelled' => '<i class="fa fa-times-circle"></i> Đã hủy'
+                                    ];
+                                    echo $statusMap[$course['status']] ?? 'Không xác định';
                                     ?>
                                 </span>
                             </td>
@@ -100,6 +89,12 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                                     onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($course)); ?>)">
                                     <i class="fa fa-edit"></i>
                                 </button>
+                                <?php if (in_array($course['status'], ['open', 'in_progress', 'closed'])): ?>
+                                    <button class="btn btn-outline-secondary btn-sm manage-members-btn" data-bs-toggle="modal" data-bs-target="#manageMembersModal" title="Quản lý thành viên"
+                                        onclick="loadCourseMembers(<?php echo (int)$course['course_id']; ?>)">
+                                        <i class="fa fa-users"></i>
+                                    </button>
+                                <?php endif; ?>
                                 <button class="btn btn-outline-danger btn-sm delete-btn" title="Xóa khóa học" onclick="deleteCourse(<?php echo (int)$course['course_id']; ?>)">
                                     <i class="fa fa-trash"></i>
                                 </button>
@@ -236,6 +231,38 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
             </div>
         </div>
     </div>
+
+    <!-- Modal quản lý thành viên -->
+    <div class="modal fade" id="manageMembersModal" tabindex="-1" aria-labelledby="manageMembersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="manageMembersModalLabel">Quản lý thành viên</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="members-list">
+                        <table class="table table-bordered table-striped">
+                            <thead>
+                                <tr>
+                                    <th scope="col">STT</th>
+                                    <th scope="col">Tên sinh viên</th>
+                                    <th scope="col">Ngày tham gia</th>
+                                    <th scope="col">Hành động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="members-table-body">
+                                <!-- Danh sách thành viên sẽ được thêm bằng JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -253,9 +280,9 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         });
     })();
 
-    document.getElementById('addCourseForm').addEventListener('submit', function(event) {
+    document.getElementById('editCourseForm').addEventListener('submit', function(event) {
         event.preventDefault();
-        const submitButton = document.getElementById('addCourseSubmit');
+        const submitButton = this.querySelector('button[type="submit"]');
         const spinner = submitButton.querySelector('.spinner-border');
 
         if (!this.checkValidity()) {
@@ -267,46 +294,32 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         submitButton.disabled = true;
 
         const formData = new FormData(this);
-        console.log('Sending AJAX request to /study_sharing/AdminCourse/admin_add');
-        fetch('/study_sharing/AdminCourse/admin_add', {
+        fetch('/study_sharing/AdminCourse/admin_edit', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => {
-                console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers.get('content-type'));
-                return response.text();
-            })
-            .then(text => {
-                console.log('Raw response:', text);
-                try {
-                    const data = JSON.parse(text);
-                    spinner.classList.add('d-none');
-                    submitButton.disabled = false;
-                    alert(data.message);
-                    if (data.success) {
-                        document.getElementById('addCourseForm').reset();
-                        bootstrap.Modal.getInstance(document.getElementById('addCourseModal')).hide();
-                        window.location.reload();
-                    }
-                } catch (e) {
-                    console.error('JSON parse error:', e);
-                    alert('Lỗi server: Phản hồi không phải JSON');
-                    spinner.classList.add('d-none');
-                    submitButton.disabled = false;
+            .then(response => response.json())
+            .then(data => {
+                spinner.classList.add('d-none');
+                submitButton.disabled = false;
+                alert(data.message);
+                if (data.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('editCourseModal')).hide();
+                    window.location.reload();
                 }
             })
             .catch(error => {
                 spinner.classList.add('d-none');
                 submitButton.disabled = false;
                 console.error('Fetch error:', error);
-                alert('Lỗi server khi thêm khóa học.');
+                alert('Lỗi server khi cập nhật khóa học.');
             });
     });
 
     function fillEditModal(course) {
-        document.getElementById('edit_course_id').value = course.course_id;
-        document.getElementById('edit_course_name').value = course.course_name;
+        console.log('Course data:', course);
+        document.getElementById('edit_course_id').value = course.course_id || '';
+        document.getElementById('edit_course_name').value = course.course_name || '';
         document.getElementById('edit_description').value = course.description || '';
         document.getElementById('edit_creator_id').value = course.creator_id || '';
         document.getElementById('edit_max_members').value = course.max_members || 50;
@@ -323,32 +336,28 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
             return;
         }
         if (confirm('Bạn chắc chắn muốn xóa khóa học này?')) {
-            const requestBody = JSON.stringify({
-                course_id: courseId
-            });
-            console.log('Request body:', requestBody);
             fetch('/study_sharing/AdminCourse/admin_delete', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: requestBody
+                    body: JSON.stringify({
+                        course_id: courseId
+                    })
                 })
                 .then(response => {
-                    console.log('Response status:', response.status);
+                    console.log('Delete response status:', response.status);
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Response data:', data);
+                    console.log('Delete response data:', data);
+                    alert(data.message);
                     if (data.success) {
-                        alert(data.message);
                         window.location.reload();
-                    } else {
-                        alert(data.message);
                     }
                 })
                 .catch(error => {
-                    console.error('Fetch error:', error);
+                    console.error('Delete fetch error:', error);
                     alert('Lỗi server khi xóa khóa học.');
                 });
         }
@@ -357,9 +366,15 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
     // Xử lý nút xem chi tiết
     document.querySelectorAll('.view-btn').forEach(button => {
         button.addEventListener('click', function() {
-            const courseId = this.getAttribute('data-course-id');
+            const courseId = parseInt(this.getAttribute('data-course-id'));
+            console.log('Fetching course details for ID:', courseId);
 
-            // Gửi yêu cầu AJAX để lấy chi tiết khóa học
+            if (!Number.isInteger(courseId) || courseId <= 0) {
+                console.error('Invalid course ID:', courseId);
+                alert('ID khóa học không hợp lệ!');
+                return;
+            }
+
             fetch('/study_sharing/AdminCourse/getCourseDetails', {
                     method: 'POST',
                     headers: {
@@ -369,12 +384,18 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         course_id: courseId
                     })
                 })
-                .then(response => response.json())
+                .then(response => {
+                    console.log('View response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('View response data:', data);
                     if (data.success) {
-                        // Cập nhật nội dung modal
-                        document.getElementById('detail-course-id').textContent = data.course.course_id;
-                        document.getElementById('detail-course-name').textContent = data.course.course_name;
+                        document.getElementById('detail-course-id').textContent = data.course.course_id || '';
+                        document.getElementById('detail-course-name').textContent = data.course.course_name || '';
                         document.getElementById('detail-description').textContent = data.course.description || 'Không có mô tả';
                         document.getElementById('detail-creator').textContent = data.course.username || 'N/A';
                         document.getElementById('detail-max-members').textContent = data.course.max_members || '50';
@@ -382,28 +403,151 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         document.getElementById('detail-learn-link').textContent = data.course.learn_link || 'Không có link';
                         document.getElementById('detail-start-date').textContent = data.course.start_date || 'Chưa xác định';
                         document.getElementById('detail-end-date').textContent = data.course.end_date || 'Chưa xác định';
-                        document.getElementById('detail-status').textContent = {
+                        const statusMap = {
                             'open': 'Mở',
                             'in_progress': 'Đang học',
                             'closed': 'Đã đóng',
                             'pending': 'Chờ duyệt',
                             'cancelled': 'Đã hủy'
-                        } [data.course.status] || 'Không xác định';
+                        };
+                        document.getElementById('detail-status').textContent = statusMap[data.course.status] || 'Không xác định';
                         document.getElementById('detail-created-at').textContent = data.course.created_at || 'Không xác định';
 
-                        // Hiển thị modal
-                        const modal = new bootstrap.Modal(document.getElementById('courseDetailModal'));
+                        const modal = new bootstrap.Modal(document.getElementById('courseDetailModal'), {
+                            backdrop: true
+                        });
                         modal.show();
                     } else {
+                        console.error('Error from server:', data.message);
                         alert('Lỗi: ' + data.message);
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    alert('Đã xảy ra lỗi khi lấy chi tiết khóa học.');
+                    console.error('Fetch error:', error);
+                    alert('Đã xảy ra lỗi khi lấy chi tiết khóa học: ' + error.message);
                 });
         });
     });
+
+    let currentManageMembersModal = null;
+
+    // Hàm tải danh sách thành viên của khóa học
+    function loadCourseMembers(courseId) {
+        if (!Number.isInteger(courseId) || courseId <= 0) {
+            alert('ID khóa học không hợp lệ!');
+            return;
+        }
+
+        fetch('/study_sharing/AdminCourse/getCourseMembers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    course_id: courseId
+                })
+            })
+            .then(response => {
+                console.log('Members response status:', response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Members response data:', data);
+                const membersTableBody = document.getElementById('members-table-body');
+                membersTableBody.innerHTML = '';
+
+                if (data.success && data.members && data.members.length > 0) {
+                    data.members.forEach((member, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${member.full_name || 'Ẩn danh'}</td>
+                            <td>${member.join_date || 'Chưa xác định'}</td>
+                            <td>
+                                <button class="btn btn-outline-danger btn-sm remove-member-btn" 
+                                        title="Xóa sinh viên" 
+                                        data-course-id="${courseId}" 
+                                        data-course-member-id="${member.course_member_id}"
+                                        onclick="removeCourseMember(${courseId}, ${member.course_member_id}, '${member.full_name.replace(/'/g, "\\'")}')">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </td>
+                        `;
+                        membersTableBody.appendChild(row);
+                    });
+                } else {
+                    membersTableBody.innerHTML = '<tr><td colspan="4" class="text-center">Không có sinh viên nào trong khóa học!</td></tr>';
+                }
+
+                if (currentManageMembersModal) {
+                    currentManageMembersModal.hide();
+                }
+
+                currentManageMembersModal = new bootstrap.Modal(document.getElementById('manageMembersModal'), {
+                    backdrop: true
+                });
+                currentManageMembersModal.show();
+
+                document.getElementById('manageMembersModal').addEventListener('hidden.bs.modal', function() {
+                    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                    document.body.classList.remove('modal-open');
+                    document.body.style.paddingRight = '';
+                    currentManageMembersModal = null;
+                }, {
+                    once: true
+                });
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                alert('Đã xảy ra lỗi khi lấy danh sách thành viên: ' + error.message);
+            });
+    }
+
+    // Hàm xóa sinh viên khỏi khóa học
+    function removeCourseMember(courseId, courseMemberId, memberName) {
+        if (!Number.isInteger(courseId) || courseId <= 0 || !Number.isInteger(courseMemberId) || courseMemberId <= 0) {
+            alert('ID khóa học hoặc ID thành viên không hợp lệ!');
+            return;
+        }
+
+        if (confirm(`Bạn có chắc chắn muốn xóa sinh viên "${memberName}" khỏi khóa học này?`)) {
+            fetch('/study_sharing/AdminCourse/removeCourseMember', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        course_id: courseId,
+                        course_member_id: courseMemberId
+                    })
+                })
+                .then(response => {
+                    console.log('Remove member response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Remove member response data:', data);
+                    alert(data.message);
+                    if (data.success) {
+                        loadCourseMembers(courseId);
+                        const memberCountCell = document.querySelector(`tr[data-course-id="${courseId}"] td:nth-child(4)`);
+                        if (memberCountCell) {
+                            memberCountCell.textContent = parseInt(memberCountCell.textContent) - 1;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Fetch error:', error);
+                    alert('Đã xảy ra lỗi khi xóa thành viên: ' + error.message);
+                });
+        }
+    }
 </script>
 
 <style>
@@ -422,22 +566,37 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 
     .status-open {
         color: green;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .status-in_progress {
         color: orange;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .status-closed {
         color: red;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .status-pending {
         color: blue;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .status-cancelled {
         color: gray;
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     .container.py-5 {
@@ -452,3 +611,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         padding: 5px 10px;
     }
 </style>
+
+<?php
+// Đảm bảo file kết thúc bằng thẻ đóng PHP
+?>

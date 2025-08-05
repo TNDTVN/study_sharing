@@ -420,4 +420,271 @@ class AdminCourseController
             exit;
         }
     }
+
+    public function getCourseMembers()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xem danh sách thành viên!']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $course_id = (int)($data['course_id'] ?? 0);
+
+        if ($course_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ!']);
+            exit;
+        }
+
+        try {
+            $query = "SELECT cm.course_member_id, a.full_name, cm.join_date
+                      FROM course_members cm
+                      JOIN accounts a ON cm.account_id = a.account_id
+                      WHERE cm.course_id = :course_id
+                      ORDER BY cm.join_date DESC";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+            $stmt->execute();
+            $members = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            echo json_encode(['success' => true, 'members' => $members]);
+        } catch (PDOException $e) {
+            error_log("Get course members error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    public function removeCourseMember()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xóa thành viên!']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $course_id = (int)($data['course_id'] ?? 0);
+        $course_member_id = (int)($data['course_member_id'] ?? 0);
+
+        if ($course_id <= 0 || $course_member_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID khóa học hoặc ID thành viên không hợp lệ!']);
+            exit;
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+
+            // Xóa thành viên
+            $stmt = $this->pdo->prepare("DELETE FROM course_members WHERE course_member_id = :course_member_id AND course_id = :course_id");
+            $stmt->bindValue(':course_member_id', $course_member_id, PDO::PARAM_INT);
+            $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+            $stmt->execute();
+
+            if ($stmt->rowCount() > 0) {
+                // Gửi thông báo cho sinh viên
+                $notificationStmt = $this->pdo->prepare("
+                    INSERT INTO notifications (account_id, content, type, created_at)
+                    SELECT account_id, :content, 'course_removed', NOW()
+                    FROM course_members WHERE course_member_id = :course_member_id
+                ");
+                $notificationStmt->bindValue(':course_member_id', $course_member_id, PDO::PARAM_INT);
+                $notificationStmt->bindValue(':content', 'Bạn đã bị xóa khỏi khóa học ID ' . $course_id, PDO::PARAM_STR);
+                $notificationStmt->execute();
+
+                $this->pdo->commit();
+                echo json_encode(['success' => true, 'message' => 'Xóa thành viên thành công!']);
+            } else {
+                $this->pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Thành viên không tồn tại hoặc đã bị xóa!']);
+            }
+        } catch (PDOException $e) {
+            $this->pdo->rollBack();
+            error_log("Remove course member error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    public function approveCourses()
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            header('Location: /study_sharing');
+            exit;
+        }
+
+        try {
+            $pdo = $this->pdo;
+
+            // Lấy thông tin người dùng hiện tại
+            $userModel = new User($pdo);
+            $user = $userModel->getUserById($_SESSION['account_id']);
+
+            // Tạo nội dung và hiển thị layout
+            $title = 'Duyệt khóa học';
+            ob_start();
+            require __DIR__ . '/../views/course/approve_courses.php';
+            $content = ob_get_clean();
+            require __DIR__ . '/../views/layouts/admin_layout.php';
+        } catch (PDOException $e) {
+            error_log("Approve courses error: " . $e->getMessage());
+            $_SESSION['message'] = 'Lỗi server khi tải danh sách khóa học: ' . $e->getMessage();
+            $_SESSION['message_type'] = 'danger';
+            header('Location: /study_sharing');
+            exit;
+        }
+    }
+
+    public function approveCourse()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền duyệt khóa học!']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $course_id = (int)($data['course_id'] ?? 0);
+
+        if ($course_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ!']);
+            exit;
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+
+            // Kiểm tra khóa học
+            $course = $this->courseModel->getCourseById($course_id);
+            if (!$course || $course['status'] !== 'pending') {
+                $this->pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại hoặc không ở trạng thái chờ duyệt!']);
+                exit;
+            }
+
+            // Cập nhật trạng thái khóa học
+            $result = $this->courseModel->updateCourseStatus($course_id, 'open');
+            if ($result) {
+                // Gửi thông báo cho người tạo
+                $notificationStmt = $this->pdo->prepare("
+                    INSERT INTO notifications (account_id, content, type, created_at)
+                    VALUES (:account_id, :content, 'course_approved', NOW())
+                ");
+                $notificationStmt->bindValue(':account_id', $course['creator_id'], PDO::PARAM_INT);
+                $notificationStmt->bindValue(':content', "Khóa học '{$course['course_name']}' của bạn đã được duyệt.", PDO::PARAM_STR);
+                $notificationStmt->execute();
+
+                $this->pdo->commit();
+                echo json_encode(['success' => true, 'message' => 'Duyệt khóa học thành công!']);
+            } else {
+                $this->pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Duyệt khóa học thất bại!']);
+            }
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            error_log("Approve course error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    public function cancelCourse()
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền hủy khóa học!']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $course_id = (int)($data['course_id'] ?? 0);
+        $cancel_reason = trim($data['cancel_reason'] ?? '');
+
+        if ($course_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ!']);
+            exit;
+        }
+
+        if (empty($cancel_reason)) {
+            echo json_encode(['success' => false, 'message' => 'Lý do hủy là bắt buộc!']);
+            exit;
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+
+            // Kiểm tra khóa học
+            $course = $this->courseModel->getCourseById($course_id);
+            if (!$course || $course['status'] !== 'pending') {
+                $this->pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại hoặc không ở trạng thái chờ duyệt!']);
+                exit;
+            }
+
+            // Cập nhật trạng thái khóa học
+            $result = $this->courseModel->updateCourseStatus($course_id, 'cancelled');
+            if ($result) {
+                // Gửi thông báo cho người tạo
+                $notificationStmt = $this->pdo->prepare("
+                    INSERT INTO notifications (account_id, content, type, created_at)
+                    VALUES (:account_id, :content, 'course_cancelled', NOW())
+                ");
+                $notificationStmt->bindValue(':account_id', $course['creator_id'], PDO::PARAM_INT);
+                $notificationStmt->bindValue(':content', "Khóa học '{$course['course_name']}' của bạn đã bị hủy. Lý do: {$cancel_reason}", PDO::PARAM_STR);
+                $notificationStmt->execute();
+
+                $this->pdo->commit();
+                echo json_encode(['success' => true, 'message' => 'Hủy khóa học thành công!']);
+            } else {
+                $this->pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Hủy khóa học thất bại!']);
+            }
+        } catch (Exception $e) {
+            $this->pdo->rollBack();
+            error_log("Cancel course error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
+    }
 }
