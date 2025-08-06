@@ -197,69 +197,56 @@ class AdminCourseController
 
     public function admin_edit()
     {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
+        header('Content-Type: application/json');
 
-            if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-                $_SESSION['message'] = 'Bạn không có quyền chỉnh sửa khóa học!';
-                $_SESSION['message_type'] = 'danger';
-                header('Location: /study_sharing/AdminCourse/manage');
-                exit;
-            }
-
-            $course_id = (int)($_POST['course_id'] ?? 0);
-            $course_name = trim($_POST['course_name'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $creator_id = (int)($_POST['creator_id'] ?? 0);
-            $max_members = (int)($_POST['max_members'] ?? 50);
-            $learn_link = trim($_POST['learn_link'] ?? '');
-            $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
-            $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
-            $status = in_array($_POST['status'] ?? '', ['open', 'closed', 'in_progress', 'pending', 'cancelled']) ? $_POST['status'] : 'pending';
-
-            if ($course_id <= 0 || empty($course_name) || $creator_id <= 0 || $max_members <= 0) {
-                $_SESSION['message'] = 'ID khóa học, tên khóa học, người tạo và số lượng thành viên tối đa là bắt buộc!';
-                $_SESSION['message_type'] = 'danger';
-                header('Location: /study_sharing/AdminCourse/manage');
-                exit;
-            }
-
-            try {
-                // Kiểm tra khóa học tồn tại
-                $currentCourse = $this->courseModel->getCourseById($course_id);
-
-                if (!$currentCourse) {
-                    $_SESSION['message'] = 'Khóa học không tồn tại!';
-                    $_SESSION['message_type'] = 'danger';
-                    header('Location: /study_sharing/AdminCourse/manage');
-                    exit;
-                }
-
-                // Cập nhật thông tin khóa học
-                $updateResult = $this->courseModel->updateCourse($course_id, $course_name, $description, $max_members, $learn_link, $start_date, $end_date);
-
-                if ($updateResult) {
-                    // Cập nhật trạng thái nếu cần
-                    if ($currentCourse['status'] !== $status) {
-                        $this->courseModel->updateCourseStatus($course_id, $status);
-                    }
-                    $_SESSION['message'] = 'Cập nhật khóa học thành công!';
-                    $_SESSION['message_type'] = 'success';
-                } else {
-                    $_SESSION['message'] = 'Cập nhật khóa học thất bại!';
-                    $_SESSION['message_type'] = 'danger';
-                }
-                header('Location: /study_sharing/AdminCourse/manage');
-            } catch (Exception $e) {
-                error_log("Edit course error: " . $e->getMessage());
-                $_SESSION['message'] = 'Lỗi server: ' . $e->getMessage();
-                $_SESSION['message_type'] = 'danger';
-                header('Location: /study_sharing/AdminCourse/manage');
-            }
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
             exit;
         }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền chỉnh sửa khóa học!']);
+            exit;
+        }
+
+        $course_id = (int)($_POST['course_id'] ?? 0);
+        $course_name = trim($_POST['course_name'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $creator_id = (int)($_POST['creator_id'] ?? 0);
+        $max_members = (int)($_POST['max_members'] ?? 50);
+        $learn_link = trim($_POST['learn_link'] ?? '');
+        $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
+        $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
+
+        if ($course_id <= 0 || empty($course_name) || $creator_id <= 0 || $max_members <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID khóa học, tên khóa học, người tạo và số lượng thành viên tối đa là bắt buộc!']);
+            exit;
+        }
+
+        try {
+            $currentCourse = $this->courseModel->getCourseById($course_id);
+
+            if (!$currentCourse) {
+                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại!']);
+                exit;
+            }
+
+            $updateResult = $this->courseModel->updateCourse($course_id, $course_name, $description, $max_members, $learn_link, $start_date, $end_date);
+
+            if ($updateResult) {
+                echo json_encode(['success' => true, 'message' => 'Cập nhật khóa học thành công!']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Cập nhật khóa học thất bại!']);
+            }
+        } catch (Exception $e) {
+            error_log("Edit course error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
     }
 
     public function admin_delete()

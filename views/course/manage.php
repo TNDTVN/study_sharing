@@ -23,14 +23,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                     </option>
                 <?php endforeach; ?>
             </select>
-            <select class="form-select" name="status">
-                <option value="">Tất cả trạng thái</option>
-                <option value="open" <?php echo ($status ?? '') === 'open' ? 'selected' : ''; ?>>Mở</option>
-                <option value="in_progress" <?php echo ($status ?? '') === 'in_progress' ? 'selected' : ''; ?>>Đang học</option>
-                <option value="closed" <?php echo ($status ?? '') === 'closed' ? 'selected' : ''; ?>>Đã đóng</option>
-                <option value="pending" <?php echo ($status ?? '') === 'pending' ? 'selected' : ''; ?>>Chờ duyệt</option>
-                <option value="cancelled" <?php echo ($status ?? '') === 'cancelled' ? 'selected' : ''; ?>>Đã hủy</option>
-            </select>
             <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
         </form>
     </div>
@@ -51,14 +43,13 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                     <th scope="col">Tên khóa học</th>
                     <th scope="col">Người tạo</th>
                     <th scope="col">Số thành viên</th>
-                    <th scope="col">Trạng thái</th>
                     <th scope="col">Hành động</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($courses)): ?>
                     <tr>
-                        <td colspan="6" class="text-center">Không tìm thấy khóa học nào!</td>
+                        <td colspan="5" class="text-center">Không tìm thấy khóa học nào!</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($courses as $index => $course): ?>
@@ -68,20 +59,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo htmlspecialchars($course['username'] ?? 'N/A'); ?></td>
                             <td><?php echo $course['member_count'] ?? 0; ?></td>
                             <td>
-                                <span class="status-<?php echo htmlspecialchars($course['status']); ?>">
-                                    <?php
-                                    $statusMap = [
-                                        'open' => '<i class="fa fa-check-circle"></i> Mở',
-                                        'in_progress' => '<i class="fa fa-pause-circle"></i> Đang học',
-                                        'closed' => '<i class="fa fa-ban"></i> Đã đóng',
-                                        'pending' => '<i class="fa fa-clock"></i> Chờ duyệt',
-                                        'cancelled' => '<i class="fa fa-times-circle"></i> Đã hủy'
-                                    ];
-                                    echo $statusMap[$course['status']] ?? 'Không xác định';
-                                    ?>
-                                </span>
-                            </td>
-                            <td>
                                 <button class="btn btn-outline-info btn-sm view-btn" title="Xem chi tiết khóa học" data-course-id="<?php echo $course['course_id']; ?>">
                                     <i class="fa fa-eye"></i>
                                 </button>
@@ -89,12 +66,10 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                                     onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($course)); ?>)">
                                     <i class="fa fa-edit"></i>
                                 </button>
-                                <?php if (in_array($course['status'], ['open', 'in_progress', 'closed'])): ?>
-                                    <button class="btn btn-outline-secondary btn-sm manage-members-btn" data-bs-toggle="modal" data-bs-target="#manageMembersModal" title="Quản lý thành viên"
-                                        onclick="loadCourseMembers(<?php echo (int)$course['course_id']; ?>)">
-                                        <i class="fa fa-users"></i>
-                                    </button>
-                                <?php endif; ?>
+                                <button class="btn btn-outline-secondary btn-sm manage-members-btn" data-bs-toggle="modal" data-bs-target="#manageMembersModal" title="Quản lý thành viên"
+                                    onclick="loadCourseMembers(<?php echo (int)$course['course_id']; ?>)">
+                                    <i class="fa fa-users"></i>
+                                </button>
                                 <button class="btn btn-outline-danger btn-sm delete-btn" title="Xóa khóa học" onclick="deleteCourse(<?php echo (int)$course['course_id']; ?>)">
                                     <i class="fa fa-trash"></i>
                                 </button>
@@ -108,15 +83,15 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         <nav aria-label="Course pagination">
             <ul class="pagination justify-content-center">
                 <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id ?? 0; ?>&status=<?php echo urlencode($status ?? ''); ?>">Trước</a>
+                    <a class="page-link" href="?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id ?? 0; ?>">Trước</a>
                 </li>
                 <?php for ($i = 1; $i <= $totalPages; $i++): ?>
                     <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                        <a class="page-link" href="?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id ?? 0; ?>&status=<?php echo urlencode($status ?? ''); ?>"><?php echo $i; ?></a>
+                        <a class="page-link" href="?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id ?? 0; ?>"><?php echo $i; ?></a>
                     </li>
                 <?php endfor; ?>
                 <li class="page-item <?php echo $page >= $totalPages ? 'disabled' : ''; ?>">
-                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id ?? 0; ?>&status=<?php echo urlencode($status ?? ''); ?>">Sau</a>
+                    <a class="page-link" href="?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword ?? ''); ?>&category_id=<?php echo $category_id ?? 0; ?>">Sau</a>
                 </li>
             </ul>
         </nav>
@@ -161,22 +136,11 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="edit_description" class="form-label">Mô tả</label>
-                                    <textarea class="form-control" id="edit_description" name="description" rows="4"></textarea>
+                                    <textarea class="form-control" id="edit_description" name="description" style="height: 123px;" rows="4"></textarea>
                                 </div>
                                 <div class="mb-3">
                                     <label for="edit_learn_link" class="form-label">Link học tập</label>
                                     <input type="url" class="form-control" id="edit_learn_link" name="learn_link" placeholder="https://example.com">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="edit_status" class="form-label">Trạng thái <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="edit_status" name="status" required>
-                                        <option value="open">Mở</option>
-                                        <option value="in_progress">Đang học</option>
-                                        <option value="closed">Đã đóng</option>
-                                        <option value="pending">Chờ duyệt</option>
-                                        <option value="cancelled">Đã hủy</option>
-                                    </select>
-                                    <div class="invalid-feedback">Vui lòng chọn trạng thái.</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
@@ -221,7 +185,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         <p><strong>Link học:</strong> <span id="detail-learn-link"></span></p>
                         <p><strong>Ngày bắt đầu:</strong> <span id="detail-start-date"></span></p>
                         <p><strong>Ngày kết thúc:</strong> <span id="detail-end-date"></span></p>
-                        <p><strong>Trạng thái:</strong> <span id="detail-status"></span></p>
                         <p><strong>Ngày tạo:</strong> <span id="detail-created-at"></span></p>
                     </div>
                 </div>
@@ -326,7 +289,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById('edit_learn_link').value = course.learn_link || '';
         document.getElementById('edit_start_date').value = course.start_date || '';
         document.getElementById('edit_end_date').value = course.end_date || '';
-        document.getElementById('edit_status').value = course.status || 'pending';
     }
 
     function deleteCourse(courseId) {
@@ -363,14 +325,13 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         }
     }
 
-    // Xử lý nút xem chi tiết
     document.querySelectorAll('.view-btn').forEach(button => {
         button.addEventListener('click', function() {
             const courseId = parseInt(this.getAttribute('data-course-id'));
-            console.log('Fetching course details for ID:', courseId);
+            console.log('Đang lấy chi tiết khóa học cho ID:', courseId);
 
             if (!Number.isInteger(courseId) || courseId <= 0) {
-                console.error('Invalid course ID:', courseId);
+                console.error('ID khóa học không hợp lệ:', courseId);
                 alert('ID khóa học không hợp lệ!');
                 return;
             }
@@ -385,14 +346,19 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                     })
                 })
                 .then(response => {
-                    console.log('View response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    console.log('Trạng thái phản hồi:', response.status);
+                    console.log('Tiêu đề phản hồi:', response.headers.get('content-type'));
+                    // Kiểm tra xem phản hồi có phải là JSON không
+                    if (!response.headers.get('content-type')?.includes('application/json')) {
+                        return response.text().then(text => {
+                            console.error('Phản hồi không phải JSON:', text);
+                            throw new Error('Server trả về phản hồi không phải JSON');
+                        });
                     }
                     return response.json();
                 })
                 .then(data => {
-                    console.log('View response data:', data);
+                    console.log('Dữ liệu phản hồi:', data);
                     if (data.success) {
                         document.getElementById('detail-course-id').textContent = data.course.course_id || '';
                         document.getElementById('detail-course-name').textContent = data.course.course_name || '';
@@ -403,35 +369,25 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         document.getElementById('detail-learn-link').textContent = data.course.learn_link || 'Không có link';
                         document.getElementById('detail-start-date').textContent = data.course.start_date || 'Chưa xác định';
                         document.getElementById('detail-end-date').textContent = data.course.end_date || 'Chưa xác định';
-                        const statusMap = {
-                            'open': 'Mở',
-                            'in_progress': 'Đang học',
-                            'closed': 'Đã đóng',
-                            'pending': 'Chờ duyệt',
-                            'cancelled': 'Đã hủy'
-                        };
-                        document.getElementById('detail-status').textContent = statusMap[data.course.status] || 'Không xác định';
-                        document.getElementById('detail-created-at').textContent = data.course.created_at || 'Không xác định';
+                        document.getElementById('detail-created-at').textContent = data.course.created_at || 'Chưa xác định';
 
                         const modal = new bootstrap.Modal(document.getElementById('courseDetailModal'), {
                             backdrop: true
                         });
                         modal.show();
                     } else {
-                        console.error('Error from server:', data.message);
+                        console.error('Lỗi từ server:', data.message);
                         alert('Lỗi: ' + data.message);
                     }
                 })
                 .catch(error => {
-                    console.error('Fetch error:', error);
+                    console.error('Lỗi fetch:', error);
                     alert('Đã xảy ra lỗi khi lấy chi tiết khóa học: ' + error.message);
                 });
         });
     });
-
     let currentManageMembersModal = null;
 
-    // Hàm tải danh sách thành viên của khóa học
     function loadCourseMembers(courseId) {
         if (!Number.isInteger(courseId) || courseId <= 0) {
             alert('ID khóa học không hợp lệ!');
@@ -506,7 +462,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
             });
     }
 
-    // Hàm xóa sinh viên khỏi khóa học
     function removeCourseMember(courseId, courseMemberId, memberName) {
         if (!Number.isInteger(courseId) || courseId <= 0 || !Number.isInteger(courseMemberId) || courseMemberId <= 0) {
             alert('ID khóa học hoặc ID thành viên không hợp lệ!');
@@ -564,41 +519,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         padding-top: 0px;
     }
 
-    .status-open {
-        color: green;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .status-in_progress {
-        color: orange;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .status-closed {
-        color: red;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .status-pending {
-        color: blue;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .status-cancelled {
-        color: gray;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
     .container.py-5 {
         padding-top: 1rem !important;
         padding-bottom: 0 !important;
@@ -611,7 +531,3 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         padding: 5px 10px;
     }
 </style>
-
-<?php
-// Đảm bảo file kết thúc bằng thẻ đóng PHP
-?>
