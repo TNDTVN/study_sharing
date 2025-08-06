@@ -20,12 +20,10 @@ class AdminCourseController
 
     public function manage()
     {
-        // Khởi động session
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        // Kiểm tra quyền admin
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header('Location: /study_sharing');
             exit;
@@ -34,22 +32,20 @@ class AdminCourseController
         try {
             $pdo = $this->pdo;
 
-            // Lấy thông tin người dùng hiện tại
             $userModel = new User($pdo);
             $user = $userModel->getUserById($_SESSION['account_id']);
 
-            // Lấy các tham số lọc từ URL
             $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
             $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
             $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
             $status = isset($_GET['status']) && in_array(trim($_GET['status']), ['open', 'closed', 'in_progress', 'pending', 'cancelled']) ? trim($_GET['status']) : '';
             $offset = ($page - 1) * $this->itemsPerPage;
 
-            // Lấy danh sách khóa học với bộ lọc
-            $query = "SELECT c.*, a.username, 
-                    (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
+            $query = "SELECT c.*, u.full_name, 
+                     (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
                   FROM courses c
                   LEFT JOIN accounts a ON c.creator_id = a.account_id
+                  LEFT JOIN users u ON a.account_id = u.account_id
                   WHERE 1=1";
             $params = [];
 
@@ -61,10 +57,10 @@ class AdminCourseController
 
             if ($category_id > 0) {
                 $query .= " AND EXISTS (
-                SELECT 1 FROM documents d 
-                WHERE d.course_id = c.course_id 
-                AND d.category_id = :category_id
-            )";
+                    SELECT 1 FROM documents d 
+                    WHERE d.course_id = c.course_id 
+                    AND d.category_id = :category_id
+                )";
                 $params[':category_id'] = $category_id;
             }
 
@@ -83,16 +79,14 @@ class AdminCourseController
             $stmt->execute();
             $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Lấy danh mục, tài khoản (phục vụ form lọc)
             $categoryStmt = $pdo->prepare("SELECT * FROM categories ORDER BY category_name");
             $categoryStmt->execute();
             $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $accountStmt = $pdo->prepare("SELECT account_id, username FROM accounts ORDER BY username");
+            $accountStmt = $pdo->prepare("SELECT a.account_id, u.full_name FROM accounts a LEFT JOIN users u ON a.account_id = u.account_id ORDER BY u.full_name");
             $accountStmt->execute();
             $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Đếm tổng số khóa học (cho phân trang)
             $countQuery = "SELECT COUNT(*) as total FROM courses WHERE 1=1";
             $countParams = [];
 
@@ -104,10 +98,10 @@ class AdminCourseController
 
             if ($category_id > 0) {
                 $countQuery .= " AND EXISTS (
-                SELECT 1 FROM documents d 
-                WHERE d.course_id = courses.course_id 
-                AND d.category_id = :category_id
-            )";
+                    SELECT 1 FROM documents d 
+                    WHERE d.course_id = courses.course_id 
+                    AND d.category_id = :category_id
+                )";
                 $countParams[':category_id'] = $category_id;
             }
 
@@ -124,7 +118,6 @@ class AdminCourseController
             $totalCourses = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
             $totalPages = ceil($totalCourses / $this->itemsPerPage);
 
-            // Tạo nội dung và hiển thị layout
             $title = 'Quản lý khóa học';
             ob_start();
             require __DIR__ . '/../views/course/manage.php';
@@ -169,15 +162,15 @@ class AdminCourseController
             $course = $this->courseModel->getCourseById($course_id);
 
             if ($course) {
-                // Lấy thêm thông tin username của người tạo
-                $query = "SELECT a.username FROM accounts a WHERE a.account_id = :creator_id";
+                $query = "SELECT u.full_name FROM accounts a 
+                         LEFT JOIN users u ON a.account_id = u.account_id 
+                         WHERE a.account_id = :creator_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindValue(':creator_id', $course['creator_id'], PDO::PARAM_INT);
                 $stmt->execute();
                 $creator = $stmt->fetch(PDO::FETCH_ASSOC);
-                $course['username'] = $creator ? $creator['username'] : 'Không xác định';
+                $course['full_name'] = $creator ? $creator['full_name'] : 'Không xác định';
 
-                // Đếm số thành viên
                 $query = "SELECT COUNT(*) as member_count FROM course_members WHERE course_id = :course_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
@@ -369,31 +362,37 @@ class AdminCourseController
         try {
             $pdo = $this->pdo;
 
-            // Lấy thông tin người dùng hiện tại
             $userModel = new User($pdo);
             $user = $userModel->getUserById($_SESSION['account_id']);
 
-            // Lấy danh sách khóa học
             $courses = $this->courseModel->getAllCourses();
 
-            // Tính toán thống kê
             $totalCourses = count($courses);
             $totalMembers = 0;
             $totalDocuments = 0;
-            foreach ($courses as $course) {
+            foreach ($courses as &$course) {
                 $docStmt = $this->pdo->prepare("SELECT COUNT(*) as doc_count FROM documents WHERE course_id = :course_id");
                 $docStmt->bindValue(':course_id', $course['course_id'], PDO::PARAM_INT);
                 $docStmt->execute();
                 $docCount = $docStmt->fetch(PDO::FETCH_ASSOC)['doc_count'];
+                $course['document_count'] = $docCount;
                 $totalDocuments += $docCount;
 
                 $memberStmt = $this->pdo->prepare("SELECT COUNT(*) as member_count FROM course_members WHERE course_id = :course_id");
                 $memberStmt->bindValue(':course_id', $course['course_id'], PDO::PARAM_INT);
                 $memberStmt->execute();
-                $totalMembers += $memberStmt->fetch(PDO::FETCH_ASSOC)['member_count'];
+                $memberCount = $memberStmt->fetch(PDO::FETCH_ASSOC)['member_count'];
+                $course['member_count'] = $memberCount;
+                $totalMembers += $memberCount;
+
+                // Lấy full_name từ bảng users
+                $creatorStmt = $this->pdo->prepare("SELECT u.full_name FROM accounts a LEFT JOIN users u ON a.account_id = u.account_id WHERE a.account_id = :creator_id");
+                $creatorStmt->bindValue(':creator_id', $course['creator_id'], PDO::PARAM_INT);
+                $creatorStmt->execute();
+                $creator = $creatorStmt->fetch(PDO::FETCH_ASSOC);
+                $course['full_name'] = $creator ? $creator['full_name'] : 'N/A';
             }
 
-            // Tạo nội dung và hiển thị layout
             $title = 'Thống kê khóa học';
             ob_start();
             require __DIR__ . '/../views/course/Admin_statistics.php';

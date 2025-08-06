@@ -55,15 +55,9 @@
                     <?php foreach ($courses as $course): ?>
                         <tr>
                             <td><?= htmlspecialchars($course['course_name']) ?></td>
-                            <td><?= htmlspecialchars($course['username']) ?></td>
-                            <td><?= $course['member_count'] ?></td>
-                            <td>
-                                <?php
-                                $docStmt = $pdo->prepare("SELECT COUNT(*) FROM documents WHERE course_id = :id");
-                                $docStmt->execute([':id' => $course['course_id']]);
-                                echo $docStmt->fetchColumn();
-                                ?>
-                            </td>
+                            <td><?= htmlspecialchars($course['full_name'] ?? 'N/A') ?></td>
+                            <td><?= $course['member_count'] ?? 0 ?></td>
+                            <td><?= $course['document_count'] ?? 0 ?></td>
                             <td><?= htmlspecialchars($course['status']) ?></td>
                             <td><?= htmlspecialchars($course['created_at']) ?></td>
                         </tr>

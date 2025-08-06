@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 $title = "Quản lý khóa học";
 
-$accountStmt = $pdo->prepare("SELECT account_id, username FROM accounts ORDER BY username");
+$accountStmt = $pdo->prepare("SELECT a.account_id, u.full_name FROM accounts a LEFT JOIN users u ON a.account_id = u.account_id ORDER BY u.full_name");
 $accountStmt->execute();
 $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -56,7 +56,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         <tr data-course-id="<?php echo $course['course_id']; ?>">
                             <td><?php echo htmlspecialchars($offset + $index + 1); ?></td>
                             <td><?php echo htmlspecialchars($course['course_name']); ?></td>
-                            <td><?php echo htmlspecialchars($course['username'] ?? 'N/A'); ?></td>
+                            <td><?php echo htmlspecialchars($course['full_name'] ?? 'N/A'); ?></td>
                             <td><?php echo $course['member_count'] ?? 0; ?></td>
                             <td>
                                 <button class="btn btn-outline-info btn-sm view-btn" title="Xem chi tiết khóa học" data-course-id="<?php echo $course['course_id']; ?>">
@@ -121,7 +121,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                                         <option value="">-- Chọn người tạo --</option>
                                         <?php foreach ($accounts as $account): ?>
                                             <option value="<?php echo $account['account_id']; ?>">
-                                                <?php echo htmlspecialchars($account['username']); ?>
+                                                <?php echo htmlspecialchars($account['full_name'] ?? 'N/A'); ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -179,7 +179,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         <p><strong>ID:</strong> <span id="detail-course-id"></span></p>
                         <p><strong>Tên khóa học:</strong> <span id="detail-course-name"></span></p>
                         <p><strong>Mô tả:</strong> <span id="detail-description"></span></p>
-                        <p><strong>Người tạo:</strong> <span id="detail-creator"></span></p>
+                        <p><strong>Người tạo:</strong> <span id="detail-full-name"></span></p>
                         <p><strong>Số thành viên tối đa:</strong> <span id="detail-max-members"></span></p>
                         <p><strong>Số thành viên hiện tại:</strong> <span id="detail-member-count"></span></p>
                         <p><strong>Link học:</strong> <span id="detail-learn-link"></span></p>
@@ -348,7 +348,6 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                 .then(response => {
                     console.log('Trạng thái phản hồi:', response.status);
                     console.log('Tiêu đề phản hồi:', response.headers.get('content-type'));
-                    // Kiểm tra xem phản hồi có phải là JSON không
                     if (!response.headers.get('content-type')?.includes('application/json')) {
                         return response.text().then(text => {
                             console.error('Phản hồi không phải JSON:', text);
@@ -363,7 +362,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         document.getElementById('detail-course-id').textContent = data.course.course_id || '';
                         document.getElementById('detail-course-name').textContent = data.course.course_name || '';
                         document.getElementById('detail-description').textContent = data.course.description || 'Không có mô tả';
-                        document.getElementById('detail-creator').textContent = data.course.username || 'N/A';
+                        document.getElementById('detail-full-name').textContent = data.course.full_name || 'N/A';
                         document.getElementById('detail-max-members').textContent = data.course.max_members || '50';
                         document.getElementById('detail-member-count').textContent = data.course.member_count || '0';
                         document.getElementById('detail-learn-link').textContent = data.course.learn_link || 'Không có link';
@@ -386,6 +385,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                 });
         });
     });
+
     let currentManageMembersModal = null;
 
     function loadCourseMembers(courseId) {
