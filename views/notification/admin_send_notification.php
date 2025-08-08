@@ -16,6 +16,7 @@ $students = array_filter($users, fn($user) => isset($user['role']) && $user['rol
 $admins = array_filter($users, fn($user) => isset($user['role']) && $user['role'] === 'admin');
 $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['role'] === 'teacher');
 ?>
+
 <style>
     :root {
         --blue-50: #EFF6FF;
@@ -283,6 +284,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
         justify-content: center;
         gap: 0.5rem;
         transition: all 0.3s ease;
+        margin-top: 10px;
     }
 
     .btn-send:hover {
@@ -350,7 +352,8 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
             editor.on('change', function() {
                 updateCharCount();
             });
-        }
+        },
+        disable_telemetry: true // Tắt telemetry để giảm lỗi bị chặn
     });
 </script>
 
@@ -438,11 +441,16 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                         <select class="form-select" id="role" name="role" onchange="toggleRoleOptions()">
                             <option value="" <?php echo !isset($_POST['role']) ? 'selected' : ''; ?>>Chọn vai trò</option>
                             <option value="admin" <?php echo (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
-                            <option value="teacher" <?php echo (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'selected' : ''; ?>>Giáo viên</option>
-                            <option value="student" <?php echo (isset($_POST['role']) && $_POST['role'] === 'student') ? 'selected' : ''; ?>>Học sinh</option>
+                            <?php if (!empty($teachers)): ?>
+                                <option value="teacher" <?php echo (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'selected' : ''; ?>>Giáo viên</option>
+                            <?php endif; ?>
+                            <?php if (!empty($students)): ?>
+                                <option value="student" <?php echo (isset($_POST['role']) && $_POST['role'] === 'student') ? 'selected' : ''; ?>>Học sinh</option>
+                            <?php endif; ?>
                         </select>
                     </div>
 
+                    <!-- Trong phần admin_options -->
                     <div class="mb-4" id="admin_options" style="display: <?php echo (isset($_POST['role']) && $_POST['role'] === 'admin') ? 'block' : 'none'; ?>;">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <label class="form-label">Chọn tài khoản Admin</label>
@@ -453,18 +461,18 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                         </div>
                         <div class="search-container">
                             <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="form-control search-input" id="admin_search" placeholder="Tìm kiếm admin..." oninput="debouncedSearchAccounts('admin_options', 'admin_search')">
+                            <input type="text" class="form-control search-input" id="admin_search" placeholder="Tìm kiếm theo tên..." oninput="debouncedSearchAccounts('admin_options', 'admin_search')">
                         </div>
                         <div class="user-list" id="admin_list">
-                            <?php if (empty($admins)): ?>
+                            <?php if (empty($admins) || (count($admins) === 1 && $admins[array_key_first($admins)]['account_id'] == $current_user_id)): ?>
                                 <div class="empty-state">
                                     <i class="bi bi-people"></i>
-                                    <p>Không có admin nào</p>
+                                    <p>Không có admin nào khả dụng (ngoại trừ tài khoản của bạn)</p>
                                 </div>
                             <?php else: ?>
                                 <?php foreach ($admins as $user): ?>
                                     <?php if ($user['account_id'] != $current_user_id): ?>
-                                        <label class="list-group-item d-flex align-items-center" data-account-id="<?php echo htmlspecialchars($user['account_id']); ?>">
+                                        <label class="list-group-item d-flex align-items-center" data-account-id="<?php echo htmlspecialchars($user['account_id']); ?>" data-full-name="<?php echo htmlspecialchars(strtolower($user['full_name'])); ?>">
                                             <input class="form-check-input me-3" type="checkbox" name="admin_ids[]" value="<?php echo htmlspecialchars($user['account_id']); ?>" <?php echo (isset($_POST['admin_ids']) && in_array($user['account_id'], $_POST['admin_ids'])) ? 'checked' : ''; ?>>
                                             <div>
                                                 <div class="fw-medium"><?php echo htmlspecialchars($user['full_name']); ?></div>
@@ -481,28 +489,23 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                         </div>
                     </div>
 
-                    <div class="mb-4" id="teacher_options" style="display: <?php echo (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'block' : 'none'; ?>;">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <label class="form-label">Chọn tài khoản Giáo viên</label>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleSelectAll('teacher_ids[]', 'select_all_teachers')">
-                                <i class="bi bi-check2-all me-1"></i> Chọn tất cả
-                            </button>
-                            <input type="checkbox" class="d-none" id="select_all_teachers">
-                        </div>
-                        <div class="search-container">
-                            <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="form-control search-input" id="teacher_search" placeholder="Tìm kiếm giáo viên..." oninput="debouncedSearchAccounts('teacher_options', 'teacher_search')">
-                        </div>
-                        <div class="user-list" id="teacher_list">
-                            <?php if (empty($teachers)): ?>
-                                <div class="empty-state">
-                                    <i class="bi bi-people"></i>
-                                    <p>Không có giáo viên nào</p>
-                                </div>
-                            <?php else: ?>
+                    <?php if (!empty($teachers)): ?>
+                        <div class="mb-4" id="teacher_options" style="display: <?php echo (isset($_POST['role']) && $_POST['role'] === 'teacher') ? 'block' : 'none'; ?>;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label">Chọn tài khoản Giáo viên</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleSelectAll('teacher_ids[]', 'select_all_teachers')">
+                                    <i class="bi bi-check2-all me-1"></i> Chọn tất cả
+                                </button>
+                                <input type="checkbox" class="d-none" id="select_all_teachers">
+                            </div>
+                            <div class="search-container">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" class="form-control search-input" id="teacher_search" placeholder="Tìm kiếm theo tên..." oninput="debouncedSearchAccounts('teacher_options', 'teacher_search')">
+                            </div>
+                            <div class="user-list" id="teacher_list">
                                 <?php foreach ($teachers as $user): ?>
                                     <?php if ($user['account_id'] != $current_user_id): ?>
-                                        <label class="list-group-item d-flex align-items-center" data-account-id="<?php echo htmlspecialchars($user['account_id']); ?>">
+                                        <label class="list-group-item d-flex align-items-center" data-account-id="<?php echo htmlspecialchars($user['account_id']); ?>" data-full-name="<?php echo htmlspecialchars(strtolower($user['full_name'])); ?>">
                                             <input class="form-check-input me-3" type="checkbox" name="teacher_ids[]" value="<?php echo htmlspecialchars($user['account_id']); ?>" <?php echo (isset($_POST['teacher_ids']) && in_array($user['account_id'], $_POST['teacher_ids'])) ? 'checked' : ''; ?>>
                                             <div>
                                                 <div class="fw-medium"><?php echo htmlspecialchars($user['full_name']); ?></div>
@@ -514,33 +517,28 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                                         </label>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
-                            <div class="list-group-item text-muted text-center d-none" id="teacher_no_results">Không tìm thấy tài khoản</div>
+                                <div class="list-group-item text-muted text-center d-none" id="teacher_no_results">Không tìm thấy tài khoản</div>
+                            </div>
                         </div>
-                    </div>
+                    <?php endif; ?>
 
-                    <div class="mb-4" id="student_options" style="display: <?php echo (isset($_POST['role']) && $_POST['role'] === 'student') ? 'block' : 'none'; ?>;">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <label class="form-label">Chọn tài khoản Học sinh</label>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleSelectAll('student_ids[]', 'select_all_students')">
-                                <i class="bi bi-check2-all me-1"></i> Chọn tất cả
-                            </button>
-                            <input type="checkbox" class="d-none" id="select_all_students">
-                        </div>
-                        <div class="search-container">
-                            <i class="bi bi-search search-icon"></i>
-                            <input type="text" class="form-control search-input" id="student_search" placeholder="Tìm kiếm học sinh..." oninput="debouncedSearchAccounts('student_options', 'student_search')">
-                        </div>
-                        <div class="user-list" id="student_list">
-                            <?php if (empty($students)): ?>
-                                <div class="empty-state">
-                                    <i class="bi bi-people"></i>
-                                    <p>Không có học sinh nào</p>
-                                </div>
-                            <?php else: ?>
+                    <?php if (!empty($students)): ?>
+                        <div class="mb-4" id="student_options" style="display: <?php echo (isset($_POST['role']) && $_POST['role'] === 'student') ? 'block' : 'none'; ?>;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <label class="form-label">Chọn tài khoản Học sinh</label>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleSelectAll('student_ids[]', 'select_all_students')">
+                                    <i class="bi bi-check2-all me-1"></i> Chọn tất cả
+                                </button>
+                                <input type="checkbox" class="d-none" id="select_all_students">
+                            </div>
+                            <div class="search-container">
+                                <i class="bi bi-search search-icon"></i>
+                                <input type="text" class="form-control search-input" id="student_search" placeholder="Tìm kiếm theo tên..." oninput="debouncedSearchAccounts('student_options', 'student_search')">
+                            </div>
+                            <div class="user-list" id="student_list">
                                 <?php foreach ($students as $user): ?>
                                     <?php if ($user['account_id'] != $current_user_id): ?>
-                                        <label class="list-group-item d-flex align-items-center" data-account-id="<?php echo htmlspecialchars($user['account_id']); ?>">
+                                        <label class="list-group-item d-flex align-items-center" data-account-id="<?php echo htmlspecialchars($user['account_id']); ?>" data-full-name="<?php echo htmlspecialchars(strtolower($user['full_name'])); ?>">
                                             <input class="form-check-input me-3" type="checkbox" name="student_ids[]" value="<?php echo htmlspecialchars($user['account_id']); ?>" <?php echo (isset($_POST['student_ids']) && in_array($user['account_id'], $_POST['student_ids'])) ? 'checked' : ''; ?>>
                                             <div>
                                                 <div class="fw-medium"><?php echo htmlspecialchars($user['full_name']); ?></div>
@@ -552,10 +550,10 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                                         </label>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
-                            <div class="list-group-item text-muted text-center d-none" id="student_no_results">Không tìm thấy tài khoản</div>
+                                <div class="list-group-item text-muted text-center d-none" id="student_no_results">Không tìm thấy tài khoản</div>
+                            </div>
                         </div>
-                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <div id="account_options" style="display: <?php echo (isset($_POST['target_type']) && $_POST['target_type'] === 'account') ? 'block' : 'none'; ?>;">
@@ -568,7 +566,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                     </div>
                     <div class="search-container">
                         <i class="bi bi-search search-icon"></i>
-                        <input type="text" class="form-control search-input" id="account_search" placeholder="Tìm kiếm tài khoản..." oninput="debouncedSearchAccounts('account_options', 'account_search')">
+                        <input type="text" class="form-control search-input" id="account_search" placeholder="Tìm kiếm theo tên..." oninput="debouncedSearchAccounts('account_options', 'account_search')">
                     </div>
                     <div class="user-list" id="account_list">
                         <?php if (empty($users)): ?>
@@ -579,7 +577,7 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                         <?php else: ?>
                             <?php foreach ($users as $user): ?>
                                 <?php if ($user['account_id'] != $current_user_id): ?>
-                                    <label class="list-group-item d-flex align-items-center" data-account-id="<?php echo htmlspecialchars($user['account_id']); ?>">
+                                    <label class="list-group-item d-flex align-items-center" data-account-id="<?php echo htmlspecialchars($user['account_id']); ?>" data-full-name="<?php echo htmlspecialchars(strtolower($user['full_name'])); ?>">
                                         <input class="form-check-input me-3" type="checkbox" name="target_ids[]" value="<?php echo htmlspecialchars($user['account_id']); ?>" <?php echo (isset($_POST['target_ids']) && in_array($user['account_id'], $_POST['target_ids'])) ? 'checked' : ''; ?>>
                                         <div>
                                             <div class="fw-medium"><?php echo htmlspecialchars($user['full_name']); ?></div>
@@ -626,6 +624,8 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                         });
                         echo json_encode(array_values($filtered_users), JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
                         ?>;
+    const hasTeachers = <?php echo json_encode(!empty($teachers)); ?>;
+    const hasStudents = <?php echo json_encode(!empty($students)); ?>;
 
     // Debounce function to limit the frequency of search calls
     function debounce(func, wait) {
@@ -640,7 +640,6 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
         };
     }
 
-    // Search accounts function
     function searchAccounts(containerId, searchInputId) {
         const searchInputElement = document.getElementById(searchInputId);
         if (!searchInputElement) return;
@@ -648,12 +647,15 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
         const items = document.querySelectorAll(`#${containerId} .list-group-item[data-account-id]`);
         const noResults = document.getElementById(`${containerId.split('_')[0]}_no_results`);
         let hasVisibleItems = false;
+
         items.forEach(item => {
-            const searchText = item.textContent.toLowerCase();
-            const isVisible = searchText.includes(searchInput);
+            const accountId = item.getAttribute('data-account-id');
+            const fullName = item.getAttribute('data-full-name') || '';
+            const isVisible = fullName.includes(searchInput) && accountId !== '<?php echo $current_user_id; ?>';
             item.style.display = isVisible ? '' : 'none';
             if (isVisible) hasVisibleItems = true;
         });
+
         if (noResults) {
             noResults.classList.toggle('d-none', hasVisibleItems || items.length === 0);
         }
@@ -685,10 +687,15 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
 
     function toggleRoleOptions() {
         const role = document.getElementById('role')?.value;
-        if (!role) return;
+        if (!role) {
+            document.getElementById('admin_options').style.display = 'none';
+            document.getElementById('teacher_options').style.display = 'none';
+            document.getElementById('student_options').style.display = 'none';
+            return;
+        }
         document.getElementById('admin_options').style.display = role === 'admin' ? 'block' : 'none';
-        document.getElementById('teacher_options').style.display = role === 'teacher' ? 'block' : 'none';
-        document.getElementById('student_options').style.display = role === 'student' ? 'block' : 'none';
+        document.getElementById('teacher_options').style.display = role === 'teacher' && hasTeachers ? 'block' : 'none';
+        document.getElementById('student_options').style.display = role === 'student' && hasStudents ? 'block' : 'none';
         document.getElementById('admin_search').value = '';
         document.getElementById('teacher_search').value = '';
         document.getElementById('student_search').value = '';
@@ -746,6 +753,14 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
                 showToast('Vui lòng chọn vai trò!');
                 return;
             }
+            if (role === 'teacher' && !hasTeachers) {
+                showToast('Không có giáo viên nào để gửi thông báo!');
+                return;
+            }
+            if (role === 'student' && !hasStudents) {
+                showToast('Không có học sinh nào để gửi thông báo!');
+                return;
+            }
         }
         if (confirm('Bạn có chắc chắn muốn gửi thông báo này?')) {
             // Đặt nội dung từ TinyMCE vào input ẩn để gửi form
@@ -761,23 +776,5 @@ $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['rol
         const toast = new bootstrap.Toast(toastEl);
         toast.show();
     }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const targetTypeElement = document.getElementById('target_type');
-        const currentUserId = <?php echo json_encode($current_user_id, JSON_INVALID_UTF8_SUBSTITUTE); ?>;
-        if (!currentUserId) {
-            showToast('Không thể xác định người dùng hiện tại. Vui lòng đăng nhập lại.');
-            document.getElementById('notificationForm')?.setAttribute('disabled', 'true');
-            return;
-        }
-        if (targetTypeElement) {
-            selectTarget(targetTypeElement.value || 'all');
-        }
-        debouncedSearchAccounts('admin_options', 'admin_search');
-        debouncedSearchAccounts('teacher_options', 'teacher_search');
-        debouncedSearchAccounts('student_options', 'student_search');
-        debouncedSearchAccounts('account_options', 'account_search');
-        updateCharCount();
-    });
 </script>
 <?php ob_end_flush(); ?>
