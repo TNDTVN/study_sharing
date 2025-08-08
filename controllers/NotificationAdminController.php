@@ -28,7 +28,6 @@ class NotificationAdminController
         // Khởi tạo HTMLPurifier
         $config = HTMLPurifier_Config::createDefault();
         $config->set('HTML.Allowed', 'p,b,i,u,strong,em,a[href],ul,ol,li,br');
-
         $this->purifier = new HTMLPurifier($config);
     }
 
@@ -39,6 +38,25 @@ class NotificationAdminController
         $accountModel = new \App\Account($pdo);
         $users = $accountModel->getAllAccounts();
         $response = null;
+
+        // Kiểm tra số lượng người dùng theo vai trò
+        $students = array_filter($users, fn($user) => isset($user['role']) && $user['role'] === 'student');
+        $teachers = array_filter($users, fn($user) => isset($user['role']) && $user['role'] === 'teacher');
+
+        // Tạo thông báo nếu không có giáo viên hoặc học sinh
+        $warnings = [];
+        if (empty($teachers)) {
+            $warnings[] = 'Hệ thống hiện không có giáo viên nào được đăng ký.';
+        }
+        if (empty($students)) {
+            $warnings[] = 'Hệ thống hiện không có học sinh nào được đăng ký.';
+        }
+        if (!empty($warnings)) {
+            $response = [
+                'status' => false,
+                'message' => implode(' ', $warnings)
+            ];
+        }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = $_POST['message'] ?? '';
@@ -54,7 +72,18 @@ class NotificationAdminController
                 $teacher_ids = $_POST['teacher_ids'] ?? [];
                 $student_ids = $_POST['student_ids'] ?? [];
 
-                $response = $this->sendNotification($message, $target_type, $target_ids, $role, $admin_ids, $teacher_ids, $student_ids);
+                // Kiểm tra khi chọn gửi theo vai trò
+                if ($target_type === 'role') {
+                    if ($role === 'teacher' && empty($teacher_ids) && empty($teachers)) {
+                        $response = ['status' => false, 'message' => 'Không có giáo viên nào để gửi thông báo.'];
+                    } elseif ($role === 'student' && empty($student_ids) && empty($students)) {
+                        $response = ['status' => false, 'message' => 'Không có học sinh nào để gửi thông báo.'];
+                    } else {
+                        $response = $this->sendNotification($message, $target_type, $target_ids, $role, $admin_ids, $teacher_ids, $student_ids);
+                    }
+                } else {
+                    $response = $this->sendNotification($message, $target_type, $target_ids, $role, $admin_ids, $teacher_ids, $student_ids);
+                }
             }
         }
 
@@ -97,8 +126,6 @@ class NotificationAdminController
 
     public function sendNotification(string $message, string $target_type, array $target_ids = [], ?string $role = null, array $admin_ids = [], array $teacher_ids = [], array $student_ids = []): array
     {
-
-
         $results = [];
 
         if (empty($message)) {
@@ -108,6 +135,9 @@ class NotificationAdminController
         try {
             if ($target_type === 'all') {
                 $users = $this->accountModel->getAllAccounts();
+                if (empty($users)) {
+                    return ['status' => false, 'message' => 'Không có người dùng nào để gửi thông báo.'];
+                }
                 foreach ($users as $user) {
                     $this->sendToUser($user['account_id'], $message, $results);
                 }
@@ -135,7 +165,7 @@ class NotificationAdminController
 
                 $users = $this->accountModel->getUsersByRole($role);
                 if (empty($users)) {
-                    return ['status' => false, 'message' => 'Không tìm thấy người dùng với vai trò này.'];
+                    return ['status' => false, 'message' => "Không tìm thấy người dùng với vai trò $role."];
                 }
                 foreach ($users as $user) {
                     $this->sendToUser($user['account_id'], $message, $results);
