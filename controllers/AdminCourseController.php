@@ -365,47 +365,95 @@ class AdminCourseController
             $userModel = new User($pdo);
             $user = $userModel->getUserById($_SESSION['account_id']);
 
-            // Fetch all courses
-            $courses = $this->courseModel->getAllCourses();
-            $totalCourses = count($courses);
+            // Phân trang
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $itemsPerPage = 5;
+            $offset = ($page - 1) * $itemsPerPage;
 
-            // Fetch creator's full name for each course
-            foreach ($courses as &$course) {
-                $creatorStmt = $this->pdo->prepare("SELECT u.full_name FROM accounts a LEFT JOIN users u ON a.account_id = u.account_id WHERE a.account_id = :creator_id");
-                $creatorStmt->bindValue(':creator_id', $course['creator_id'], PDO::PARAM_INT);
-                $creatorStmt->execute();
-                $creator = $creatorStmt->fetch(PDO::FETCH_ASSOC);
-                $course['full_name'] = $creator ? $creator['full_name'] : 'N/A';
+            // Lọc (cho bảng ban đầu)
+            $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
+            $status = isset($_GET['status']) && in_array(trim($_GET['status']), ['open', 'closed', 'in_progress', 'pending', 'cancelled']) ? trim($_GET['status']) : '';
+
+            // Truy vấn khóa học với phân trang và lọc
+            $query = "SELECT c.*, u.full_name 
+                  FROM courses c 
+                  LEFT JOIN accounts a ON c.creator_id = a.account_id 
+                  LEFT JOIN users u ON a.account_id = u.account_id 
+                  WHERE 1=1";
+            $params = [];
+
+            if (!empty($keyword)) {
+                $query .= " AND (c.course_name LIKE :keyword1 OR c.description LIKE :keyword2)";
+                $params[':keyword1'] = "%$keyword%";
+                $params[':keyword2'] = "%$keyword%";
             }
 
-            // Total Active Courses (open or in_progress)
-            $activeStmt = $this->pdo->query("SELECT COUNT(*) as active_count FROM courses WHERE status IN ('open', 'in_progress')");
-            $totalActiveCourses = $activeStmt->fetch(PDO::FETCH_ASSOC)['active_count'];
+            if ($status !== '') {
+                $query .= " AND c.status = :status";
+                $params[':status'] = $status;
+            }
 
-            // Total Creators (unique creator_ids)
+            $query .= " ORDER BY c.created_at DESC LIMIT :offset, :itemsPerPage";
+            $stmt = $pdo->prepare($query);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':itemsPerPage', $itemsPerPage, PDO::PARAM_INT);
+            $stmt->execute();
+            $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Tổng số khóa học cho phân trang
+            $countQuery = "SELECT COUNT(*) as total FROM courses WHERE 1=1";
+            $countParams = [];
+
+            if (!empty($keyword)) {
+                $countQuery .= " AND (course_name LIKE :keyword1 OR description LIKE :keyword2)";
+                $countParams[':keyword1'] = "%$keyword%";
+                $countParams[':keyword2'] = "%$keyword%";
+            }
+
+            if ($status !== '') {
+                $countQuery .= " AND status = :status";
+                $countParams[':status'] = $status;
+            }
+
+            $countStmt = $pdo->prepare($countQuery);
+            foreach ($countParams as $key => $value) {
+                $countStmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $countStmt->execute();
+            $totalCourses = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $totalPages = ceil($totalCourses / $itemsPerPage);
+
+            // Tổng số khóa học (cho card)
+            $totalStmt = $this->pdo->query("SELECT COUNT(*) as total_count FROM courses");
+            $totalCoursesCount = $totalStmt->fetch(PDO::FETCH_ASSOC)['total_count'];
+
+            // Tổng số người tạo (cho card)
             $creatorStmt = $this->pdo->query("SELECT COUNT(DISTINCT creator_id) as creator_count FROM courses");
             $totalCreators = $creatorStmt->fetch(PDO::FETCH_ASSOC)['creator_count'];
 
-            // Average Course Duration (in days)
+            // Thời lượng trung bình (cho card)
             $durationStmt = $this->pdo->query("SELECT AVG(DATEDIFF(end_date, start_date)) as avg_duration 
-                                             FROM courses 
-                                             WHERE start_date IS NOT NULL AND end_date IS NOT NULL");
+                                         FROM courses 
+                                         WHERE start_date IS NOT NULL AND end_date IS NOT NULL");
             $avgDuration = $durationStmt->fetch(PDO::FETCH_ASSOC)['avg_duration'];
             $avgDuration = $avgDuration ? number_format($avgDuration, 0) . ' ngày' : 'N/A';
 
-            // Courses per Creator
+            // Số khóa học theo người tạo (cho biểu đồ)
             $creatorCoursesStmt = $this->pdo->query("SELECT u.full_name, COUNT(c.course_id) as course_count 
-                                                   FROM courses c 
-                                                   LEFT JOIN accounts a ON c.creator_id = a.account_id 
-                                                   LEFT JOIN users u ON a.account_id = u.account_id 
-                                                   GROUP BY c.creator_id, u.full_name");
+                                               FROM courses c 
+                                               LEFT JOIN accounts a ON c.creator_id = a.account_id 
+                                               LEFT JOIN users u ON a.account_id = u.account_id 
+                                               GROUP BY c.creator_id, u.full_name");
             $creatorCourses = $creatorCoursesStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Course Creation Over Time
+            // Khóa học tạo mới theo thời gian (cho biểu đồ)
             $creationStmt = $this->pdo->query("SELECT DATE(created_at) as creation_date, COUNT(*) as count 
-                                             FROM courses 
-                                             GROUP BY DATE(created_at) 
-                                             ORDER BY creation_date");
+                                         FROM courses 
+                                         GROUP BY DATE(created_at) 
+                                         ORDER BY creation_date");
             $creations = $creationStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $title = 'Thống kê khóa học';
@@ -420,6 +468,145 @@ class AdminCourseController
             header('Location: /study_sharing');
             exit;
         }
+    }
+
+    public function filterCourses()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền truy cập!']);
+            exit;
+        }
+
+        try {
+            $pdo = $this->pdo;
+
+            // Phân trang
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $itemsPerPage = 5;
+            $offset = ($page - 1) * $itemsPerPage;
+
+            // Lọc
+            $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
+            $status = isset($_GET['status']) && in_array(trim($_GET['status']), ['open', 'closed', 'in_progress', 'pending', 'cancelled']) ? trim($_GET['status']) : '';
+
+            // Truy vấn khóa học với phân trang và lọc
+            $query = "SELECT c.*, u.full_name 
+                  FROM courses c 
+                  LEFT JOIN accounts a ON c.creator_id = a.account_id 
+                  LEFT JOIN users u ON a.account_id = u.account_id 
+                  WHERE 1=1";
+            $params = [];
+
+            if (!empty($keyword)) {
+                $query .= " AND (c.course_name LIKE :keyword1 OR c.description LIKE :keyword2)";
+                $params[':keyword1'] = "%$keyword%";
+                $params[':keyword2'] = "%$keyword%";
+            }
+
+            if ($status !== '') {
+                $query .= " AND c.status = :status";
+                $params[':status'] = $status;
+            }
+
+            $query .= " ORDER BY c.created_at DESC LIMIT :offset, :itemsPerPage";
+            $stmt = $pdo->prepare($query);
+            foreach ($params as $key => $value) {
+                $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':itemsPerPage', $itemsPerPage, PDO::PARAM_INT);
+            $stmt->execute();
+            $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Tổng số khóa học cho phân trang
+            $countQuery = "SELECT COUNT(*) as total FROM courses WHERE 1=1";
+            $countParams = [];
+
+            if (!empty($keyword)) {
+                $countQuery .= " AND (course_name LIKE :keyword1 OR description LIKE :keyword2)";
+                $countParams[':keyword1'] = "%$keyword%";
+                $countParams[':keyword2'] = "%$keyword%";
+            }
+
+            if ($status !== '') {
+                $countQuery .= " AND status = :status";
+                $countParams[':status'] = $status;
+            }
+
+            $countStmt = $pdo->prepare($countQuery);
+            foreach ($countParams as $key => $value) {
+                $countStmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+            $countStmt->execute();
+            $totalCourses = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $totalPages = ceil($totalCourses / $itemsPerPage);
+
+            // Chuẩn bị dữ liệu trả về
+            $statusTranslations = [
+                'open' => 'Đang mở',
+                'closed' => 'Đã đóng',
+                'in_progress' => 'Đang tiến hành',
+                'pending' => 'Chờ duyệt',
+                'cancelled' => 'Đã hủy'
+            ];
+
+            $tableRows = '';
+            foreach ($courses as $course) {
+                $tableRows .= '
+                <tr>
+                    <td>' . htmlspecialchars($course['course_name']) . '</td>
+                    <td>' . htmlspecialchars($course['full_name'] ?? 'N/A') . '</td>
+                    <td>
+                        <span class="badge bg-' . ($course['status'] === 'open' ? 'success' : ($course['status'] === 'closed' ? 'danger' : 'warning')) . '">
+                            ' . htmlspecialchars($statusTranslations[$course['status']] ?? $course['status']) . '
+                        </span>
+                    </td>
+                    <td>' . htmlspecialchars(date('d/m/Y', strtotime($course['created_at']))) . '</td>
+                </tr>';
+            }
+
+            $pagination = '';
+            if ($totalPages > 1) {
+                $pagination .= '<nav aria-label="Page navigation" class="mt-4">';
+                $pagination .= '<ul class="pagination justify-content-center">';
+                $pagination .= '<li class="page-item ' . ($page <= 1 ? 'disabled' : '') . '">';
+                $pagination .= '<a class="page-link" href="#" onclick="filterCourses(' . ($page - 1) . ')" ' . ($page <= 1 ? 'tabindex="-1" aria-disabled="true"' : '') . '>Trước</a>';
+                $pagination .= '</li>';
+                for ($i = 1; $i <= $totalPages; $i++) {
+                    $pagination .= '<li class="page-item ' . ($i === $page ? 'active' : '') . '">';
+                    $pagination .= '<a class="page-link" href="#" onclick="filterCourses(' . $i . ')">' . $i . '</a>';
+                    $pagination .= '</li>';
+                }
+                $pagination .= '<li class="page-item ' . ($page >= $totalPages ? 'disabled' : '') . '">';
+                $pagination .= '<a class="page-link" href="#" onclick="filterCourses(' . ($page + 1) . ')" ' . ($page >= $totalPages ? 'tabindex="-1" aria-disabled="true"' : '') . '>Sau</a>';
+                $pagination .= '</li>';
+                $pagination .= '</ul>';
+                $pagination .= '</nav>';
+            }
+
+            echo json_encode([
+                'success' => true,
+                'tableRows' => $tableRows,
+                'pagination' => $pagination,
+                'totalPages' => $totalPages,
+                'currentPage' => $page
+            ]);
+        } catch (PDOException $e) {
+            error_log("Filter courses error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
     }
 
     public function getCourseMembers()

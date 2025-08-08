@@ -3,11 +3,13 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 ?>
+
 <style>
     .content {
         padding-top: 0 !important;
     }
 </style>
+
 <div class="container mt-4">
     <h2 class="mb-4 text-primary fw-bold"><?= htmlspecialchars($title) ?></h2>
 
@@ -19,7 +21,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     <i class="bi bi-book fs-2 me-3"></i>
                     <div>
                         <h5 class="card-title mb-1">Tổng số khóa học</h5>
-                        <p class="card-text fs-3 fw-bold mb-0"><?= $totalCourses ?></p>
+                        <p class="card-text fs-3 fw-bold mb-0"><?= $totalCoursesCount ?></p>
                     </div>
                 </div>
             </div>
@@ -67,7 +69,7 @@ if (session_status() === PHP_SESSION_NONE) {
                 <div class="card-body">
                     <h5 class="card-title text-primary fw-bold">Phân bố trạng thái khóa học</h5>
                     <div class="chart-container chart-centered">
-                        <canvas id="statusChart" height="150" width=""></canvas>
+                        <canvas id="statusChart" height="150"></canvas>
                     </div>
                 </div>
             </div>
@@ -80,6 +82,33 @@ if (session_status() === PHP_SESSION_NONE) {
                     <canvas id="creationChart" height="150"></canvas>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h5 class="card-title text-primary fw-bold">Lọc khóa học</h5>
+            <form id="filterForm" onsubmit="filterCourses(1); return false;">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" name="keyword" id="keyword" class="form-control" placeholder="Tìm kiếm tên hoặc mô tả" value="<?= htmlspecialchars($keyword ?? '') ?>">
+                    </div>
+                    <div class="col-md-4">
+                        <select name="status" id="status" class="form-select">
+                            <option value="">Tất cả trạng thái</option>
+                            <option value="open" <?= isset($status) && $status === 'open' ? 'selected' : '' ?>>Đang mở</option>
+                            <option value="closed" <?= isset($status) && $status === 'closed' ? 'selected' : '' ?>>Đã đóng</option>
+                            <option value="in_progress" <?= isset($status) && $status === 'in_progress' ? 'selected' : '' ?>>Đang tiến hành</option>
+                            <option value="pending" <?= isset($status) && $status === 'pending' ? 'selected' : '' ?>>Chờ duyệt</option>
+                            <option value="cancelled" <?= isset($status) && $status === 'cancelled' ? 'selected' : '' ?>>Đã hủy</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">Lọc</button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -97,9 +126,8 @@ if (session_status() === PHP_SESSION_NONE) {
                             <th>Ngày tạo</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="courseTableBody">
                         <?php
-                        // Map English statuses to Vietnamese
                         $statusTranslations = [
                             'open' => 'Đang mở',
                             'closed' => 'Đã đóng',
@@ -122,6 +150,26 @@ if (session_status() === PHP_SESSION_NONE) {
                         <?php endforeach; ?>
                     </tbody>
                 </table>
+            </div>
+            <!-- Pagination -->
+            <div id="pagination">
+                <?php if ($totalPages > 1): ?>
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            <li class="page-item <?= $page <= 1 ? 'disabled' : '' ?>">
+                                <a class="page-link" href="#" onclick="filterCourses(<?= $page - 1 ?>)" <?= $page <= 1 ? 'tabindex="-1" aria-disabled="true"' : '' ?>>Trước</a>
+                            </li>
+                            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                                <li class="page-item <?= $i === $page ? 'active' : '' ?>">
+                                    <a class="page-link" href="#" onclick="filterCourses(<?= $i ?>)"><?= $i ?></a>
+                                </li>
+                            <?php endfor; ?>
+                            <li class="page-item <?= $page >= $totalPages ? 'disabled' : '' ?>">
+                                <a class="page-link" href="#" onclick="filterCourses(<?= $page + 1 ?>)" <?= $page >= $totalPages ? 'tabindex="-1" aria-disabled="true"' : '' ?>>Sau</a>
+                            </li>
+                        </ul>
+                    </nav>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -219,7 +267,7 @@ if (session_status() === PHP_SESSION_NONE) {
     const statusLabels = <?= json_encode(array_map(function ($status) use ($statusTranslations) {
                                 return $statusTranslations[$status] ?? $status;
                             }, array_keys(array_count_values(array_column($courses, 'status'))))) ?>;
-    new Chart(statusCtx, {
+    const statusChart = new Chart(statusCtx, {
         type: 'pie',
         data: {
             labels: statusLabels,
@@ -244,9 +292,25 @@ if (session_status() === PHP_SESSION_NONE) {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: {
                     position: 'top',
+                    align: 'center',
+                    labels: {
+                        boxWidth: 20,
+                        padding: 10,
+                        font: {
+                            size: 12
+                        },
+                        usePointStyle: true
+                    }
+                }
+            },
+            layout: {
+                padding: {
+                    top: 20,
+                    bottom: 20
                 }
             }
         }
@@ -296,4 +360,30 @@ if (session_status() === PHP_SESSION_NONE) {
             }
         }
     });
+
+    // AJAX function to filter courses
+    function filterCourses(page) {
+        const keyword = document.getElementById('keyword').value;
+        const status = document.getElementById('status').value;
+
+        fetch(`/study_sharing/AdminCourse/filterCourses?page=${page}&keyword=${encodeURIComponent(keyword)}&status=${encodeURIComponent(status)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('courseTableBody').innerHTML = data.tableRows;
+                    document.getElementById('pagination').innerHTML = data.pagination;
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Lỗi khi tải dữ liệu!');
+            });
+    }
 </script>
