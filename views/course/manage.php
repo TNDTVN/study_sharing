@@ -9,6 +9,82 @@ $accountStmt->execute();
 $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
+<style>
+    .modal-content {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        border-bottom: none;
+        background: linear-gradient(90deg, #007bff, #0056b3);
+        padding: 0.75rem 1rem;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-dialog {
+        max-width: 700px;
+    }
+
+    .info-card {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .section-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.75rem;
+    }
+
+    .info-label {
+        width: 120px;
+        font-weight: 500;
+        color: #555;
+        font-size: 0.9rem;
+    }
+
+    .info-value {
+        flex: 1;
+        color: #333;
+        font-size: 0.9rem;
+    }
+
+    .description-content {
+        background: #fff;
+        border: 1px solid #e9ecef;
+        min-height: 80px;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.3em 0.7em;
+    }
+
+    .content-1 {
+        padding-top: 0;
+    }
+
+    .container.py-5 {
+        padding-top: 1rem !important;
+        padding-bottom: 0 !important;
+    }
+
+    .copy-success {
+        transition: all 0.3s ease;
+    }
+</style>
+
 <div class="content-1 px-3">
     <h1 class="mb-4 text-primary"><i class="bi bi-book me-2"></i> Quản lý khóa học</h1>
 
@@ -43,13 +119,14 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                     <th scope="col">Tên khóa học</th>
                     <th scope="col">Người tạo</th>
                     <th scope="col">Số thành viên</th>
+                    <th scope="col">Trạng thái</th>
                     <th scope="col">Hành động</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($courses)): ?>
                     <tr>
-                        <td colspan="5" class="text-center">Không tìm thấy khóa học nào!</td>
+                        <td colspan="6" class="text-center">Không tìm thấy khóa học nào!</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($courses as $index => $course): ?>
@@ -58,6 +135,22 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?php echo htmlspecialchars($course['course_name']); ?></td>
                             <td><?php echo htmlspecialchars($course['full_name'] ?? 'N/A'); ?></td>
                             <td><?php echo $course['member_count'] ?? 0; ?></td>
+                            <td>
+                                <?php
+                                $status = $course['status'] ?? 'pending';
+                                $statusMap = [
+                                    'open' => ['Đang mở', 'success'],
+                                    'closed' => ['Đã đóng', 'danger'],
+                                    'in_progress' => ['Đang tiến hành', 'primary'],
+                                    'pending' => ['Chờ duyệt', 'warning'],
+                                    'cancelled' => ['Đã hủy', 'secondary']
+                                ];
+                                $statusInfo = $statusMap[$status] ?? ['Chưa xác định', 'secondary'];
+                                ?>
+                                <span class="badge bg-<?php echo $statusInfo[1]; ?> bg-opacity-10 text-<?php echo $statusInfo[1]; ?>">
+                                    <?php echo $statusInfo[0]; ?>
+                                </span>
+                            </td>
                             <td>
                                 <button class="btn btn-outline-info btn-sm view-btn" title="Xem chi tiết khóa học" data-course-id="<?php echo $course['course_id']; ?>">
                                     <i class="fa fa-eye"></i>
@@ -142,6 +235,17 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                                     <label for="edit_learn_link" class="form-label">Link học tập</label>
                                     <input type="url" class="form-control" id="edit_learn_link" name="learn_link" placeholder="https://example.com">
                                 </div>
+                                <div class="mb-3">
+                                    <label for="edit_status" class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                                    <select class="form-control" id="edit_status" name="status" required>
+                                        <option value="open">Đang mở</option>
+                                        <option value="closed">Đã đóng</option>
+                                        <option value="in_progress">Đang tiến hành</option>
+                                        <option value="pending">Chờ duyệt</option>
+                                        <option value="cancelled">Đã hủy</option>
+                                    </select>
+                                    <div class="invalid-feedback">Vui lòng chọn trạng thái.</div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -168,28 +272,88 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Modal xem chi tiết khóa học -->
     <div class="modal fade" id="courseDetailModal" tabindex="-1" aria-labelledby="courseDetailModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="courseDetailModalLabel">Chi tiết khóa học</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-gradient-primary text-white">
+                    <h5 class="modal-title fw-bold" id="courseDetailModalLabel">
+                        <i class="bi bi-journal-bookmark-fill me-2"></i>THÔNG TIN CHI TIẾT KHÓA HỌC
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="course-details">
-                        <p><strong>ID:</strong> <span id="detail-course-id"></span></p>
-                        <p><strong>Tên khóa học:</strong> <span id="detail-course-name"></span></p>
-                        <p><strong>Mô tả:</strong> <span id="detail-description"></span></p>
-                        <p><strong>Người tạo:</strong> <span id="detail-full-name"></span></p>
-                        <p><strong>Số thành viên tối đa:</strong> <span id="detail-max-members"></span></p>
-                        <p><strong>Số thành viên hiện tại:</strong> <span id="detail-member-count"></span></p>
-                        <p><strong>Link học:</strong> <span id="detail-learn-link"></span></p>
-                        <p><strong>Ngày bắt đầu:</strong> <span id="detail-start-date"></span></p>
-                        <p><strong>Ngày kết thúc:</strong> <span id="detail-end-date"></span></p>
-                        <p><strong>Ngày tạo:</strong> <span id="detail-created-at"></span></p>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <h4 class="text-primary fw-bold mb-1" id="detail-course-name"></h4>
+                            <div class="badge bg-opacity-10 mb-2" id="detail-course-status"></div>
+                        </div>
+                        <div class="col-12">
+                            <div class="info-card mb-3">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6 class="section-title"><i class="bi bi-info-circle-fill text-primary me-2"></i>Thông tin cơ bản</h6>
+                                        <ul class="list-unstyled">
+                                            <li class="mb-2 d-flex">
+                                                <span class="info-label"><i class="bi bi-hash text-muted me-2"></i>Mã khóa học:</span>
+                                                <span class="info-value fw-medium" id="detail-course-id"></span>
+                                            </li>
+                                            <li class="mb-2 d-flex">
+                                                <span class="info-label"><i class="bi bi-person-badge text-muted me-2"></i>Giảng viên:</span>
+                                                <span class="info-value fw-medium" id="detail-full-name"></span>
+                                            </li>
+                                            <li class="mb-2 d-flex">
+                                                <span class="info-label"><i class="bi bi-calendar-range text-muted me-2"></i>Thời gian:</span>
+                                                <span class="info-value fw-medium">
+                                                    <span id="detail-start-date"></span> - <span id="detail-end-date"></span>
+                                                </span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6 class="section-title"><i class="bi bi-people-fill text-primary me-2"></i>Thành viên</h6>
+                                        <ul class="list-unstyled">
+                                            <li class="mb-2 d-flex">
+                                                <span class="info-label"><i class="bi bi-person-plus text-muted me-2"></i>Hiện có:</span>
+                                                <span class="info-value fw-medium" id="detail-member-count"></span>
+                                            </li>
+                                            <li class="mb-2 d-flex">
+                                                <span class="info-label"><i class="bi bi-person-check text-muted me-2"></i>Tối đa:</span>
+                                                <span class="info-value fw-medium" id="detail-max-members"></span>
+                                            </li>
+                                            <li class="mb-2 d-flex">
+                                                <span class="info-label"><i class="bi bi-clock-history text-muted me-2"></i>Ngày tạo:</span>
+                                                <span class="info-value fw-medium" id="detail-created-at"></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="info-card mb-3">
+                                <h6 class="section-title"><i class="bi bi-link-45deg text-primary me-2"></i>Link học tập</h6>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="detail-learn-link" readonly>
+                                    <button class="btn btn-primary copy-success" type="button" id="copy-learn-link">
+                                        <i class="bi bi-clipboard me-1"></i> Sao chép
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="info-card">
+                                <h6 class="section-title"><i class="bi bi-card-text text-primary me-2"></i>Mô tả khóa học</h6>
+                                <div id="detail-description" class="description-content rounded"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg me-1"></i> Đóng
+                    </button>
+                    <button type="button" class="btn btn-primary rounded-pill px-4" id="edit-course-btn">
+                        <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+                    </button>
                 </div>
             </div>
         </div>
@@ -279,8 +443,10 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
             });
     });
 
+    let currentCourseData = null;
+
     function fillEditModal(course) {
-        console.log('Course data:', course);
+        currentCourseData = course;
         document.getElementById('edit_course_id').value = course.course_id || '';
         document.getElementById('edit_course_name').value = course.course_name || '';
         document.getElementById('edit_description').value = course.description || '';
@@ -289,10 +455,22 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById('edit_learn_link').value = course.learn_link || '';
         document.getElementById('edit_start_date').value = course.start_date || '';
         document.getElementById('edit_end_date').value = course.end_date || '';
+        document.getElementById('edit_status').value = course.status || 'pending';
     }
 
+    document.getElementById('edit-course-btn').addEventListener('click', function() {
+        if (currentCourseData) {
+            fillEditModal(currentCourseData);
+            const detailModal = bootstrap.Modal.getInstance(document.getElementById('courseDetailModal'));
+            detailModal.hide();
+            const editModal = new bootstrap.Modal(document.getElementById('editCourseModal'));
+            editModal.show();
+        } else {
+            alert('Không có thông tin khóa học để chỉnh sửa!');
+        }
+    });
+
     function deleteCourse(courseId) {
-        console.log('Deleting course with ID:', courseId);
         if (!Number.isInteger(courseId) || courseId <= 0) {
             alert('ID khóa học không hợp lệ!');
             return;
@@ -307,12 +485,8 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         course_id: courseId
                     })
                 })
-                .then(response => {
-                    console.log('Delete response status:', response.status);
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
-                    console.log('Delete response data:', data);
                     alert(data.message);
                     if (data.success) {
                         window.location.reload();
@@ -346,42 +520,121 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                     })
                 })
                 .then(response => {
-                    console.log('Trạng thái phản hồi:', response.status);
-                    console.log('Tiêu đề phản hồi:', response.headers.get('content-type'));
-                    if (!response.headers.get('content-type')?.includes('application/json')) {
-                        return response.text().then(text => {
-                            console.error('Phản hồi không phải JSON:', text);
-                            throw new Error('Server trả về phản hồi không phải JSON');
-                        });
-                    }
+                    if (!response.ok) throw new Error('Network response was not ok');
                     return response.json();
                 })
                 .then(data => {
                     console.log('Dữ liệu phản hồi:', data);
                     if (data.success) {
-                        document.getElementById('detail-course-id').textContent = data.course.course_id || '';
-                        document.getElementById('detail-course-name').textContent = data.course.course_name || '';
-                        document.getElementById('detail-description').textContent = data.course.description || 'Không có mô tả';
+                        currentCourseData = data.course;
+                        document.getElementById('detail-course-id').textContent = data.course.course_id || 'N/A';
+                        document.getElementById('detail-course-name').textContent = data.course.course_name || 'Không xác định';
                         document.getElementById('detail-full-name').textContent = data.course.full_name || 'N/A';
                         document.getElementById('detail-max-members').textContent = data.course.max_members || '50';
                         document.getElementById('detail-member-count').textContent = data.course.member_count || '0';
-                        document.getElementById('detail-learn-link').textContent = data.course.learn_link || 'Không có link';
-                        document.getElementById('detail-start-date').textContent = data.course.start_date || 'Chưa xác định';
-                        document.getElementById('detail-end-date').textContent = data.course.end_date || 'Chưa xác định';
-                        document.getElementById('detail-created-at').textContent = data.course.created_at || 'Chưa xác định';
 
-                        const modal = new bootstrap.Modal(document.getElementById('courseDetailModal'), {
-                            backdrop: true
-                        });
+                        const descriptionElement = document.getElementById('detail-description');
+                        descriptionElement.innerHTML = data.course.description ?
+                            data.course.description.replace(/\n/g, '<br>') :
+                            '<em>Không có mô tả</em>';
+
+                        const learnLink = data.course.learn_link || '';
+                        const learnLinkInput = document.getElementById('detail-learn-link');
+                        const copyButton = document.getElementById('copy-learn-link');
+
+                        if (learnLink) {
+                            learnLinkInput.value = learnLink;
+                            copyButton.disabled = false;
+                            copyButton.classList.remove('opacity-50');
+                            copyButton.onclick = () => {
+                                navigator.clipboard.writeText(learnLink).then(() => {
+                                    copyButton.innerHTML = '<i class="bi bi-check-circle me-1"></i> Sao chép thành công';
+                                    copyButton.classList.add('btn-success');
+                                    copyButton.classList.remove('btn-primary');
+                                    setTimeout(() => {
+                                        copyButton.innerHTML = '<i class="bi bi-clipboard me-1"></i> Sao chép';
+                                        copyButton.classList.add('btn-primary');
+                                        copyButton.classList.remove('btn-success');
+                                    }, 2000);
+                                }).catch(() => {
+                                    copyButton.innerHTML = '<i class="bi bi-x-circle me-1"></i> Lỗi sao chép';
+                                    copyButton.classList.add('btn-danger');
+                                    copyButton.classList.remove('btn-primary');
+                                    setTimeout(() => {
+                                        copyButton.innerHTML = '<i class="bi bi-clipboard me-1"></i> Sao chép';
+                                        copyButton.classList.add('btn-primary');
+                                        copyButton.classList.remove('btn-danger');
+                                    }, 2000);
+                                });
+                            };
+                        } else {
+                            learnLinkInput.value = 'Không có link học tập';
+                            copyButton.disabled = true;
+                            copyButton.classList.add('opacity-50');
+                            copyButton.onclick = null;
+                        }
+
+                        const formatDate = (dateString) => {
+                            if (!dateString) return 'Chưa xác định';
+                            return new Date(dateString).toLocaleDateString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            });
+                        };
+
+                        document.getElementById('detail-start-date').textContent = formatDate(data.course.start_date);
+                        document.getElementById('detail-end-date').textContent = formatDate(data.course.end_date);
+                        document.getElementById('detail-created-at').textContent = formatDate(data.course.created_at);
+
+                        const statusElement = document.getElementById('detail-course-status');
+                        const status = data.course.status || 'pending';
+                        const statusMap = {
+                            open: {
+                                text: 'Đang mở',
+                                class: 'bg-success text-success'
+                            },
+                            closed: {
+                                text: 'Đã đóng',
+                                class: 'bg-danger text-danger'
+                            },
+                            in_progress: {
+                                text: 'Đang tiến hành',
+                                class: 'bg-primary text-primary'
+                            },
+                            pending: {
+                                text: 'Chờ duyệt',
+                                class: 'bg-warning text-warning'
+                            },
+                            cancelled: {
+                                text: 'Đã hủy',
+                                class: 'bg-secondary text-secondary'
+                            }
+                        };
+                        const statusInfo = statusMap[status] || {
+                            text: 'Chưa xác định',
+                            class: 'bg-secondary text-secondary'
+                        };
+                        statusElement.textContent = statusInfo.text;
+                        statusElement.className = `badge bg-opacity-10 ${statusInfo.class} mb-2`;
+
+                        const modal = new bootstrap.Modal(document.getElementById('courseDetailModal'));
                         modal.show();
+
+                        modal._element.addEventListener('hidden.bs.modal', function() {
+                            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                            document.body.classList.remove('modal-open');
+                            document.body.style.paddingRight = '';
+                        }, {
+                            once: true
+                        });
                     } else {
-                        console.error('Lỗi từ server:', data.message);
-                        alert('Lỗi: ' + data.message);
+                        alert('Lỗi: ' + (data.message || 'Không thể lấy thông tin khóa học'));
                     }
                 })
                 .catch(error => {
                     console.error('Lỗi fetch:', error);
-                    alert('Đã xảy ra lỗi khi lấy chi tiết khóa học: ' + error.message);
+                    alert('Đã xảy ra lỗi khi lấy chi tiết khóa học');
                 });
         });
     });
@@ -404,14 +657,10 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                 })
             })
             .then(response => {
-                console.log('Members response status:', response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 return response.json();
             })
             .then(data => {
-                console.log('Members response data:', data);
                 const membersTableBody = document.getElementById('members-table-body');
                 membersTableBody.innerHTML = '';
 
@@ -419,19 +668,19 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                     data.members.forEach((member, index) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${index + 1}</td>
-                            <td>${member.full_name || 'Ẩn danh'}</td>
-                            <td>${member.join_date || 'Chưa xác định'}</td>
-                            <td>
-                                <button class="btn btn-outline-danger btn-sm remove-member-btn" 
-                                        title="Xóa sinh viên" 
-                                        data-course-id="${courseId}" 
-                                        data-course-member-id="${member.course_member_id}"
-                                        onclick="removeCourseMember(${courseId}, ${member.course_member_id}, '${member.full_name.replace(/'/g, "\\'")}')">
-                                    <i class="fa fa-trash"></i>
-                                </button>
-                            </td>
-                        `;
+                        <td>${index + 1}</td>
+                        <td>${member.full_name || 'Ẩn danh'}</td>
+                        <td>${member.join_date || 'Chưa xác định'}</td>
+                        <td>
+                            <button class="btn btn-outline-danger btn-sm remove-member-btn" 
+                                    title="Xóa sinh viên" 
+                                    data-course-id="${courseId}" 
+                                    data-course-member-id="${member.course_member_id}"
+                                    onclick="removeCourseMember(${courseId}, ${member.course_member_id}, '${(member.full_name || 'Ẩn danh').replace(/'/g, "\\'")}')">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
                         membersTableBody.appendChild(row);
                     });
                 } else {
@@ -480,14 +729,10 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                     })
                 })
                 .then(response => {
-                    console.log('Remove member response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Remove member response data:', data);
                     alert(data.message);
                     if (data.success) {
                         loadCourseMembers(courseId);
@@ -504,30 +749,3 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         }
     }
 </script>
-
-<style>
-    .modal-body p {
-        margin-bottom: 10px;
-    }
-
-    .modal-body strong {
-        display: inline-block;
-        width: 200px;
-    }
-
-    .content {
-        padding-top: 0px;
-    }
-
-    .container.py-5 {
-        padding-top: 1rem !important;
-        padding-bottom: 0 !important;
-    }
-
-    .action-buttons .btn {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
-    }
-</style>

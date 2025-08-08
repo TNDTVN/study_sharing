@@ -365,33 +365,48 @@ class AdminCourseController
             $userModel = new User($pdo);
             $user = $userModel->getUserById($_SESSION['account_id']);
 
+            // Fetch all courses
             $courses = $this->courseModel->getAllCourses();
-
             $totalCourses = count($courses);
-            $totalMembers = 0;
-            $totalDocuments = 0;
+
+            // Fetch creator's full name for each course
             foreach ($courses as &$course) {
-                $docStmt = $this->pdo->prepare("SELECT COUNT(*) as doc_count FROM documents WHERE course_id = :course_id");
-                $docStmt->bindValue(':course_id', $course['course_id'], PDO::PARAM_INT);
-                $docStmt->execute();
-                $docCount = $docStmt->fetch(PDO::FETCH_ASSOC)['doc_count'];
-                $course['document_count'] = $docCount;
-                $totalDocuments += $docCount;
-
-                $memberStmt = $this->pdo->prepare("SELECT COUNT(*) as member_count FROM course_members WHERE course_id = :course_id");
-                $memberStmt->bindValue(':course_id', $course['course_id'], PDO::PARAM_INT);
-                $memberStmt->execute();
-                $memberCount = $memberStmt->fetch(PDO::FETCH_ASSOC)['member_count'];
-                $course['member_count'] = $memberCount;
-                $totalMembers += $memberCount;
-
-                // Lấy full_name từ bảng users
                 $creatorStmt = $this->pdo->prepare("SELECT u.full_name FROM accounts a LEFT JOIN users u ON a.account_id = u.account_id WHERE a.account_id = :creator_id");
                 $creatorStmt->bindValue(':creator_id', $course['creator_id'], PDO::PARAM_INT);
                 $creatorStmt->execute();
                 $creator = $creatorStmt->fetch(PDO::FETCH_ASSOC);
                 $course['full_name'] = $creator ? $creator['full_name'] : 'N/A';
             }
+
+            // Total Active Courses (open or in_progress)
+            $activeStmt = $this->pdo->query("SELECT COUNT(*) as active_count FROM courses WHERE status IN ('open', 'in_progress')");
+            $totalActiveCourses = $activeStmt->fetch(PDO::FETCH_ASSOC)['active_count'];
+
+            // Total Creators (unique creator_ids)
+            $creatorStmt = $this->pdo->query("SELECT COUNT(DISTINCT creator_id) as creator_count FROM courses");
+            $totalCreators = $creatorStmt->fetch(PDO::FETCH_ASSOC)['creator_count'];
+
+            // Average Course Duration (in days)
+            $durationStmt = $this->pdo->query("SELECT AVG(DATEDIFF(end_date, start_date)) as avg_duration 
+                                             FROM courses 
+                                             WHERE start_date IS NOT NULL AND end_date IS NOT NULL");
+            $avgDuration = $durationStmt->fetch(PDO::FETCH_ASSOC)['avg_duration'];
+            $avgDuration = $avgDuration ? number_format($avgDuration, 0) . ' ngày' : 'N/A';
+
+            // Courses per Creator
+            $creatorCoursesStmt = $this->pdo->query("SELECT u.full_name, COUNT(c.course_id) as course_count 
+                                                   FROM courses c 
+                                                   LEFT JOIN accounts a ON c.creator_id = a.account_id 
+                                                   LEFT JOIN users u ON a.account_id = u.account_id 
+                                                   GROUP BY c.creator_id, u.full_name");
+            $creatorCourses = $creatorCoursesStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Course Creation Over Time
+            $creationStmt = $this->pdo->query("SELECT DATE(created_at) as creation_date, COUNT(*) as count 
+                                             FROM courses 
+                                             GROUP BY DATE(created_at) 
+                                             ORDER BY creation_date");
+            $creations = $creationStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $title = 'Thống kê khóa học';
             ob_start();
@@ -433,11 +448,12 @@ class AdminCourseController
         }
 
         try {
-            $query = "SELECT cm.course_member_id, a.full_name, cm.join_date
-                      FROM course_members cm
-                      JOIN accounts a ON cm.account_id = a.account_id
-                      WHERE cm.course_id = :course_id
-                      ORDER BY cm.join_date DESC";
+            $query = "SELECT cm.course_member_id, u.full_name, cm.join_date
+                  FROM course_members cm
+                  LEFT JOIN accounts a ON cm.account_id = a.account_id
+                  LEFT JOIN users u ON a.account_id = u.account_id
+                  WHERE cm.course_id = :course_id
+                  ORDER BY cm.join_date DESC";
             $stmt = $this->pdo->prepare($query);
             $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
             $stmt->execute();
@@ -525,11 +541,34 @@ class AdminCourseController
         try {
             $pdo = $this->pdo;
 
-            // Lấy thông tin người dùng hiện tại
             $userModel = new User($pdo);
             $user = $userModel->getUserById($_SESSION['account_id']);
 
-            // Tạo nội dung và hiển thị layout
+            // Phân trang
+            $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $offset = ($page - 1) * $this->itemsPerPage;
+
+            $query = "SELECT c.*, u.full_name, 
+                     (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
+                  FROM courses c
+                  LEFT JOIN accounts a ON c.creator_id = a.account_id
+                  LEFT JOIN users u ON a.account_id = u.account_id
+                  WHERE c.status = 'pending'";
+            $params = [];
+
+            $query .= " ORDER BY c.created_at DESC LIMIT :offset, :itemsPerPage";
+            $stmt = $pdo->prepare($query);
+            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+            $stmt->bindValue(':itemsPerPage', $this->itemsPerPage, PDO::PARAM_INT);
+            $stmt->execute();
+            $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $countQuery = "SELECT COUNT(*) as total FROM courses WHERE status = 'pending'";
+            $countStmt = $pdo->prepare($countQuery);
+            $countStmt->execute();
+            $totalCourses = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
+            $totalPages = ceil($totalCourses / $this->itemsPerPage);
+
             $title = 'Duyệt khóa học';
             ob_start();
             require __DIR__ . '/../views/course/approve_courses.php';
