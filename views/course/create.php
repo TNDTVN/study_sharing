@@ -49,6 +49,22 @@ if (session_status() === PHP_SESSION_NONE) {
             <div class="invalid-feedback">Vui lòng nhập URL hợp lệ.</div>
         </div>
 
+        <div class="mb-3">
+            <label for="documents" class="form-label">Chọn tài liệu liên quan (tùy chọn)</label>
+            <select class="form-select" id="documents" name="documents[]" multiple>
+                <?php if (!empty($availableDocuments)): ?>
+                    <?php foreach ($availableDocuments as $doc): ?>
+                        <option value="<?php echo htmlspecialchars($doc['document_id']); ?>">
+                            <?php echo htmlspecialchars($doc['title']) . " (" . htmlspecialchars($doc['file_path']) . ")"; ?>
+                        </option>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <option disabled>Không có tài liệu nào để chọn</option>
+                <?php endif; ?>
+            </select>
+            <div class="form-text">Sử dụng thanh tìm kiếm để chọn nhiều tài liệu.</div>
+        </div>
+
         <button type="submit" class="btn btn-primary">
             <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
             Tạo khóa học
@@ -56,10 +72,36 @@ if (session_status() === PHP_SESSION_NONE) {
     </form>
 </div>
 
+<!-- Nạp Select2 CSS và JS từ CDN -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+    // Khởi tạo Select2 cho trường tài liệu
+    document.addEventListener('DOMContentLoaded', function() {
+        $('#documents').select2({
+            placeholder: "Tìm và chọn tài liệu",
+            allowClear: true,
+            width: '100%'
+        });
+    });
+
+    // Client-side validation và xử lý submit form
     document.getElementById('createCourseForm').addEventListener('submit', function(e) {
         e.preventDefault();
         let form = this;
+
+        // Validate end_date >= start_date
+        let startDate = document.getElementById('start_date').value;
+        let endDate = document.getElementById('end_date').value;
+        if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+            e.stopPropagation();
+            let endDateInput = document.getElementById('end_date');
+            endDateInput.classList.add('is-invalid');
+            endDateInput.nextElementSibling.textContent = 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu';
+            form.classList.add('was-validated');
+            return;
+        }
 
         if (form.checkValidity()) {
             let submitButton = form.querySelector('button[type="submit"]');
@@ -82,6 +124,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     if (data.success) {
                         form.reset();
                         form.classList.remove('was-validated');
+                        $('#documents').val(null).trigger('change'); // Reset Select2
                     }
                 })
                 .catch(error => {

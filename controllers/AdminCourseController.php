@@ -18,6 +18,80 @@ class AdminCourseController
         $this->courseModel = new Course($pdo);
     }
 
+    public function getCourseDetails()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xem chi tiết khóa học!']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $course_id = (int)($data['course_id'] ?? 0);
+
+        if ($course_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ!']);
+            exit;
+        }
+
+        try {
+            $course = $this->courseModel->getCourseById($course_id);
+
+            if ($course) {
+                // Lấy tên người tạo
+                $query = "SELECT u.full_name FROM accounts a 
+                         LEFT JOIN users u ON a.account_id = u.account_id 
+                         WHERE a.account_id = :creator_id";
+                $stmt = $this->pdo->prepare($query);
+                $stmt->bindValue(':creator_id', $course['creator_id'], PDO::PARAM_INT);
+                $stmt->execute();
+                $creator = $stmt->fetch(PDO::FETCH_ASSOC);
+                $course['full_name'] = $creator ? $creator['full_name'] : 'Không xác định';
+
+                // Lấy số thành viên
+                $query = "SELECT COUNT(*) as member_count FROM course_members WHERE course_id = :course_id";
+                $stmt = $this->pdo->prepare($query);
+                $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+                $stmt->execute();
+                $course['member_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['member_count'];
+
+                // Lấy danh sách tài liệu liên quan
+                $documentsStmt = $this->pdo->prepare("
+                    SELECT d.document_id, d.title, d.file_path, c.category_name, u.full_name as uploader
+                    FROM documents d 
+                    LEFT JOIN categories c ON d.category_id = c.category_id
+                    LEFT JOIN users u ON d.account_id = u.account_id
+                    WHERE d.course_id = :course_id
+                ");
+                $documentsStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+                $documentsStmt->execute();
+                $course['documents'] = $documentsStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                // Ghi log dữ liệu để debug
+                error_log("Course details for course_id $course_id: " . print_r($course, true));
+
+                echo json_encode(['success' => true, 'course' => $course]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại!']);
+            }
+        } catch (PDOException $e) {
+            error_log("Get course details error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    // Các hàm khác giữ nguyên như mã gốc...
     public function manage()
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -130,62 +204,6 @@ class AdminCourseController
             header('Location: /study_sharing');
             exit;
         }
-    }
-
-    public function getCourseDetails()
-    {
-        header('Content-Type: application/json');
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
-            exit;
-        }
-
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
-        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xem chi tiết khóa học!']);
-            exit;
-        }
-
-        $data = json_decode(file_get_contents('php://input'), true);
-        $course_id = (int)($data['course_id'] ?? 0);
-
-        if ($course_id <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ!']);
-            exit;
-        }
-
-        try {
-            $course = $this->courseModel->getCourseById($course_id);
-
-            if ($course) {
-                $query = "SELECT u.full_name FROM accounts a 
-                         LEFT JOIN users u ON a.account_id = u.account_id 
-                         WHERE a.account_id = :creator_id";
-                $stmt = $this->pdo->prepare($query);
-                $stmt->bindValue(':creator_id', $course['creator_id'], PDO::PARAM_INT);
-                $stmt->execute();
-                $creator = $stmt->fetch(PDO::FETCH_ASSOC);
-                $course['full_name'] = $creator ? $creator['full_name'] : 'Không xác định';
-
-                $query = "SELECT COUNT(*) as member_count FROM course_members WHERE course_id = :course_id";
-                $stmt = $this->pdo->prepare($query);
-                $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
-                $stmt->execute();
-                $course['member_count'] = $stmt->fetch(PDO::FETCH_ASSOC)['member_count'];
-
-                echo json_encode(['success' => true, 'course' => $course]);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại!']);
-            }
-        } catch (PDOException $e) {
-            error_log("Get course details error: " . $e->getMessage());
-            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
-        }
-        exit;
     }
 
     public function admin_edit()
