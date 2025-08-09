@@ -29,7 +29,8 @@ class HomeController
 
         $latestDocuments = array_slice($documentModel->getAllDocuments(), 0, 6);
         $categories = $categoryModel->getAllCategories();
-        $courses = array_slice($courseModel->getAllCourses(), 0, 6);
+
+        $courses = array_slice($courseModel->getActiveCourses(6), 0, 6);
         $notifications = [];
         if (isset($_SESSION['account_id'])) {
             $allNotifications = $notificationModel->getUnreadNotificationsByUserId($_SESSION['account_id']);
@@ -39,7 +40,6 @@ class HomeController
         ob_start();
         require __DIR__ . '/../views/home/index.php';
         $content = ob_get_clean();
-        // Truyền $pdo vào layout.php
         $pdo = $this->pdo;
         require __DIR__ . '/../views/layouts/layout.php';
     }

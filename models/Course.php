@@ -134,4 +134,30 @@ class Course
 
         return $stmt->execute();
     }
+
+    public function getActiveCourses($limit = null)
+    {
+        try {
+            $query = "SELECT c.*, u.full_name
+                      FROM courses c 
+                      LEFT JOIN accounts a ON c.creator_id = a.account_id 
+                      LEFT JOIN users u ON a.account_id = u.account_id 
+                      WHERE c.status IN ('open', 'in_progress', 'closed') 
+                      ORDER BY c.created_at DESC";
+
+            if ($limit !== null) {
+                $query .= " LIMIT :limit";
+            }
+
+            $stmt = $this->db->prepare($query);
+            if ($limit !== null) {
+                $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            error_log("Get active courses error: " . $e->getMessage());
+            return [];
+        }
+    }
 }

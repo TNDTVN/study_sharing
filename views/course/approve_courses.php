@@ -247,6 +247,13 @@ $title = "Duyệt khóa học";
                                 <div id="detail-description" class="description-content rounded"></div>
                             </div>
                         </div>
+                        <div class="col-12 mt-3">
+                            <div class="info-card">
+                                <h6 class="section-title"><i class="bi bi-file-earmark-text text-primary me-2"></i>Tài liệu liên quan</h6>
+                                <ul class="list-group" id="detail-documents">
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top-0">
@@ -340,6 +347,28 @@ $title = "Duyệt khóa học";
                         document.getElementById('detail-full-name').textContent = data.course.full_name || 'N/A';
                         document.getElementById('detail-max-members').textContent = data.course.max_members || '50';
                         document.getElementById('detail-member-count').textContent = data.course.member_count || '0';
+
+                        // Populate related documents
+                        const documentsList = document.getElementById('detail-documents');
+                        documentsList.innerHTML = '';
+                        if (data.course.documents && data.course.documents.length > 0) {
+                            data.course.documents.forEach(doc => {
+                                const li = document.createElement('li');
+                                li.className = 'list-group-item d-flex justify-content-between align-items-center';
+                                li.innerHTML = `
+                                <span>${doc.title} (${doc.file_path})</span>
+                                <a href="/study_sharing/download?file=${encodeURIComponent(doc.file_path)}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="bi bi-download"></i> Tải xuống
+                                </a>
+                            `;
+                                documentsList.appendChild(li);
+                            });
+                        } else {
+                            const li = document.createElement('li');
+                            li.className = 'list-group-item text-muted';
+                            li.textContent = 'Không có tài liệu liên quan.';
+                            documentsList.appendChild(li);
+                        }
 
                         const descriptionElement = document.getElementById('detail-description');
                         descriptionElement.innerHTML = data.course.description ?

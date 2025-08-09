@@ -91,7 +91,6 @@ class AdminCourseController
         exit;
     }
 
-    // Các hàm khác giữ nguyên như mã gốc...
     public function manage()
     {
         if (session_status() === PHP_SESSION_NONE) {
