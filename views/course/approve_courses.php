@@ -513,7 +513,12 @@ $title = "Duyệt khóa học";
                 .then(data => {
                     alert(data.message);
                     if (data.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('courseDetailModal')).hide();
+                        // Kiểm tra trước khi ẩn modal
+                        let modalElement = document.getElementById('courseDetailModal');
+                        let modalInstance = bootstrap.Modal.getInstance(modalElement);
+                        if (modalInstance) {
+                            modalInstance.hide();
+                        }
                         window.location.reload();
                     }
                 })
@@ -564,8 +569,18 @@ $title = "Duyệt khóa học";
                 submitButton.disabled = false;
                 alert(data.message);
                 if (data.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('cancelCourseModal')).hide();
-                    bootstrap.Modal.getInstance(document.getElementById('courseDetailModal')).hide();
+                    let cancelModalElement = document.getElementById('cancelCourseModal');
+                    let cancelModalInstance = bootstrap.Modal.getInstance(cancelModalElement);
+                    if (cancelModalInstance) {
+                        cancelModalInstance.hide();
+                    }
+
+                    let detailModalElement = document.getElementById('courseDetailModal');
+                    let detailModalInstance = bootstrap.Modal.getInstance(detailModalElement);
+                    if (detailModalInstance) {
+                        detailModalInstance.hide();
+                    }
+
                     window.location.reload();
                 }
             })

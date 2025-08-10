@@ -49,9 +49,9 @@ class AdminCourseController
 
             if ($course) {
                 // Lấy tên người tạo
-                $query = "SELECT u.full_name FROM accounts a 
-                         LEFT JOIN users u ON a.account_id = u.account_id 
-                         WHERE a.account_id = :creator_id";
+                $query = "SELECT u.full_name FROM accounts a
+                        LEFT JOIN users u ON a.account_id = u.account_id
+                        WHERE a.account_id = :creator_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindValue(':creator_id', $course['creator_id'], PDO::PARAM_INT);
                 $stmt->execute();
@@ -68,7 +68,7 @@ class AdminCourseController
                 // Lấy danh sách tài liệu liên quan
                 $documentsStmt = $this->pdo->prepare("
                     SELECT d.document_id, d.title, d.file_path, c.category_name, u.full_name as uploader
-                    FROM documents d 
+                    FROM documents d
                     LEFT JOIN categories c ON d.category_id = c.category_id
                     LEFT JOIN users u ON d.account_id = u.account_id
                     WHERE d.course_id = :course_id
@@ -114,12 +114,12 @@ class AdminCourseController
             $status = isset($_GET['status']) && in_array(trim($_GET['status']), ['open', 'closed', 'in_progress', 'pending', 'cancelled']) ? trim($_GET['status']) : '';
             $offset = ($page - 1) * $this->itemsPerPage;
 
-            $query = "SELECT c.*, u.full_name, 
-                     (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
-                  FROM courses c
-                  LEFT JOIN accounts a ON c.creator_id = a.account_id
-                  LEFT JOIN users u ON a.account_id = u.account_id
-                  WHERE 1=1";
+            $query = "SELECT c.*, u.full_name,
+                    (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
+                FROM courses c
+                LEFT JOIN accounts a ON c.creator_id = a.account_id
+                LEFT JOIN users u ON a.account_id = u.account_id
+                WHERE 1=1";
             $params = [];
 
             if (!empty($keyword)) {
@@ -130,8 +130,8 @@ class AdminCourseController
 
             if ($category_id > 0) {
                 $query .= " AND EXISTS (
-                    SELECT 1 FROM documents d 
-                    WHERE d.course_id = c.course_id 
+                    SELECT 1 FROM documents d
+                    WHERE d.course_id = c.course_id
                     AND d.category_id = :category_id
                 )";
                 $params[':category_id'] = $category_id;
@@ -171,8 +171,8 @@ class AdminCourseController
 
             if ($category_id > 0) {
                 $countQuery .= " AND EXISTS (
-                    SELECT 1 FROM documents d 
-                    WHERE d.course_id = courses.course_id 
+                    SELECT 1 FROM documents d
+                    WHERE d.course_id = courses.course_id
                     AND d.category_id = :category_id
                 )";
                 $countParams[':category_id'] = $category_id;
@@ -392,11 +392,11 @@ class AdminCourseController
             $status = isset($_GET['status']) && in_array(trim($_GET['status']), ['open', 'closed', 'in_progress', 'pending', 'cancelled']) ? trim($_GET['status']) : '';
 
             // Truy vấn khóa học với phân trang và lọc
-            $query = "SELECT c.*, u.full_name 
-                  FROM courses c 
-                  LEFT JOIN accounts a ON c.creator_id = a.account_id 
-                  LEFT JOIN users u ON a.account_id = u.account_id 
-                  WHERE 1=1";
+            $query = "SELECT c.*, u.full_name
+                FROM courses c
+                LEFT JOIN accounts a ON c.creator_id = a.account_id
+                LEFT JOIN users u ON a.account_id = u.account_id
+                WHERE 1=1";
             $params = [];
 
             if (!empty($keyword)) {
@@ -452,25 +452,25 @@ class AdminCourseController
             $totalCreators = $creatorStmt->fetch(PDO::FETCH_ASSOC)['creator_count'];
 
             // Thời lượng trung bình (cho card)
-            $durationStmt = $this->pdo->query("SELECT AVG(DATEDIFF(end_date, start_date)) as avg_duration 
-                                         FROM courses 
-                                         WHERE start_date IS NOT NULL AND end_date IS NOT NULL");
+            $durationStmt = $this->pdo->query("SELECT AVG(DATEDIFF(end_date, start_date)) as avg_duration
+                                        FROM courses
+                                        WHERE start_date IS NOT NULL AND end_date IS NOT NULL");
             $avgDuration = $durationStmt->fetch(PDO::FETCH_ASSOC)['avg_duration'];
             $avgDuration = $avgDuration ? number_format($avgDuration, 0) . ' ngày' : 'N/A';
 
             // Số khóa học theo người tạo (cho biểu đồ)
-            $creatorCoursesStmt = $this->pdo->query("SELECT u.full_name, COUNT(c.course_id) as course_count 
-                                               FROM courses c 
-                                               LEFT JOIN accounts a ON c.creator_id = a.account_id 
-                                               LEFT JOIN users u ON a.account_id = u.account_id 
-                                               GROUP BY c.creator_id, u.full_name");
+            $creatorCoursesStmt = $this->pdo->query("SELECT u.full_name, COUNT(c.course_id) as course_count
+                                            FROM courses c
+                                            LEFT JOIN accounts a ON c.creator_id = a.account_id
+                                            LEFT JOIN users u ON a.account_id = u.account_id
+                                            GROUP BY c.creator_id, u.full_name");
             $creatorCourses = $creatorCoursesStmt->fetchAll(PDO::FETCH_ASSOC);
 
             // Khóa học tạo mới theo thời gian (cho biểu đồ)
-            $creationStmt = $this->pdo->query("SELECT DATE(created_at) as creation_date, COUNT(*) as count 
-                                         FROM courses 
-                                         GROUP BY DATE(created_at) 
-                                         ORDER BY creation_date");
+            $creationStmt = $this->pdo->query("SELECT DATE(created_at) as creation_date, COUNT(*) as count
+                                        FROM courses
+                                        GROUP BY DATE(created_at)
+                                        ORDER BY creation_date");
             $creations = $creationStmt->fetchAll(PDO::FETCH_ASSOC);
 
             $title = 'Thống kê khóa học';
@@ -518,11 +518,11 @@ class AdminCourseController
             $status = isset($_GET['status']) && in_array(trim($_GET['status']), ['open', 'closed', 'in_progress', 'pending', 'cancelled']) ? trim($_GET['status']) : '';
 
             // Truy vấn khóa học với phân trang và lọc
-            $query = "SELECT c.*, u.full_name 
-                  FROM courses c 
-                  LEFT JOIN accounts a ON c.creator_id = a.account_id 
-                  LEFT JOIN users u ON a.account_id = u.account_id 
-                  WHERE 1=1";
+            $query = "SELECT c.*, u.full_name
+                FROM courses c
+                LEFT JOIN accounts a ON c.creator_id = a.account_id
+                LEFT JOIN users u ON a.account_id = u.account_id
+                WHERE 1=1";
             $params = [];
 
             if (!empty($keyword)) {
@@ -653,11 +653,11 @@ class AdminCourseController
 
         try {
             $query = "SELECT cm.course_member_id, u.full_name, cm.join_date
-                  FROM course_members cm
-                  LEFT JOIN accounts a ON cm.account_id = a.account_id
-                  LEFT JOIN users u ON a.account_id = u.account_id
-                  WHERE cm.course_id = :course_id
-                  ORDER BY cm.join_date DESC";
+                FROM course_members cm
+                LEFT JOIN accounts a ON cm.account_id = a.account_id
+                LEFT JOIN users u ON a.account_id = u.account_id
+                WHERE cm.course_id = :course_id
+                ORDER BY cm.join_date DESC";
             $stmt = $this->pdo->prepare($query);
             $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
             $stmt->execute();
@@ -700,6 +700,31 @@ class AdminCourseController
         try {
             $this->pdo->beginTransaction();
 
+            // Lấy thông tin khóa học
+            $course = $this->courseModel->getCourseById($course_id);
+            if (!$course) {
+                $this->pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại!']);
+                exit;
+            }
+            $course_name = $course['course_name'];
+            $creator_id = $course['creator_id'];
+
+            // Lấy account_id của thành viên bị xóa
+            $checkStmt = $this->pdo->prepare("SELECT account_id FROM course_members WHERE course_member_id = :course_member_id AND course_id = :course_id");
+            $checkStmt->bindValue(':course_member_id', $course_member_id, PDO::PARAM_INT);
+            $checkStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+            $checkStmt->execute();
+            $member = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$member) {
+                $this->pdo->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Thành viên không tồn tại hoặc không thuộc khóa học này!']);
+                exit;
+            }
+
+            $account_id = $member['account_id'];
+
             // Xóa thành viên
             $stmt = $this->pdo->prepare("DELETE FROM course_members WHERE course_member_id = :course_member_id AND course_id = :course_id");
             $stmt->bindValue(':course_member_id', $course_member_id, PDO::PARAM_INT);
@@ -707,15 +732,33 @@ class AdminCourseController
             $stmt->execute();
 
             if ($stmt->rowCount() > 0) {
-                // Gửi thông báo cho sinh viên
+                // Gửi thông báo cho sinh viên bị xóa
+                $studentMessage = 'Bạn đã bị xóa khỏi khóa học ' . $course_name;
                 $notificationStmt = $this->pdo->prepare("
-                    INSERT INTO notifications (account_id, content, type, created_at)
-                    SELECT account_id, :content, 'course_removed', NOW()
-                    FROM course_members WHERE course_member_id = :course_member_id
-                ");
-                $notificationStmt->bindValue(':course_member_id', $course_member_id, PDO::PARAM_INT);
-                $notificationStmt->bindValue(':content', 'Bạn đã bị xóa khỏi khóa học ID ' . $course_id, PDO::PARAM_STR);
+                INSERT INTO notifications (account_id, message, created_at)
+                VALUES (:account_id, :message, NOW())
+            ");
+                $notificationStmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
+                $notificationStmt->bindValue(':message', $studentMessage, PDO::PARAM_STR);
                 $notificationStmt->execute();
+
+                if ($notificationStmt->rowCount() === 0) {
+                    error_log("Failed to insert notification for student account_id: $account_id, course: $course_name");
+                }
+
+                // Gửi thông báo cho người tạo khóa học
+                $creatorMessage = 'Một thành viên đã bị xóa khỏi khóa học ' . $course_name . ' của bạn';
+                $notificationStmt = $this->pdo->prepare("
+                INSERT INTO notifications (account_id, message, created_at)
+                VALUES (:account_id, :message, NOW())
+            ");
+                $notificationStmt->bindValue(':account_id', $creator_id, PDO::PARAM_INT);
+                $notificationStmt->bindValue(':message', $creatorMessage, PDO::PARAM_STR);
+                $notificationStmt->execute();
+
+                if ($notificationStmt->rowCount() === 0) {
+                    error_log("Failed to insert notification for creator account_id: $creator_id, course: $course_name");
+                }
 
                 $this->pdo->commit();
                 echo json_encode(['success' => true, 'message' => 'Xóa thành viên thành công!']);
@@ -752,12 +795,12 @@ class AdminCourseController
             $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
             $offset = ($page - 1) * $this->itemsPerPage;
 
-            $query = "SELECT c.*, u.full_name, 
-                     (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
-                  FROM courses c
-                  LEFT JOIN accounts a ON c.creator_id = a.account_id
-                  LEFT JOIN users u ON a.account_id = u.account_id
-                  WHERE c.status = 'pending'";
+            $query = "SELECT c.*, u.full_name,
+                    (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
+                FROM courses c
+                LEFT JOIN accounts a ON c.creator_id = a.account_id
+                LEFT JOIN users u ON a.account_id = u.account_id
+                WHERE c.status = 'pending'";
             $params = [];
 
             $query .= " ORDER BY c.created_at DESC LIMIT :offset, :itemsPerPage";
@@ -828,11 +871,11 @@ class AdminCourseController
             if ($result) {
                 // Gửi thông báo cho người tạo
                 $notificationStmt = $this->pdo->prepare("
-                    INSERT INTO notifications (account_id, content, type, created_at)
-                    VALUES (:account_id, :content, 'course_approved', NOW())
+                    INSERT INTO notifications (account_id, message, created_at)
+                    VALUES (:account_id, :message, NOW())
                 ");
                 $notificationStmt->bindValue(':account_id', $course['creator_id'], PDO::PARAM_INT);
-                $notificationStmt->bindValue(':content', "Khóa học '{$course['course_name']}' của bạn đã được duyệt.", PDO::PARAM_STR);
+                $notificationStmt->bindValue(':message', "Khóa học '{$course['course_name']}' của bạn đã được duyệt.", PDO::PARAM_STR);
                 $notificationStmt->execute();
 
                 $this->pdo->commit();
@@ -896,11 +939,11 @@ class AdminCourseController
             if ($result) {
                 // Gửi thông báo cho người tạo
                 $notificationStmt = $this->pdo->prepare("
-                    INSERT INTO notifications (account_id, content, type, created_at)
-                    VALUES (:account_id, :content, 'course_cancelled', NOW())
+                    INSERT INTO notifications (account_id, message, created_at)
+                    VALUES (:account_id, :message, NOW())
                 ");
                 $notificationStmt->bindValue(':account_id', $course['creator_id'], PDO::PARAM_INT);
-                $notificationStmt->bindValue(':content', "Khóa học '{$course['course_name']}' của bạn đã bị hủy. Lý do: {$cancel_reason}", PDO::PARAM_STR);
+                $notificationStmt->bindValue(':message', "Khóa học '{$course['course_name']}' của bạn đã bị hủy. Lý do: {$cancel_reason}", PDO::PARAM_STR);
                 $notificationStmt->execute();
 
                 $this->pdo->commit();
