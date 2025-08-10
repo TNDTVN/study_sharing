@@ -495,12 +495,51 @@ class CourseController
         $status = trim($_POST['status'] ?? '');
         $document_ids = isset($_POST['document_ids']) ? (array)$_POST['document_ids'] : [];
 
+        // Lấy thông tin khóa học hiện tại
+        $currentCourse = $this->courseModel->getCourseById($course_id);
+        if (!$currentCourse) {
+            echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại']);
+            exit;
+        }
+
+        // Nếu không có trạng thái mới, giữ nguyên trạng thái hiện tại
+        if (empty($status)) {
+            $status = $currentCourse['status'];
+        }
+
         $validStatuses = ['open', 'closed', 'in_progress'];
         if (!in_array($status, $validStatuses)) {
             echo json_encode(['success' => false, 'message' => 'Trạng thái không hợp lệ. Chỉ được chọn: Mở, Đóng, Đang học']);
             exit;
         }
 
+        // Kiểm tra chuyển từ trạng thái đóng sang mở
+        if ($currentCourse['status'] === 'closed' && $status === 'open') {
+            // Kiểm tra ngày hiện tại có nằm trong khoảng start_date và end_date không
+            $currentDate = date('Y-m-d');
+            if ($start_date && $currentDate < $start_date) {
+                echo json_encode(['success' => false, 'message' => 'Không thể mở khóa học trước ngày bắt đầu']);
+                exit;
+            }
+            if ($end_date && $currentDate > $end_date) {
+                echo json_encode(['success' => false, 'message' => 'Không thể mở khóa học đã quá ngày kết thúc']);
+                exit;
+            }
+        }
+
+        // Kiểm tra chuyển sang trạng thái "in_progress"
+        if ($status === 'in_progress') {
+            if (!$start_date || date('Y-m-d') < $start_date) {
+                echo json_encode(['success' => false, 'message' => 'Không thể chuyển sang trạng thái "Đang học" trước ngày bắt đầu']);
+                exit;
+            }
+            if ($end_date && date('Y-m-d') > $end_date) {
+                echo json_encode(['success' => false, 'message' => 'Không thể chuyển sang trạng thái "Đang học" sau ngày kết thúc']);
+                exit;
+            }
+        }
+
+        // Các validate khác giữ nguyên...
         if ($course_id <= 0 || empty($course_name)) {
             echo json_encode(['success' => false, 'message' => 'ID khóa học và tên khóa học là bắt buộc']);
             exit;
@@ -521,23 +560,8 @@ class CourseController
             exit;
         }
 
-        // Validate document IDs
-        foreach ($document_ids as $doc_id) {
-            if (!is_numeric($doc_id) || (int)$doc_id <= 0) {
-                echo json_encode(['success' => false, 'message' => 'ID tài liệu không hợp lệ']);
-                exit;
-            }
-        }
-
         try {
             $this->db->beginTransaction();
-
-            $currentCourse = $this->courseModel->getCourseById($course_id);
-            if (!$currentCourse) {
-                $this->db->rollBack();
-                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại']);
-                exit;
-            }
 
             if ($currentCourse['creator_id'] != $_SESSION['account_id']) {
                 $this->db->rollBack();
@@ -580,12 +604,10 @@ class CourseController
             $result = $stmt->execute();
 
             // Update related documents
-            // First, disassociate all documents from this course
             $disassociateStmt = $this->db->prepare("UPDATE documents SET course_id = NULL WHERE course_id = :course_id");
             $disassociateStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
             $disassociateStmt->execute();
 
-            // Trong hàm editCourseByTeacher, thay thế phần "Update related documents" bằng:
             if (!empty($document_ids)) {
                 $placeholders = [];
                 $bindParams = [':account_id' => $_SESSION['account_id']];
@@ -596,10 +618,10 @@ class CourseController
                 }
                 $placeholdersStr = implode(',', $placeholders);
                 $docCheckStmt = $this->db->prepare("
-        SELECT document_id 
-        FROM documents 
-        WHERE document_id IN ($placeholdersStr) AND account_id = :account_id
-    ");
+                SELECT document_id 
+                FROM documents 
+                WHERE document_id IN ($placeholdersStr) AND account_id = :account_id
+            ");
                 foreach ($bindParams as $key => $value) {
                     $docCheckStmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
                 }
@@ -609,10 +631,10 @@ class CourseController
                 foreach ($document_ids as $doc_id) {
                     if (in_array($doc_id, $validDocs)) {
                         $updateDocStmt = $this->db->prepare("
-                UPDATE documents 
-                SET course_id = :course_id 
-                WHERE document_id = :document_id
-            ");
+                        UPDATE documents 
+                        SET course_id = :course_id 
+                        WHERE document_id = :document_id
+                    ");
                         $updateDocStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
                         $updateDocStmt->bindValue(':document_id', $doc_id, PDO::PARAM_INT);
                         $updateDocStmt->execute();
@@ -1018,6 +1040,95 @@ class CourseController
         exit;
     }
 
+    public function removeDocumentFromCourse()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (!isset($_SESSION['account_id'])) {
+            echo json_encode(['success' => false, 'message' => 'Bạn chưa đăng nhập!']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $course_id = isset($data['course_id']) ? (int)$data['course_id'] : 0;
+        $document_id = isset($data['document_id']) ? (int)$data['document_id'] : 0;
+
+        if ($course_id <= 0 || $document_id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Dữ liệu không hợp lệ!']);
+            exit;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Kiểm tra người dùng có phải là người tạo khóa học hoặc chủ sở hữu tài liệu
+            $checkQuery = "SELECT c.creator_id, d.account_id 
+                      FROM courses c 
+                      JOIN documents d ON d.document_id = :document_id
+                      WHERE c.course_id = :course_id";
+            $checkStmt = $this->db->prepare($checkQuery);
+            $checkStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+            $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+            $checkStmt->execute();
+            $result = $checkStmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$result) {
+                $this->db->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Khóa học hoặc tài liệu không tồn tại!']);
+                exit;
+            }
+
+            if ($result['creator_id'] != $_SESSION['account_id'] && $result['account_id'] != $_SESSION['account_id']) {
+                $this->db->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xóa tài liệu này!']);
+                exit;
+            }
+
+            // 2. Thực hiện xóa liên kết tài liệu với khóa học
+            $updateQuery = "UPDATE documents SET course_id = NULL 
+                       WHERE document_id = :document_id 
+                       AND (account_id = :account_id OR :is_creator = 1)";
+            $updateStmt = $this->db->prepare($updateQuery);
+            $updateStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+            $updateStmt->bindValue(':account_id', $_SESSION['account_id'], PDO::PARAM_INT);
+            $updateStmt->bindValue(':is_creator', ($result['creator_id'] == $_SESSION['account_id']) ? 1 : 0, PDO::PARAM_INT);
+            $result = $updateStmt->execute();
+
+            if ($result) {
+                $this->db->commit();
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Xóa tài liệu khỏi khóa học thành công!',
+                    'document_id' => $document_id
+                ]);
+            } else {
+                $this->db->rollBack();
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Không thể xóa tài liệu khỏi khóa học!',
+                    'error_info' => $updateStmt->errorInfo()
+                ]);
+            }
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log("Remove document from course error: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Lỗi server: ' . $e->getMessage()
+            ]);
+        }
+        exit;
+    }
+
     public function getAvailableDocuments()
     {
         header('Content-Type: application/json');
@@ -1039,35 +1150,26 @@ class CourseController
         $data = json_decode(file_get_contents('php://input'), true);
         $course_id = isset($data['course_id']) ? (int)$data['course_id'] : 0;
 
-        if ($course_id <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID khóa học không hợp lệ!']);
-            exit;
-        }
-
         try {
-            // Kiểm tra xem giảng viên có quyền chỉnh sửa khóa học này không
+            // Kiểm tra quyền truy cập
             $query = "SELECT course_id FROM courses WHERE course_id = :course_id AND creator_id = :creator_id";
             $stmt = $this->db->prepare($query);
             $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
             $stmt->bindValue(':creator_id', $_SESSION['account_id'], PDO::PARAM_INT);
             $stmt->execute();
+
             if (!$stmt->fetch()) {
                 echo json_encode(['success' => false, 'message' => 'Bạn không có quyền truy cập khóa học này!']);
                 exit;
             }
 
-            // Lấy tài liệu liên quan đến khóa học và tài liệu chưa gán của giảng viên
-            $query = "
-            SELECT d.document_id, d.title, d.file_path, d.course_id, c.category_name, u.full_name 
-            FROM documents d 
-            LEFT JOIN categories c ON d.category_id = c.category_id
-            LEFT JOIN users u ON d.account_id = u.account_id
-            WHERE d.account_id = :account_id 
-            AND (d.course_id = :course_id OR d.course_id IS NULL)
-        ";
+            // Lấy tất cả tài liệu của giảng viên (cả đã gán và chưa gán)
+            $query = "SELECT d.document_id, d.title, d.file_path, d.course_id 
+                FROM documents d 
+                WHERE d.account_id = :account_id
+                ORDER BY d.title ASC";
             $stmt = $this->db->prepare($query);
             $stmt->bindValue(':account_id', $_SESSION['account_id'], PDO::PARAM_INT);
-            $stmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
             $stmt->execute();
             $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
