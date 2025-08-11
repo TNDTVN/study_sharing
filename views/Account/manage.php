@@ -149,139 +149,159 @@ if (session_status() === PHP_SESSION_NONE) {
     <?php endif; ?>
 </div>
 
-<!-- Modal thêm người dùng -->
+<!-- Add User Modal -->
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="POST" action="/study_sharing/Account/addUser">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="addUserModalLabel">Thêm người dùng</h5>
+                    <h5 class="modal-title" id="addUserModalLabel"><i class="fas fa-user-plus me-2"></i>Thêm người dùng</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="username" class="form-label">Tên đăng nhập</label>
+                        <i class="fas fa-user"></i>
                         <input type="text" class="form-control" id="username" name="username" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="email" class="form-label">Email</label>
+                        <i class="fas fa-envelope"></i>
                         <input type="email" class="form-control" id="email" name="email" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="password" class="form-label">Mật khẩu</label>
+                        <i class="fas fa-lock"></i>
                         <input type="password" class="form-control" id="password" name="password" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="full_name" class="form-label">Họ tên</label>
+                        <i class="fas fa-address-card"></i>
                         <input type="text" class="form-control" id="full_name" name="full_name" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="role" class="form-label">Vai trò</label>
+                        <i class="fas fa-user-tag"></i>
                         <select class="form-select" id="role" name="role">
                             <option value="student">Học sinh</option>
                             <option value="teacher">Giáo viên</option>
                             <option value="admin">Quản trị viên</option>
                         </select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="phone_number" class="form-label">Số điện thoại</label>
+                        <i class="fas fa-phone"></i>
                         <input type="text" class="form-control" id="phone_number" name="phone_number">
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="address" class="form-label">Địa chỉ</label>
+                        <i class="fas fa-map-marker-alt"></i>
                         <input type="text" class="form-control" id="address" name="address">
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="date_of_birth" class="form-label">Ngày sinh</label>
+                        <i class="fas fa-calendar-alt"></i>
                         <input type="date" class="form-control" id="date_of_birth" name="date_of_birth">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-primary">Thêm</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>Đóng</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Thêm</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal sửa người dùng -->
+<!-- Edit User Modal -->
 <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <form method="POST" action="/study_sharing/Account/updateUser">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editUserModalLabel">Sửa người dùng</h5>
+                    <h5 class="modal-title" id="editUserModalLabel"><i class="fas fa-user-edit me-2"></i>Sửa người dùng</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="edit_account_id" name="account_id">
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="edit_username" class="form-label">Tên đăng nhập</label>
+                        <i class="fas fa-user"></i>
                         <input type="text" class="form-control" id="edit_username" name="username" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="edit_email" class="form-label">Email</label>
+                        <i class="fas fa-envelope"></i>
                         <input type="email" class="form-control" id="edit_email" name="email" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="edit_full_name" class="form-label">Họ tên</label>
+                        <i class="fas fa-address-card"></i>
                         <input type="text" class="form-control" id="edit_full_name" name="full_name" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="edit_role" class="form-label">Vai trò</label>
+                        <i class="fas fa-user-tag"></i>
                         <select class="form-select" id="edit_role" name="role">
                             <option value="student">Học sinh</option>
                             <option value="teacher">Giáo viên</option>
                             <option value="admin">Quản trị viên</option>
                         </select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="edit_phone_number" class="form-label">Số điện thoại</label>
+                        <i class="fas fa-phone"></i>
                         <input type="text" class="form-control" id="edit_phone_number" name="phone_number">
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="edit_address" class="form-label">Địa chỉ</label>
+                        <i class="fas fa-map-marker-alt"></i>
                         <input type="text" class="form-control" id="edit_address" name="address">
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 input-icon">
                         <label for="edit_date_of_birth" class="form-label">Ngày sinh</label>
+                        <i class="fas fa-calendar-alt"></i>
                         <input type="date" class="form-control" id="edit_date_of_birth" name="date_of_birth">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
-                    <button type="submit" class="btn btn-primary">Cập nhật</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>Đóng</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Cập nhật</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- Modal xem thông tin người dùng -->
+<!-- View User Modal -->
 <div class="modal fade" id="viewUserModal" tabindex="-1" aria-labelledby="viewUserModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="viewUserModalLabel">Thông tin người dùng</h5>
+                <h5 class="modal-title" id="viewUserModalLabel"><i class="fas fa-user me-2"></i>Thông tin người dùng</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
             </div>
             <div class="modal-body">
-                <p><strong>ID:</strong> <span id="view_account_id"></span></p>
-                <p><strong>Tên đăng nhập:</strong> <span id="view_username"></span></p>
-                <p><strong>Email:</strong> <span id="view_email"></span></p>
-                <p><strong>Họ tên:</strong> <span id="view_full_name"></span></p>
-                <p><strong>Vai trò:</strong> <span id="view_role"></span></p>
-                <p><strong>Số điện thoại:</strong> <span id="view_phone_number"></span></p>
-                <p><strong>Địa chỉ:</strong> <span id="view_address"></span></p>
-                <p><strong>Ngày sinh:</strong> <span id="view_date_of_birth"></span></p>
-                <p><strong>Trạng thái:</strong> <span id="view_status"></span></p>
+                <p><strong><i class="fas fa-id-badge me-2"></i>ID:</strong> <span id="view_account_id"></span></p>
+                <p><strong><i class="fas fa-user me-2"></i>Tên đăng nhập:</strong> <span id="view_username"></span></p>
+                <p><strong><i class="fas fa-envelope me-2"></i>Email:</strong> <span id="view_email"></span></p>
+                <p><strong><i class="fas fa-address-card me-2"></i>Họ tên:</strong> <span id="view_full_name"></span></p>
+                <p><strong><i class="fas fa-user-tag me-2"></i>Vai trò:</strong> <span id="view_role"></span></p>
+                <p><strong><i class="fas fa-phone me-2"></i>Số điện thoại:</strong> <span id="view_phone_number"></span></p>
+                <p><strong><i class="fas fa-map-marker-alt me-2"></i>Địa chỉ:</strong> <span id="view_address"></span></p>
+                <p><strong><i class="fas fa-calendar-alt me-2"></i>Ngày sinh:</strong> <span id="view_date_of_birth"></span></p>
+                <p><strong><i class="fas fa-info-circle me-2"></i>Trạng thái:</strong> <span id="view_status"></span></p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i class="fas fa-times me-2"></i>Đóng</button>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
 </div>
 
 
@@ -338,40 +358,237 @@ if (session_status() === PHP_SESSION_NONE) {
     }
 </script>
 <style>
-    .content {
-        padding-top: 0px;
+    /* General container styling */
+    .container.mt-4 {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 1.5rem;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
 
+    .content {
+        padding-top: 0;
+    }
+
+    /* Status styling */
     .status-active {
-        color: green;
+        color: #28a745;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 8px;
+        font-weight: 500;
     }
 
     .status-inactive {
-        color: orange;
+        color: #ffc107;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 8px;
+        font-weight: 500;
     }
 
     .status-banned {
-        color: red;
+        color: #dc3545;
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 8px;
+        font-weight: 500;
     }
 
-    .container.py-5 {
-        padding-top: 0 !important;
-        padding-bottom: 0 !important;
-    }
 
+    /* Action buttons */
     .action-buttons .btn {
         display: flex;
         align-items: center;
-        gap: 5px;
-        padding: 5px 10px;
+        gap: 6px;
+        padding: 6px 12px;
+        transition: all 0.3s ease;
+        border-radius: 5px;
+    }
+
+    .action-buttons .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Modal styling */
+    .modal-content {
+        border: none;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+        animation: slideIn 0.3s ease-out;
+    }
+
+    .modal-header {
+        background: linear-gradient(90deg, #007bff, #0056b3);
+        color: #fff;
+        border-bottom: none;
+        padding: 1.5rem;
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .modal-body {
+        padding: 2rem;
+        background: #f9f9f9;
+    }
+
+    .modal-footer {
+        border-top: none;
+        padding: 1rem 2rem;
+        background: #fff;
+    }
+
+    /* Input group styling */
+    .input-icon {
+        position: relative;
+    }
+
+    .input-icon i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        font-size: 1.1rem;
+    }
+
+    .input-icon .form-control,
+    .input-icon .form-select {
+        padding-left: 2.5rem;
+        border-radius: 8px;
+        border: 1px solid #ced4da;
+        transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .input-icon .form-control:focus,
+    .input-icon .form-select:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+    }
+
+    /* View modal specific styling */
+    #viewUserModal .modal-body p {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 1.2rem;
+        font-size: 1rem;
+        color: #333;
+    }
+
+    #viewUserModal .modal-body strong {
+        font-weight: 600;
+        color: #007bff;
+        min-width: 120px;
+    }
+
+    #viewUserModal .modal-body span {
+        color: #495057;
+    }
+
+    /* Edit modal specific styling */
+    #editUserModal .form-label {
+        font-weight: 500;
+        color: #333;
+    }
+
+    /* Button styling */
+    .btn-primary {
+        background: #007bff;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        transition: background 0.3s, transform 0.2s;
+    }
+
+    .btn-primary:hover {
+        background: #0056b3;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        transition: background 0.3s, transform 0.2s;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+
+    /* Animation for modal */
+    @keyframes slideIn {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .loading-spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .container.mt-4 {
+            padding: 1rem;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .d-flex.justify-content-between form {
+            width: 100%;
+        }
+
+        .modal-dialog {
+            margin: 1rem;
+        }
     }
 </style>
