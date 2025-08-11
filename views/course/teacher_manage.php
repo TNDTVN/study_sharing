@@ -5,6 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
 $title = "Quản lý khóa học";
 ?>
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <div class="content-1 px-3">
     <h1 class="mb-4 text-primary"><i class="bi bi-book me-2"></i> Quản lý khóa học</h1>
 
@@ -163,7 +167,6 @@ $title = "Quản lý khóa học";
                                 </div>
                             </div>
 
-
                             <div class="col-md-6">
                                 <div class="form-floating mb-3">
                                     <input type="date" class="form-control" id="edit_start_date" name="start_date" placeholder="Ngày bắt đầu">
@@ -177,33 +180,23 @@ $title = "Quản lý khóa học";
                                     <label for="edit_end_date">Ngày kết thúc</label>
                                 </div>
                             </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0" id="edit-document-table">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th width="50%">Tài liệu liên quan</th>
-                                            <th width="30%">File</th>
-                                            <th width="20%">Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="edit-document-list">
-                                        <!-- Danh sách tài liệu sẽ được thêm vào đây -->
-                                    </tbody>
-                                </table>
-                                <div class="card-body p-0">
-                                    <div class="col-12">
-                                        <div class="card border-0 shadow-sm mb-3">
-                                        </div>
-                                        <select class="form-select d-none" id="edit_document_ids" name="document_ids[]" multiple></select>
-                                    </div>
+
+                            <div class="col-md-12">
+                                <div class="mb-3">
+                                    <label for="edit_documents" class="form-label">Tài liệu liên quan</label>
+                                    <select class="form-select select2-documents" id="edit_documents" name="document_ids[]" multiple>
+                                        <!-- Danh sách tài liệu sẽ được điền bằng JavaScript -->
+                                    </select>
+                                    <div class="form-text">Nhấn để tìm kiếm và chọn nhiều tài liệu</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="d-grid gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary btn-lg py-2">
-                                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                                <span class="submit-text">Cập nhật khóa học</span>
-                            </button>
+
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg py-2">
+                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                    <span class="submit-text">Cập nhật khóa học</span>
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -393,6 +386,7 @@ $title = "Quản lý khóa học";
     });
 
     // Trong phần JavaScript xử lý
+    // Trong phần JavaScript xử lý
     function fillEditModal(course) {
         // Reset form trước khi điền dữ liệu mới
         const form = document.getElementById('editCourseForm');
@@ -409,198 +403,57 @@ $title = "Quản lý khóa học";
         document.getElementById('edit_end_date').value = course.end_date || '';
         document.getElementById('edit_status').value = course.status || 'open';
 
-        // Làm sạch danh sách tài liệu hiện tại
-        const docList = document.getElementById('edit-document-list');
-        docList.innerHTML = '';
-        const selectEl = document.getElementById('edit_document_ids');
-        selectEl.innerHTML = '';
+        // Khởi tạo Select2 cho tài liệu
+        const $select = $('#edit_documents');
+        $select.select2({
+            placeholder: "Tìm kiếm tài liệu...",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#editCourseModal')
+        });
 
-        // Nếu có tài liệu, thêm vào danh sách
-        if (course.documents && course.documents.length > 0) {
-            course.documents.forEach(doc => {
-                addDocumentToEditList(doc.document_id, doc.title, doc.file_path);
-            });
-        }
+        // Xóa các tài liệu hiện tại trong select2
+        $select.val(null).trigger('change');
 
         // Load danh sách tài liệu có sẵn
-        loadAvailableDocuments(course.course_id);
-    }
-
-    function addDocumentToEditList(docId, docTitle, filePath) {
-        const docList = document.getElementById('edit-document-list');
-        const selectEl = document.getElementById('edit_document_ids');
-
-        // Kiểm tra xem tài liệu đã có trong danh sách chưa
-        if (document.querySelector(`#edit-document-list tr[data-doc-id="${docId}"]`)) {
-            return;
-        }
-
-        // Thêm vào bảng hiển thị
-        const row = document.createElement('tr');
-        row.dataset.docId = docId;
-        row.innerHTML = `
-        <td class="align-middle">${docTitle}</td>
-        <td class="align-middle">
-            <small class="text-muted text-truncate d-block" style="max-width: 200px;" title="${filePath}">
-                ${filePath.split('/').pop()}
-            </small>
-        </td>
-        <td class="align-middle text-center">
-            <button type="button" class="btn btn-sm btn-outline-danger remove-doc-btn" 
-                    data-doc-id="${docId}" title="Xóa khỏi khóa học">
-                <i class="bi bi-trash"></i>
-            </button>
-        </td>
-    `;
-        docList.appendChild(row);
-
-        // Thêm vào select element ẩn để submit form
-        const option = new Option(docTitle, docId, true, true);
-        selectEl.appendChild(option);
-    }
-
-    function loadAvailableDocuments(courseId) {
         fetch('/study_sharing/Course/getAvailableDocuments', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    course_id: courseId
+                    course_id: course.course_id
                 })
             })
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.documents) {
-                    // Tạo dropdown để chọn tài liệu
-                    const dropdown = document.createElement('div');
-                    dropdown.className = 'dropdown mb-3';
-                    dropdown.id = 'document-selector-dropdown';
-                    dropdown.style = `
-                        background-color: #ff9500ff;
-                        border-radius: 0.375rem;
-                    `;
-                    // Tạo menu dropdown
-                    const dropdownMenu = document.createElement('div');
-                    dropdownMenu.className = 'dropdown-menu w-100 p-2';
-                    dropdownMenu.style.maxHeight = '300px';
-                    dropdownMenu.style.overflowY = 'auto';
-
-
-
-                    // Thêm danh sách tài liệu
-                    const docList = document.createElement('div');
-                    docList.id = 'available-documents-list';
-
+                    // Thêm các tài liệu vào select2
+                    $select.empty();
                     data.documents.forEach(doc => {
-                        if (doc.course_id != courseId) {
-                            const docItem = document.createElement('a');
-                            docItem.className = 'dropdown-item d-flex justify-content-between align-items-center py-2';
-                            docItem.href = '#';
-                            docItem.dataset.docId = doc.document_id;
-                            docItem.innerHTML = `
-                        <span class="text-truncate" style="max-width: 70%;">${doc.title}</span>
-                        <small class="text-muted">${doc.file_path.split('/').pop()}</small>
-                    `;
-                            docList.appendChild(docItem);
+                        if (doc.course_id != course.course_id) {
+                            const option = new Option(
+                                `${doc.title} (${doc.file_path.split('/').pop()})`,
+                                doc.document_id,
+                                false,
+                                course.documents && course.documents.some(d => d.document_id == doc.document_id)
+                            );
+                            $select.append(option);
                         }
                     });
 
-                    dropdownMenu.appendChild(docList);
-                    dropdown.innerHTML = `
-                <button class="btn btn-outline-secondary dropdown-toggle w-100 text-start" type="button" 
-                        id="documentDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-folder-plus me-2"></i> Thêm tài liệu
-                </button>
-            `;
-                    dropdown.appendChild(dropdownMenu);
-
-                    // Thêm dropdown vào DOM
-                    const docContainer = document.getElementById('edit-document-table').parentNode;
-                    docContainer.parentNode.insertBefore(dropdown, docContainer);
-
-
-
-                    // Xử lý chọn tài liệu
-                    docList.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        const target = e.target.closest('.dropdown-item');
-                        if (target) {
-                            const docId = target.dataset.docId;
-                            const docTitle = target.querySelector('span').textContent;
-                            const docFile = target.querySelector('small').textContent;
-
-                            addDocumentToEditList(docId, docTitle, docFile);
-
-                            // Ẩn dropdown sau khi chọn
-                            bootstrap.Dropdown.getInstance(document.getElementById('documentDropdown')).hide();
-                            searchBox.value = '';
-                            items.forEach(item => item.style.display = '');
-                        }
-                    });
+                    // Cập nhật giá trị đã chọn
+                    if (course.documents && course.documents.length > 0) {
+                        const selectedDocs = course.documents.map(doc => doc.document_id);
+                        $select.val(selectedDocs).trigger('change');
+                    }
                 }
+            })
+            .catch(error => {
+                console.error('Lỗi khi tải tài liệu:', error);
+                alert('Đã xảy ra lỗi khi tải danh sách tài liệu.');
             });
     }
-
-    // Xử lý sự kiện xóa tài liệu
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('remove-doc-btn') || e.target.closest('.remove-doc-btn')) {
-            const btn = e.target.classList.contains('remove-doc-btn') ? e.target : e.target.closest('.remove-doc-btn');
-            const docId = btn.dataset.docId;
-            const courseId = document.getElementById('edit_course_id').value;
-
-            if (confirm('Bạn có chắc chắn muốn xóa tài liệu này khỏi khóa học?')) {
-                // Hiển thị loading
-                const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-                btn.disabled = true;
-
-                fetch('/study_sharing/Course/removeDocumentFromCourse', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            course_id: courseId,
-                            document_id: docId
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Xóa khỏi bảng hiển thị
-                            const row = document.querySelector(`#edit-document-list tr[data-doc-id="${docId}"]`);
-                            if (row) {
-                                row.style.transition = 'all 0.3s ease';
-                                row.style.opacity = '0';
-                                setTimeout(() => row.remove(), 300);
-                            }
-
-                            // Xóa khỏi select element ẩn
-                            const selectEl = document.getElementById('edit_document_ids');
-                            const options = selectEl.querySelectorAll('option');
-                            options.forEach(option => {
-                                if (option.value == docId) {
-                                    option.remove();
-                                }
-                            });
-
-                            showToast('success', data.message);
-                        } else {
-                            showToast('error', data.message || 'Lỗi khi xóa tài liệu');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        showToast('error', 'Lỗi kết nối đến server');
-                    })
-                    .finally(() => {
-                        btn.innerHTML = originalHtml;
-                        btn.disabled = false;
-                    });
-            }
-        }
-    });
 
     // Hàm mở dropdown chọn tài liệu
     function openDocumentSelector() {
@@ -903,102 +756,16 @@ $title = "Quản lý khóa học";
         transform: scale(0.95);
     }
 
-    /* Hiệu ứng khi hover và focus */
-    #available-documents-list .dropdown-item:focus,
-    #available-documents-list .dropdown-item:hover {
+    .select2-container--default .select2-selection--multiple {
+        min-height: 45px;
+        border: 1px solid #ced4da;
+        padding: 5px;
+        border-radius: 0.375rem;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
         background-color: #e9ecef;
-        color: #495057;
-    }
-
-    /* Thêm vào phần style */
-    #editCourseModal .modal-content {
-        border-radius: 10px;
-        overflow: hidden;
-    }
-
-    #editCourseModal .modal-header {
-        padding: 1rem 1.5rem;
-    }
-
-    #editCourseModal .modal-body {
-        padding: 1.5rem;
-    }
-
-    #editCourseModal .form-floating label {
-        color: #6c757d;
-    }
-
-    #editCourseModal .card {
-        border-radius: 8px;
-    }
-
-    #editCourseModal .card-header {
-        border-radius: 8px 8px 0 0 !important;
-        padding: 0.75rem 1.25rem;
-    }
-
-    #edit-document-table {
-        margin-bottom: 0;
-    }
-
-    #edit-document-table thead th {
-        border-bottom: 1px solid #dee2e6;
-        font-weight: 500;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        color: #6c757d;
-    }
-
-    #edit-document-table tbody tr {
-        transition: all 0.2s ease;
-    }
-
-    #edit-document-table tbody tr:hover {
-        background-color: #f8f9fa;
-    }
-
-    #edit-document-table .remove-doc-btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-
-    #available-documents-list {
-        max-height: 250px;
-        overflow-y: auto;
-    }
-
-    #available-documents-list .dropdown-item {
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        margin-bottom: 2px;
-    }
-
-    #available-documents-list .dropdown-item:hover {
-        background-color: #f8f9fa;
-    }
-
-    .dropdown-menu {
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
-        border: none;
-    }
-
-    .btn-lg {
-        padding: 0.75rem 1.5rem;
-        font-size: 1.1rem;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        #editCourseModal .modal-dialog {
-            margin: 0.5rem auto;
-        }
-
-        #editCourseModal .modal-body {
-            padding: 1rem;
-        }
-
-        #edit-document-table {
-            font-size: 0.9rem;
-        }
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
     }
 </style>

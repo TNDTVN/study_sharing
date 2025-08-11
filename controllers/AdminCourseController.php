@@ -67,18 +67,18 @@ class AdminCourseController
 
                 // Lấy danh sách tài liệu liên quan
                 $documentsStmt = $this->pdo->prepare("
-                    SELECT d.document_id, d.title, d.file_path, c.category_name, u.full_name as uploader
-                    FROM documents d
-                    LEFT JOIN categories c ON d.category_id = c.category_id
-                    LEFT JOIN users u ON d.account_id = u.account_id
-                    WHERE d.course_id = :course_id
-                ");
+        SELECT d.document_id, d.title, d.file_path, c.category_name, u.full_name as uploader
+        FROM documents d
+        LEFT JOIN categories c ON d.category_id = c.category_id
+        LEFT JOIN users u ON d.account_id = u.account_id
+        WHERE d.course_id = :course_id
+    ");
                 $documentsStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
                 $documentsStmt->execute();
                 $course['documents'] = $documentsStmt->fetchAll(PDO::FETCH_ASSOC);
 
-                // Ghi log dữ liệu để debug
-                error_log("Course details for course_id $course_id: " . print_r($course, true));
+                error_log("Course documents for course_id $course_id: " . print_r($course['documents'], true));
+
 
                 echo json_encode(['success' => true, 'course' => $course]);
             } else {
@@ -231,29 +231,109 @@ class AdminCourseController
         $learn_link = trim($_POST['learn_link'] ?? '');
         $start_date = !empty($_POST['start_date']) ? $_POST['start_date'] : null;
         $end_date = !empty($_POST['end_date']) ? $_POST['end_date'] : null;
+        $status = trim($_POST['status'] ?? '');
+        $document_ids = isset($_POST['document_ids']) ? (array)$_POST['document_ids'] : [];
 
         if ($course_id <= 0 || empty($course_name) || $creator_id <= 0 || $max_members <= 0) {
             echo json_encode(['success' => false, 'message' => 'ID khóa học, tên khóa học, người tạo và số lượng thành viên tối đa là bắt buộc!']);
             exit;
         }
 
+        // Validate status
+        $validStatuses = ['open', 'closed', 'in_progress', 'pending', 'cancelled'];
+        if (!in_array($status, $validStatuses)) {
+            echo json_encode(['success' => false, 'message' => 'Trạng thái không hợp lệ!']);
+            exit;
+        }
+
         try {
-            $currentCourse = $this->courseModel->getCourseById($course_id);
+            $this->pdo->beginTransaction();
 
-            if (!$currentCourse) {
-                echo json_encode(['success' => false, 'message' => 'Khóa học không tồn tại!']);
-                exit;
+            // Cập nhật thông tin khóa học
+            $updateResult = $this->courseModel->updateCourse($course_id, $course_name, $description, $max_members, $learn_link, $start_date, $end_date, $status);
+
+            // Xóa các tài liệu hiện tại của khóa học
+            $deleteStmt = $this->pdo->prepare("UPDATE documents SET course_id = NULL WHERE course_id = :course_id");
+            $deleteStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+            $deleteStmt->execute();
+
+            // Liên kết các tài liệu mới
+            if (!empty($document_ids)) {
+                // Kiểm tra xem các document_id có tồn tại và hợp lệ
+                $placeholders = [];
+                $params = [];
+                foreach ($document_ids as $index => $doc_id) {
+                    $placeholders[] = ":doc_id_$index";
+                    $params[":doc_id_$index"] = (int)$doc_id;
+                }
+                $placeholdersStr = implode(',', $placeholders);
+                $checkStmt = $this->pdo->prepare("SELECT document_id FROM documents WHERE document_id IN ($placeholdersStr)");
+                foreach ($params as $key => $value) {
+                    $checkStmt->bindValue($key, $value, PDO::PARAM_INT);
+                }
+                $checkStmt->execute();
+                $validDocumentIds = $checkStmt->fetchAll(PDO::FETCH_COLUMN);
+
+                // Cập nhật tài liệu hợp lệ
+                $updateStmt = $this->pdo->prepare("UPDATE documents SET course_id = :course_id WHERE document_id = :document_id");
+                foreach ($validDocumentIds as $document_id) {
+                    $updateStmt->bindValue(':course_id', $course_id, PDO::PARAM_INT);
+                    $updateStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
+                    $updateStmt->execute();
+                }
             }
 
-            $updateResult = $this->courseModel->updateCourse($course_id, $course_name, $description, $max_members, $learn_link, $start_date, $end_date);
-
-            if ($updateResult) {
-                echo json_encode(['success' => true, 'message' => 'Cập nhật khóa học thành công!']);
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Cập nhật khóa học thất bại!']);
-            }
+            $this->pdo->commit();
+            echo json_encode(['success' => true, 'message' => 'Cập nhật khóa học và tài liệu thành công!']);
         } catch (Exception $e) {
+            $this->pdo->rollBack();
             error_log("Edit course error: " . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
+        }
+        exit;
+    }
+
+    public function getAvailableDocuments()
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            exit;
+        }
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Chỉ cho phép admin truy cập
+        if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
+            echo json_encode(['success' => false, 'message' => 'Bạn không có quyền xem danh sách tài liệu!']);
+            exit;
+        }
+
+        $data = json_decode(file_get_contents('php://input'), true);
+        $course_id = isset($data['course_id']) ? (int)$data['course_id'] : 0;
+
+        try {
+            // Lấy tất cả tài liệu, bao gồm thông tin khóa học nếu có
+            $query = "SELECT d.document_id, d.title, d.file_path, d.course_id, c.course_name 
+                  FROM documents d
+                  LEFT JOIN courses c ON d.course_id = c.course_id
+                  ORDER BY d.title ASC";
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute();
+            $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Thêm thông tin trạng thái cho từng tài liệu
+            foreach ($documents as &$doc) {
+                $doc['status'] = $doc['course_id'] ? 'Đã gán (' . htmlspecialchars($doc['course_name']) . ')' : 'Chưa gán';
+            }
+            unset($doc);
+
+            echo json_encode(['success' => true, 'documents' => $documents]);
+        } catch (Exception $e) {
+            error_log("Get available documents error: " . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Lỗi server: ' . $e->getMessage()]);
         }
         exit;

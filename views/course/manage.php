@@ -9,6 +9,10 @@ $accountStmt->execute();
 $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <style>
     .modal-content {
         border-radius: 12px;
@@ -83,6 +87,42 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
     .copy-success {
         transition: all 0.3s ease;
     }
+
+    .select2-container--default .select2-selection--multiple {
+        min-height: 45px;
+        border: 1px solid #ced4da;
+        padding: 5px;
+        border-radius: 0.375rem;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background-color: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+    }
+
+    /* New styles for document cards */
+    .document-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 0.375rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .document-card .document-title {
+        flex-grow: 1;
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+    .document-card .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
 </style>
 
 <div class="content-1 px-3">
@@ -126,7 +166,7 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
             <tbody>
                 <?php if (empty($courses)): ?>
                     <tr>
-                        <td colspan="6" class="text-center">Không tìm thấy khóa học nào!</td>
+                        <td colspan="6" class="text-center">Không tìm thấy khóa học nào! Vui lòng kiểm tra dữ liệu hoặc liên hệ admin.</td>
                     </tr>
                 <?php else: ?>
                     <?php foreach ($courses as $index => $course): ?>
@@ -192,24 +232,27 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 
     <!-- Modal chỉnh sửa khóa học -->
     <div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="editCourseModalLabel">Chỉnh sửa khóa học</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="editCourseModalLabel">
+                        <i class="bi bi-pencil-square me-2"></i> Chỉnh sửa khóa học
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form id="editCourseForm" method="POST" action="/study_sharing/AdminCourse/admin_edit" class="needs-validation" novalidate>
                         <input type="hidden" id="edit_course_id" name="course_id">
-                        <div class="row">
+
+                        <div class="row g-3">
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_course_name" class="form-label">Tên khóa học <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control" id="edit_course_name" name="course_name" required>
+                                <div class="form-floating mb-3">
+                                    <input type="text" class="form-control" id="edit_course_name" name="course_name" placeholder="Tên khóa học" required>
+                                    <label for="edit_course_name">Tên khóa học <span class="text-danger">*</span></label>
                                     <div class="invalid-feedback">Vui lòng nhập tên khóa học.</div>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="edit_creator_id" class="form-label">Người tạo <span class="text-danger">*</span></label>
+
+                                <div class="form-floating mb-3">
                                     <select class="form-control" id="edit_creator_id" name="creator_id" required>
                                         <option value="">-- Chọn người tạo --</option>
                                         <?php foreach ($accounts as $account): ?>
@@ -218,60 +261,72 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <label for="edit_creator_id">Người tạo <span class="text-danger">*</span></label>
                                     <div class="invalid-feedback">Vui lòng chọn người tạo.</div>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="edit_max_members" class="form-label">Số thành viên tối đa <span class="text-danger">*</span></label>
-                                    <input type="number" class="form-control" id="edit_max_members" name="max_members" min="1" required>
+
+                                <div class="form-floating mb-3">
+                                    <input type="number" class="form-control" id="edit_max_members" name="max_members" min="1" placeholder="Số thành viên tối đa" required>
+                                    <label for="edit_max_members">Số thành viên tối đa <span class="text-danger">*</span></label>
                                     <div class="invalid-feedback">Vui lòng nhập số thành viên tối đa (lớn hơn 0).</div>
                                 </div>
                             </div>
+
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_description" class="form-label">Mô tả</label>
-                                    <textarea class="form-control" id="edit_description" name="description" style="height: 123px;" rows="4"></textarea>
+                                <div class="form-floating mb-3">
+                                    <textarea class="form-control" id="edit_description" name="description" placeholder="Mô tả khóa học" style="height: 132px;"></textarea>
+                                    <label for="edit_description">Mô tả khóa học</label>
                                 </div>
-                                <div class="mb-3">
-                                    <label for="edit_learn_link" class="form-label">Link học tập</label>
-                                    <input type="url" class="form-control" id="edit_learn_link" name="learn_link" placeholder="https://example.com">
-                                </div>
-                                <div class="mb-3">
-                                    <label for="edit_status" class="form-label">Trạng thái <span class="text-danger">*</span></label>
-                                    <select class="form-control" id="edit_status" name="status" required>
-                                        <option value="open">Đang mở</option>
-                                        <option value="closed">Đã đóng</option>
-                                        <option value="in_progress">Đang tiến hành</option>
-                                        <option value="pending">Chờ duyệt</option>
-                                        <option value="cancelled">Đã hủy</option>
-                                    </select>
-                                    <div class="invalid-feedback">Vui lòng chọn trạng thái.</div>
+
+                                <div class="form-floating mb-3">
+                                    <input type="url" class="form-control" id="edit_learn_link" name="learn_link" placeholder="Link học tập">
+                                    <label for="edit_learn_link">Link học tập</label>
                                 </div>
                             </div>
+
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_start_date" class="form-label">Ngày bắt đầu</label>
-                                    <input type="date" class="form-control" id="edit_start_date" name="start_date">
+                                <div class="form-floating mb-3">
+                                    <input type="date" class="form-control" id="edit_start_date" name="start_date" placeholder="Ngày bắt đầu">
+                                    <label for="edit_start_date">Ngày bắt đầu</label>
                                 </div>
                             </div>
+
                             <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="edit_end_date" class="form-label">Ngày kết thúc</label>
-                                    <input type="date" class="form-control" id="edit_end_date" name="end_date">
+                                <div class="form-floating mb-3">
+                                    <input type="date" class="form-control" id="edit_end_date" name="end_date" placeholder="Ngày kết thúc">
+                                    <label for="edit_end_date">Ngày kết thúc</label>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+
+                            <div class="col-md-12">
                                 <div class="mb-3">
                                     <label for="edit_document_ids" class="form-label">Tài liệu liên quan</label>
-                                    <select class="form-select" id="edit_document_ids" name="document_ids[]" multiple>
+                                    <select class="form-select select2-documents" id="edit_document_ids" name="document_ids[]" multiple>
                                         <!-- Options will be populated by JavaScript -->
                                     </select>
+                                    <div class="form-text">Nhấn để tìm kiếm và chọn nhiều tài liệu</div>
                                 </div>
                             </div>
+
+                            <div class="mb-3">
+                                <label for="edit_status" class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                                <select class="form-select" id="edit_status" name="status" required>
+                                    <option value="open">Đang mở</option>
+                                    <option value="closed">Đã đóng</option>
+                                    <option value="in_progress">Đang tiến hành</option>
+                                    <option value="pending">Chờ duyệt</option>
+                                    <option value="cancelled">Đã hủy</option>
+                                </select>
+                                <div class="invalid-feedback">Vui lòng chọn trạng thái.</div>
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg py-2">
+                                    <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                                    <span class="submit-text">Cập nhật khóa học</span>
+                                </button>
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">
-                            <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                            Cập nhật khóa học
-                        </button>
                     </form>
                 </div>
             </div>
@@ -356,9 +411,9 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         <div class="col-12 mt-3">
                             <div class="info-card">
                                 <h6 class="section-title"><i class="bi bi-file-earmark-text text-primary me-2"></i>Tài liệu liên quan</h6>
-                                <ul class="list-group" id="detail-documents">
+                                <div id="detail-documents" class="document-container">
                                     <!-- Danh sách tài liệu sẽ được điền bằng JavaScript -->
-                                </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -463,6 +518,10 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
 
     function fillEditModal(course) {
         currentCourseData = course;
+        const form = document.getElementById('editCourseForm');
+        form.classList.remove('was-validated');
+        form.reset();
+
         document.getElementById('edit_course_id').value = course.course_id || '';
         document.getElementById('edit_course_name').value = course.course_name || '';
         document.getElementById('edit_description').value = course.description || '';
@@ -473,7 +532,48 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
         document.getElementById('edit_end_date').value = course.end_date || '';
         document.getElementById('edit_status').value = course.status || 'pending';
 
+        const $select = $('#edit_document_ids');
+        $select.select2({
+            placeholder: "Tìm kiếm tài liệu...",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#editCourseModal')
+        });
 
+        $select.val(null).trigger('change');
+
+        // Sửa endpoint thành /study_sharing/AdminCourse/getAvailableDocuments
+        fetch('/study_sharing/AdminCourse/getAvailableDocuments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    course_id: course.course_id
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.documents && data.documents.length > 0) {
+                    $select.empty();
+                    data.documents.forEach(doc => {
+                        const isSelected = course.documents && course.documents.some(d => d.document_id == doc.document_id);
+                        const option = new Option(
+                            `${doc.title} (${doc.file_path.split('/').pop()}) - ${doc.status}`,
+                            doc.document_id,
+                            isSelected,
+                            isSelected
+                        );
+                        $select.append(option);
+                    });
+                    $select.trigger('change');
+                } else {
+                    $select.empty();
+                    const option = new Option('Không có tài liệu nào', '', false, false);
+                    $select.append(option).trigger('change');
+                    $select.prop('disabled', true);
+                }
+            })
     }
 
     document.getElementById('edit-course-btn').addEventListener('click', function() {
@@ -551,25 +651,25 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
                         document.getElementById('detail-max-members').textContent = data.course.max_members || '50';
                         document.getElementById('detail-member-count').textContent = data.course.member_count || '0';
 
-                        const documentsList = document.getElementById('detail-documents');
-                        documentsList.innerHTML = '';
+                        const documentsContainer = document.getElementById('detail-documents');
+                        documentsContainer.innerHTML = '';
                         if (data.course.documents && data.course.documents.length > 0) {
                             data.course.documents.forEach(doc => {
-                                const li = document.createElement('li');
-                                li.className = 'list-group-item d-flex justify-content-between align-items-center';
-                                li.innerHTML = `
-                                        <span>${doc.title} (${doc.file_path})</span>
-                                        <a href="/study_sharing/download?file=${encodeURIComponent(doc.file_path)}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                            <i class="bi bi-download"></i> Tải xuống
-                                        </a>
-                                    `;
-                                documentsList.appendChild(li);
+                                const div = document.createElement('div');
+                                div.className = 'document-card';
+                                div.innerHTML = `
+                                    <span class="document-title">${doc.title} (${doc.file_path.split('/').pop()})</span>
+                                    <a href="/study_sharing/download?file=${encodeURIComponent(doc.file_path)}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                        <i class="bi bi-download"></i> Tải xuống
+                                    </a>
+                                `;
+                                documentsContainer.appendChild(div);
                             });
                         } else {
-                            const li = document.createElement('li');
-                            li.className = 'list-group-item text-muted';
-                            li.textContent = 'Không có tài liệu liên quan.';
-                            documentsList.appendChild(li);
+                            const div = document.createElement('div');
+                            div.className = 'document-card text-muted';
+                            div.textContent = 'Không có tài liệu liên quan.';
+                            documentsContainer.appendChild(div);
                         }
 
                         const descriptionElement = document.getElementById('detail-description');
