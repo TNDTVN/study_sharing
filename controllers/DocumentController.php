@@ -1371,7 +1371,8 @@ class DocumentController
     ");
         $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
         $stmt->execute();
-        $stats['avg_rating'] = round($stmt->fetchColumn(), 1);
+        $avg_rating = $stmt->fetchColumn();
+        $stats['avg_rating'] = $avg_rating !== null ? round($avg_rating, 1) : 0;
 
         // Số lượng tài liệu theo loại file
         $stmt = $this->db->prepare("
@@ -1385,7 +1386,7 @@ class DocumentController
         $stmt->bindValue(':account_id', $account_id, PDO::PARAM_INT);
         $stmt->execute();
         $fileTypes = $stmt->fetch(PDO::FETCH_ASSOC);
-        $stats['file_types'] = $fileTypes;
+        $stats['file_types'] = $fileTypes ?: ['pdf_count' => 0, 'docx_count' => 0, 'pptx_count' => 0];
 
         return $stats;
     }
