@@ -545,7 +545,7 @@ class DocumentController
         $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
         $file_type = isset($_GET['file_type']) && in_array(trim($_GET['file_type']), ['pdf', 'docx', 'pptx']) ? trim($_GET['file_type']) : '';
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-        $perPage = 10;
+        $perPage = 9;
 
         $sql = "SELECT d.*, c.category_name, u.full_name, co.course_name, dl.download_date
                 FROM documents d
