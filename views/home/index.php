@@ -128,14 +128,25 @@
             <section>
                 <h2 class="h2 fw-semibold text-blue-dark mb-4 animate__animated animate__fadeInUp">Thông báo</h2>
                 <div class="card border-0 shadow-sm notification-card p-4">
-                    <?php foreach ($notifications as $index => $notification): ?>
-                        <div class="d-flex align-items-center mb-3 animate__animated animate__fadeIn" style="animation-delay: <?php echo $index * 0.1; ?>s;">
+                    <?php
+                    // Khởi tạo HTMLPurifier (nếu sử dụng)
+                    require_once 'vendor/autoload.php'; // Đường dẫn tới autoload của Composer
+                    $config = HTMLPurifier_Config::createDefault();
+                    $config->set('HTML.Allowed', 'p,b,i,u,strong,em,ul,ol,li,a[href],span[class|style],div[class|style]');
+                    $purifier = new HTMLPurifier($config);
+
+                    foreach ($notifications as $index => $notification):
+                        // Lọc nội dung thông báo để đảm bảo an toàn
+                        $cleanMessage = $purifier->purify($notification['message']);
+                    ?>
+                        <div class="d-flex align-items-start mb-3 animate__animated animate__fadeIn notification-item" style="animation-delay: <?php echo $index * 0.1; ?>s;" data-notification-id="<?php echo htmlspecialchars($notification['notification_id']); ?>">
                             <i class="bi bi-bell-fill fs-4 me-3 <?php echo $notification['is_read'] ? 'text-blue-light' : 'text-blue-primary'; ?>"></i>
-                            <div>
-                                <p class="mb-0 <?php echo $notification['is_read'] ? 'text-blue-light' : 'fw-bold text-blue-dark'; ?>">
-                                    <?php echo htmlspecialchars($notification['message']); ?>
-                                </p>
-                                <small class="text-blue-light"><?php echo $notification['created_at']; ?></small>
+                            <div class="flex-grow-1">
+                                <div class="notification-content <?php echo $notification['is_read'] ? 'text-blue-light' : 'fw-bold text-blue-dark'; ?>">
+                                    <?php echo $cleanMessage; // Hiển thị nội dung HTML đã được lọc 
+                                    ?>
+                                </div>
+                                <small class="text-blue-light"><?php echo htmlspecialchars($notification['created_at']); ?></small>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -191,9 +202,63 @@
         border-left: 6px solid #4b9cd3;
     }
 
-    .notification-card {
-        border-left: 6px solid #4ba3c7;
-        background: linear-gradient(145deg, var(--white), var(--white-light));
+    /* Notification content styles */
+    .notification-card .notification-content {
+        line-height: 1.6;
+        font-size: 1rem;
+        word-wrap: break-word;
+        max-height: 150px;
+        /* Giới hạn chiều cao để tránh tràn */
+        overflow-y: auto;
+        /* Thêm thanh cuộn nếu nội dung dài */
+        padding: 0.5rem;
+        border-radius: 8px;
+        background: var(--white-light);
+    }
+
+    /* Style cho các thẻ HTML từ TinyMCE */
+    .notification-content p {
+        margin: 0 0 0.5rem 0;
+    }
+
+    .notification-content ul,
+    .notification-content ol {
+        padding-left: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .notification-content li {
+        margin-bottom: 0.25rem;
+    }
+
+    .notification-content a {
+        color: var(--blue-primary);
+        text-decoration: underline;
+    }
+
+    .notification-content a:hover {
+        color: var(--blue-dark);
+    }
+
+    /* Style cho nút đánh dấu đã đọc */
+    .mark-read-btn {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .mark-read-btn:hover {
+        background: var(--blue-primary);
+        color: var(--white);
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 576px) {
+        .notification-content {
+            font-size: 0.9rem;
+            max-height: 100px;
+        }
     }
 
     /* Text colors */
