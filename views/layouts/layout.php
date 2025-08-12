@@ -454,6 +454,28 @@ if (isset($_SESSION['account_id']) && isset($_SESSION['role']) && $_SESSION['rol
         </div>
     </div>
 
+    <style>
+        /* Làm modal rộng hơn */
+        #registerModal .modal-dialog {
+            max-width: 800px;
+            /* Chiều ngang bự hơn (mặc định ~500px) */
+        }
+
+        /* Giảm chiều cao nội dung modal */
+        #registerModal .modal-body {
+            max-height: 400px;
+            /* Ngắn hơn */
+            overflow-y: auto;
+            /* Nếu vượt quá thì cuộn */
+        }
+
+        /* Canh lại khoảng cách các input để tiết kiệm chiều cao */
+        #registerModal .mb-3 {
+            margin-bottom: 0.6rem;
+        }
+    </style>
+
+
     <!-- Modal Quên mật khẩu -->
     <div id="forgotPasswordModal" class="modal fade" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
