@@ -23,131 +23,131 @@ if (session_status() === PHP_SESSION_NONE) {
     }
 
     .container.py-5 {
-        padding-top: 0 !important;
+        padding-top: auto;
         padding-bottom: 0 !important;
     }
 </style>
-<div class="container mt-4">
-    <h2 class="mb-4 text-primary"><?php echo htmlspecialchars($title); ?></h2>
 
-    <?php if (isset($_SESSION['message'])): ?>
-        <div class="alert alert-<?php echo htmlspecialchars($_SESSION['message_type']); ?> alert-dismissible fade show" role="alert">
-            <?php echo htmlspecialchars($_SESSION['message']); ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<h1 class="mb-4 text-primary"><?php echo htmlspecialchars($title); ?></h1>
+
+<?php if (isset($_SESSION['message'])): ?>
+    <div class="alert alert-<?php echo htmlspecialchars($_SESSION['message_type']); ?> alert-dismissible fade show" role="alert">
+        <?php echo htmlspecialchars($_SESSION['message']); ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
+<?php endif; ?>
+
+<!-- Tìm kiếm và nút thêm người dùng trên cùng một hàng -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <form method="GET" action="/study_sharing/Account/manage" class="w-50">
+        <div class="input-group">
+            <input type="text" name="keyword" class="form-control" placeholder="Tìm kiếm theo tên, email hoặc tên đầy đủ" value="<?php echo htmlspecialchars($keyword); ?>">
+            <button type="submit" class="btn btn-primary">Tìm kiếm</button>
         </div>
-        <?php unset($_SESSION['message'], $_SESSION['message_type']); ?>
-    <?php endif; ?>
-
-    <!-- Tìm kiếm và nút thêm người dùng trên cùng một hàng -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <form method="GET" action="/study_sharing/Account/manage" class="w-50">
-            <div class="input-group">
-                <input type="text" name="keyword" class="form-control" placeholder="Tìm kiếm theo tên, email hoặc tên đầy đủ" value="<?php echo htmlspecialchars($keyword); ?>">
-                <button type="submit" class="btn btn-primary">Tìm kiếm</button>
-            </div>
-        </form>
-        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="bi bi-plus-circle"></i>
-            Thêm người dùng
-        </button>
-    </div>
-
-    <!-- Bảng danh sách người dùng -->
-    <div class="table-responsive">
-        <table class="table table-bordered table-striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Tên đăng nhập</th>
-                    <th>Email</th>
-                    <th>Họ tên</th>
-                    <th>Vai trò</th>
-                    <th>Trạng thái</th>
-                    <th>Hành động</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($users)): ?>
-                    <?php foreach ($users as $user): ?>
-                        <tr>
-                            <td><?php echo htmlspecialchars($user['account_id']); ?></td>
-                            <td><?php echo htmlspecialchars($user['username']); ?></td>
-                            <td><?php echo htmlspecialchars($user['email']); ?></td>
-                            <td><?php echo htmlspecialchars($user['full_name'] ?? 'N/A'); ?></td>
-                            <td><?php echo htmlspecialchars($user['role']); ?></td>
-                            <td>
-                                <span class="status-<?php echo htmlspecialchars($user['status']); ?>">
-                                    <?php if ($user['status'] === 'active'): ?>
-                                        <i class="fa fa-check-circle"></i> Hoạt động
-                                    <?php elseif ($user['status'] === 'inactive'): ?>
-                                        <i class="fa fa-pause-circle"></i> Không hoạt động
-                                    <?php else: ?>
-                                        <i class="fa fa-ban"></i> Bị khóa
-                                    <?php endif; ?>
-                                </span>
-                            </td>
-                            <td>
-                                <div class="action-buttons d-flex gap-1">
-                                    <button type="button" class="btn btn-outline-info btn-sm" title="Xem"
-                                        onclick='showUserDetails(<?php echo json_encode($user); ?>)'>
-                                        <i class="fa fa-eye"></i>
-                                    </button>
-
-                                    <button type="button" class="btn btn-outline-warning btn-sm" title="Sửa"
-                                        data-bs-toggle="modal" data-bs-target="#editUserModal"
-                                        onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($user)); ?>)">
-                                        <i class="fa fa-edit"></i>
-                                    </button>
-
-                                    <?php if ($user['role'] === 'teacher' || $user['role'] === 'student'): ?>
-                                        <button type="button" class="btn btn-outline-danger btn-sm"
-                                            title="<?php echo $user['status'] === 'banned' ? 'Mở khóa' : 'Khóa'; ?>"
-                                            onclick="lockUser(<?php echo $user['account_id']; ?>, '<?php echo $user['status'] === 'banned' ? 'active' : 'banned'; ?>')">
-                                            <i class="fa <?php echo $user['status'] === 'banned' ? 'fa-unlock' : 'fa-lock'; ?>"></i>
-                                        </button>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-
-                <?php else: ?>
-                    <tr>
-                        <td colspan="7" class="text-center">Không có người dùng nào.</td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-    <!--hah-->
-    <!-- Phân trang -->
-    <?php if ($totalPages > 1): ?>
-        <nav aria-label="Page navigation" class="mt-3">
-            <ul class="pagination justify-content-center mb-0">
-                <?php if ($page > 1): ?>
-                    <li class="page-item">
-                        <a class="page-link" href="/study_sharing/Account/manage?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword); ?>">Trước</a>
-                    </li>
-                <?php endif; ?>
-                <?php
-                $startPage = max(1, $page - 2);
-                $endPage = min($totalPages, $page + 2);
-                if ($endPage - $startPage < 4) {
-                    $startPage = max(1, $endPage - 4);
-                }
-                for ($i = $startPage; $i <= $endPage; $i++): ?>
-                    <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
-                        <a class="page-link" href="/study_sharing/Account/manage?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword); ?>"><?php echo $i; ?></a>
-                    </li>
-                <?php endfor; ?>
-                <?php if ($page < $totalPages): ?>
-                    <li class="page-item">
-                        <a class="page-link" href="/study_sharing/Account/manage?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword); ?>">Sau</a>
-                    </li>
-                <?php endif; ?>
-            </ul>
-        </nav>
-    <?php endif; ?>
+    </form>
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal"><i class="bi bi-plus-circle"></i>
+        Thêm người dùng
+    </button>
 </div>
+
+<!-- Bảng danh sách người dùng -->
+<div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tên đăng nhập</th>
+                <th>Email</th>
+                <th>Họ tên</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php if (!empty($users)): ?>
+                <?php foreach ($users as $user): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($user['account_id']); ?></td>
+                        <td><?php echo htmlspecialchars($user['username']); ?></td>
+                        <td><?php echo htmlspecialchars($user['email']); ?></td>
+                        <td><?php echo htmlspecialchars($user['full_name'] ?? 'N/A'); ?></td>
+                        <td><?php echo htmlspecialchars($user['role']); ?></td>
+                        <td>
+                            <span class="status-<?php echo htmlspecialchars($user['status']); ?>">
+                                <?php if ($user['status'] === 'active'): ?>
+                                    <i class="fa fa-check-circle"></i> Hoạt động
+                                <?php elseif ($user['status'] === 'inactive'): ?>
+                                    <i class="fa fa-pause-circle"></i> Không hoạt động
+                                <?php else: ?>
+                                    <i class="fa fa-ban"></i> Bị khóa
+                                <?php endif; ?>
+                            </span>
+                        </td>
+                        <td>
+                            <div class="action-buttons d-flex gap-1">
+                                <button type="button" class="btn btn-outline-info btn-sm" title="Xem"
+                                    onclick='showUserDetails(<?php echo json_encode($user); ?>)'>
+                                    <i class="fa fa-eye"></i>
+                                </button>
+
+                                <button type="button" class="btn btn-outline-warning btn-sm" title="Sửa"
+                                    data-bs-toggle="modal" data-bs-target="#editUserModal"
+                                    onclick="fillEditModal(<?php echo htmlspecialchars(json_encode($user)); ?>)">
+                                    <i class="fa fa-edit"></i>
+                                </button>
+
+                                <?php if ($user['role'] === 'teacher' || $user['role'] === 'student'): ?>
+                                    <button type="button" class="btn btn-outline-danger btn-sm"
+                                        title="<?php echo $user['status'] === 'banned' ? 'Mở khóa' : 'Khóa'; ?>"
+                                        onclick="lockUser(<?php echo $user['account_id']; ?>, '<?php echo $user['status'] === 'banned' ? 'active' : 'banned'; ?>')">
+                                        <i class="fa <?php echo $user['status'] === 'banned' ? 'fa-unlock' : 'fa-lock'; ?>"></i>
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+
+            <?php else: ?>
+                <tr>
+                    <td colspan="7" class="text-center">Không có người dùng nào.</td>
+                </tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+<!--hah-->
+<!-- Phân trang -->
+<?php if ($totalPages > 1): ?>
+    <nav aria-label="Page navigation" class="mt-3">
+        <ul class="pagination justify-content-center mb-0">
+            <?php if ($page > 1): ?>
+                <li class="page-item">
+                    <a class="page-link" href="/study_sharing/Account/manage?page=<?php echo $page - 1; ?>&keyword=<?php echo urlencode($keyword); ?>">Trước</a>
+                </li>
+            <?php endif; ?>
+            <?php
+            $startPage = max(1, $page - 2);
+            $endPage = min($totalPages, $page + 2);
+            if ($endPage - $startPage < 4) {
+                $startPage = max(1, $endPage - 4);
+            }
+            for ($i = $startPage; $i <= $endPage; $i++): ?>
+                <li class="page-item <?php echo $i === $page ? 'active' : ''; ?>">
+                    <a class="page-link" href="/study_sharing/Account/manage?page=<?php echo $i; ?>&keyword=<?php echo urlencode($keyword); ?>"><?php echo $i; ?></a>
+                </li>
+            <?php endfor; ?>
+            <?php if ($page < $totalPages): ?>
+                <li class="page-item">
+                    <a class="page-link" href="/study_sharing/Account/manage?page=<?php echo $page + 1; ?>&keyword=<?php echo urlencode($keyword); ?>">Sau</a>
+                </li>
+            <?php endif; ?>
+        </ul>
+    </nav>
+<?php endif; ?>
+
 
 <!-- Add User Modal -->
 <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">

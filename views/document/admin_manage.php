@@ -36,7 +36,7 @@ $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
             </select>
             <button class="btn btn-primary" type="submit"><i class="bi bi-search"></i> Tìm</button>
         </form>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addDocumentModal"><i class="bi bi-plus-circle"></i> Thêm tài liệu</button>
+        <!-- <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addDocumentModal"><i class="bi bi-plus-circle"></i> Thêm tài liệu</button> -->
     </div>
 
     <!-- Message Display -->
