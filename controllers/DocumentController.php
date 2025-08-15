@@ -803,7 +803,6 @@ class DocumentController
         $itemsPerPage = 9;
         $this->itemsPerPage = $itemsPerPage;
 
-        // Logic lấy dữ liệu tài liệu, phân trang, tìm kiếm...
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
         $category_id = isset($_GET['category_id']) ? (int)$_GET['category_id'] : 0;
@@ -812,11 +811,11 @@ class DocumentController
 
         try {
             $query = "SELECT d.*, c.category_name, u.full_name, co.course_name
-                FROM documents d
-                LEFT JOIN categories c ON d.category_id = c.category_id
-                LEFT JOIN users u ON d.account_id = u.account_id
-                LEFT JOIN courses co ON d.course_id = co.course_id
-                WHERE d.account_id = :account_id";
+            FROM documents d
+            LEFT JOIN categories c ON d.category_id = c.category_id
+            LEFT JOIN users u ON d.account_id = u.account_id
+            LEFT JOIN courses co ON d.course_id = co.course_id
+            WHERE d.account_id = :account_id";
             $params = [':account_id' => $_SESSION['account_id']];
 
             if (!empty($keyword)) {
@@ -846,16 +845,19 @@ class DocumentController
             $stmt->execute();
             $documents = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Lấy danh sách danh mục và khóa học
             $categoryStmt = $this->db->prepare("SELECT * FROM categories ORDER BY category_name");
             $categoryStmt->execute();
             $categories = $categoryStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            $courseStmt = $this->db->prepare("SELECT course_id, course_name FROM courses ORDER BY course_name");
+            $courseStmt = $this->db->prepare("SELECT course_id, course_name FROM courses WHERE creator_id = :creator_id ORDER BY course_name");
+            $courseStmt->bindValue(':creator_id', $_SESSION['account_id'], PDO::PARAM_INT);
             $courseStmt->execute();
             $courses = $courseStmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Lấy tổng số tài liệu
+            $tagStmt = $this->db->prepare("SELECT tag_id, tag_name FROM tags ORDER BY tag_name");
+            $tagStmt->execute();
+            $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
+
             $countQuery = "SELECT COUNT(*) as total FROM documents WHERE account_id = :account_id";
             $countParams = [':account_id' => $_SESSION['account_id']];
             if (!empty($keyword)) {
@@ -879,31 +881,29 @@ class DocumentController
             $totalDocuments = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
             $totalPages = ceil($totalDocuments / $this->itemsPerPage);
 
-            // Lấy thẻ và phiên bản
             foreach ($documents as &$document) {
                 $tagStmt = $this->db->prepare("
-                    SELECT t.tag_name
-                    FROM tags t
-                    JOIN document_tags dt ON t.tag_id = dt.tag_id
-                    WHERE dt.document_id = :document_id
-                ");
+                SELECT t.tag_name
+                FROM tags t
+                JOIN document_tags dt ON t.tag_id = dt.tag_id
+                WHERE dt.document_id = :document_id
+            ");
                 $tagStmt->bindValue(':document_id', $document['document_id'], PDO::PARAM_INT);
                 $tagStmt->execute();
                 $document['tags'] = $tagStmt->fetchAll(PDO::FETCH_COLUMN);
 
                 $versionStmt = $this->db->prepare("
-                    SELECT version_number, file_path, change_note, created_at
-                    FROM document_versions
-                    WHERE document_id = :document_id
-                    ORDER BY version_number DESC
-                ");
+                SELECT version_number, file_path, change_note, created_at
+                FROM document_versions
+                WHERE document_id = :document_id
+                ORDER BY version_number DESC
+            ");
                 $versionStmt->bindValue(':document_id', $document['document_id'], PDO::PARAM_INT);
                 $versionStmt->execute();
                 $document['versions'] = $versionStmt->fetchAll(PDO::FETCH_ASSOC);
             }
             unset($document);
 
-            // Tạo CSRF token nếu chưa có
             if (!isset($_SESSION['csrf_token'])) {
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             }

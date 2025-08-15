@@ -165,3 +165,22 @@ body {
 .document-container::-webkit-scrollbar-thumb:hover {
     background: #6c757d;
 }
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    /* Đảm bảo backdrop nằm dưới modal nhưng trên nội dung khác */
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Màu nền tối với độ mờ */
+    opacity: 1;
+    /* Đảm bảo backdrop không bị ẩn */
+}
+
+.modal {
+    z-index: 1050;
+    /* Đảm bảo modal nằm trên backdrop */
+}

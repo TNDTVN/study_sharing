@@ -246,11 +246,12 @@ class CourseController
         $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
         $perPage = 10;
 
-        $sql = "SELECT c.*, u.full_name
-                FROM courses c
-                LEFT JOIN users u ON c.creator_id = u.account_id
-                JOIN course_members cm ON c.course_id = cm.course_id
-                WHERE cm.account_id = :account_id";
+        $sql = "SELECT c.*, u.full_name,
+            (SELECT COUNT(*) FROM course_members WHERE course_id = c.course_id) as member_count
+            FROM courses c
+            LEFT JOIN users u ON c.creator_id = u.account_id
+            JOIN course_members cm ON c.course_id = cm.course_id
+            WHERE cm.account_id = :account_id";
         $bindParams = [':account_id' => $_SESSION['account_id']];
         $hasWhere = true;
 
@@ -261,9 +262,9 @@ class CourseController
         }
 
         $countSql = "SELECT COUNT(*)
-                    FROM courses c
-                    JOIN course_members cm ON c.course_id = cm.course_id
-                    WHERE cm.account_id = :account_id";
+                FROM courses c
+                JOIN course_members cm ON c.course_id = cm.course_id
+                WHERE cm.account_id = :account_id";
         $countBindParams = [':account_id' => $_SESSION['account_id']];
         if ($query !== '') {
             $countSql .= " AND (c.course_name LIKE :query1 OR c.description LIKE :query2)";

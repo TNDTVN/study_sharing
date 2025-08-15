@@ -201,7 +201,7 @@ $title = "Quản lý tài liệu của tôi";
                             </select>
                             <div class="invalid-feedback">Vui lòng chọn chế độ hiển thị.</div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="<?php echo $_SESSION['role'] === 'teacher' ? 'col-md-6' : 'col-md-12'; ?>">
                             <label for="editDocumentCategory" class="form-label">Danh mục</label>
                             <select class="form-select" id="editDocumentCategory" name="category_id">
                                 <option value="0">Không chọn</option>
@@ -214,19 +214,21 @@ $title = "Quản lý tài liệu của tôi";
                                 <?php endif; ?>
                             </select>
                         </div>
-                        <div class="col-md-6">
-                            <label for="editDocumentCourse" class="form-label">Khóa học</label>
-                            <select class="form-select" id="editDocumentCourse" name="course_id">
-                                <option value="">Không chọn</option>
-                                <?php if (!empty($courses)): ?>
-                                    <?php foreach ($courses as $course): ?>
-                                        <option value="<?php echo $course['course_id']; ?>"><?php echo htmlspecialchars($course['course_name'], ENT_QUOTES | ENT_SUBSTITUTE); ?></option>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <option value="">Không có khóa học</option>
-                                <?php endif; ?>
-                            </select>
-                        </div>
+                        <?php if ($_SESSION['role'] === 'teacher'): ?>
+                            <div class="col-md-6">
+                                <label for="editDocumentCourse" class="form-label">Khóa học</label>
+                                <select class="form-select" id="editDocumentCourse" name="course_id">
+                                    <option value="">Không chọn</option>
+                                    <?php if (!empty($courses)): ?>
+                                        <?php foreach ($courses as $course): ?>
+                                            <option value="<?php echo $course['course_id']; ?>"><?php echo htmlspecialchars($course['course_name'], ENT_QUOTES | ENT_SUBSTITUTE); ?></option>
+                                        <?php endforeach; ?>
+                                    <?php else: ?>
+                                        <option value="">Không có khóa học</option>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                        <?php endif; ?>
                         <div class="col-12">
                             <label for="editDocumentDescription" class="form-label">Mô tả</label>
                             <textarea class="form-control" id="editDocumentDescription" name="description" rows="4" placeholder="Mô tả nội dung tài liệu..."></textarea>
@@ -407,7 +409,7 @@ $title = "Quản lý tài liệu của tôi";
 </div>
 
 <!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+<div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-success text-white">

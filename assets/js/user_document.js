@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Kiểm tra Bootstrap
     if (typeof bootstrap === 'undefined') {
         console.error('Bootstrap is not loaded');
         alert('Giao diện không hoạt động đúng do thiếu thư viện Bootstrap.');
@@ -26,27 +25,49 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPage = 1;
     let totalPages = 0;
 
-    // Initialize PDF.js worker
     if (typeof pdfjsLib !== 'undefined') {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
     } else {
         console.error('PDF.js is not loaded');
     }
 
-    // Hàm hiển thị modal thành công
     function showSuccessModal(message, callback) {
+        // Đóng modal chỉnh sửa trước
+        const editModal = document.getElementById('editDocumentModal');
+        const editModalInstance = bootstrap.Modal.getInstance(editModal);
+        if (editModalInstance) {
+            editModalInstance.hide();
+        }
+
+        // Xóa backdrop hiện tại nếu có
+        const existingBackdrop = document.querySelector('.modal-backdrop');
+        if (existingBackdrop) {
+            existingBackdrop.remove();
+        }
+
+        // Đặt thông báo và hiển thị modal thành công
         successModalMessage.textContent = message;
         successModal.show();
+
+        // Đảm bảo backdrop được tạo
+        const newBackdrop = document.createElement('div');
+        newBackdrop.className = 'modal-backdrop fade show';
+        document.body.appendChild(newBackdrop);
+
+        // Thêm sự kiện hidden cho modal thành công
         const modalElement = document.getElementById('successModal');
-        modalElement.addEventListener('hidden.bs.modal', callback, { once: true });
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            resetModalState('successModal');
+            callback();
+        }, { once: true });
     }
 
-    // Hàm khởi tạo tag cho input
     function initializeTags(input, dropdown) {
         let selectedTags = [];
         let isDropdownVisible = false;
 
         function updateInput() {
+            console.log('Updating input with tags:', selectedTags);
             input.value = selectedTags.join(', ');
         }
 
@@ -64,14 +85,16 @@ document.addEventListener('DOMContentLoaded', () => {
         dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
             item.addEventListener('click', () => {
                 const tag = item.dataset.value;
-                if (selectedTags.includes(tag)) {
-                    selectedTags = selectedTags.filter(t => t !== tag);
-                    item.querySelector('.tick').classList.add('d-none');
-                } else {
-                    selectedTags.push(tag);
-                    item.querySelector('.tick').classList.remove('d-none');
+                if (tag) {
+                    if (selectedTags.includes(tag)) {
+                        selectedTags = selectedTags.filter(t => t !== tag);
+                        item.querySelector('.tick').classList.add('d-none');
+                    } else {
+                        selectedTags.push(tag);
+                        item.querySelector('.tick').classList.remove('d-none');
+                    }
+                    updateInput();
                 }
-                updateInput();
             });
         });
 
@@ -83,13 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return {
             setTags: (tags) => {
-                selectedTags = tags;
+                selectedTags = tags.filter(tag => tag && tag.trim());
+                console.log('Setting tags:', selectedTags);
                 updateInput();
                 dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
                     const tick = item.querySelector('.tick');
-                    if (selectedTags.includes(item.dataset.value)) {
+                    if (tick && item.dataset.value && selectedTags.includes(item.dataset.value)) {
                         tick.classList.remove('d-none');
-                    } else {
+                    } else if (tick) {
                         tick.classList.add('d-none');
                     }
                 });
@@ -97,10 +121,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    // Khởi tạo tags
     const editTags = editTagsInput ? initializeTags(editTagsInput, editTagsDropdown) : null;
 
-    // Xử lý hiển thị tên file
     if (editFileInput && editFileNameDisplay) {
         editFileInput.addEventListener('change', () => {
             const file = editFileInput.files[0];
@@ -143,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Xử lý nút chỉnh sửa
     editButtons.forEach(button => {
         button.addEventListener('click', () => {
             const id = button.getAttribute('data-id');
@@ -152,16 +173,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const categoryId = button.getAttribute('data-category-id');
             const courseId = button.getAttribute('data-course-id');
             const visibility = button.getAttribute('data-visibility');
-            const tags = button.getAttribute('data-tags') ? button.getAttribute('data-tags').split(',').map(t => t.trim()) : [];
+            const tags = button.getAttribute('data-tags') ? button.getAttribute('data-tags').split(',').map(t => t.trim()).filter(t => t) : [];
             const fileName = button.getAttribute('data-file-name');
 
             document.getElementById('editDocumentId').value = id;
             document.getElementById('editDocumentTitle').value = title;
             document.getElementById('editDocumentDescription').value = description;
             document.getElementById('editDocumentCategory').value = categoryId || '0';
-            document.getElementById('editDocumentCourse').value = courseId || '';
+            const courseSelect = document.getElementById('editDocumentCourse');
+            if (courseSelect) {
+                courseSelect.value = courseId || '';
+            }
             document.getElementById('editDocumentVisibility').value = visibility;
             if (editTags) {
+                console.log('Tags to set:', tags);
                 editTags.setTags(tags);
             }
             if (editFileNameDisplay) {
@@ -171,7 +196,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Xử lý submit form chỉnh sửa
     editForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const title = document.getElementById('editDocumentTitle').value;
@@ -200,6 +224,12 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(data => {
             if (data.success) {
+                // Đóng modal chỉnh sửa trước khi hiển thị modal thành công
+                const editModal = document.getElementById('editDocumentModal');
+                const editModalInstance = bootstrap.Modal.getInstance(editModal);
+                if (editModalInstance) {
+                    editModalInstance.hide();
+                }
                 showSuccessModal(data.message, () => {
                     if (data.redirect) {
                         window.location.href = data.redirect;
@@ -215,7 +245,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Xử lý nút xóa
     deleteButtons.forEach(button => {
         button.addEventListener('click', () => {
             const documentId = button.getAttribute('data-id');
@@ -236,7 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         throw new Error('Lỗi server: Không thể parse response: ' + text);
                     }
                     if (!response.ok) {
-                        // Nếu response không ok, sử dụng message từ server
                         throw new Error(json.message || 'Lỗi không xác định');
                     }
                     return json;
@@ -247,7 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             location.reload();
                         });
                     } else {
-                        // Hiển thị message từ server khi success là false
                         alert(data.message || 'Lỗi không xác định khi xóa tài liệu.');
                     }
                 })
@@ -259,7 +286,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Xử lý nút cập nhật phiên bản
     updateVersionButtons.forEach(button => {
         button.addEventListener('click', () => {
             const documentId = button.getAttribute('data-id');
@@ -270,7 +296,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Xử lý submit form cập nhật phiên bản
     updateVersionForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const file = updateVersionFileInput.files[0];
@@ -295,6 +320,12 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(data => {
             if (data.success) {
+                // Đóng modal cập nhật phiên bản trước khi hiển thị modal thành công
+                const updateVersionModal = document.getElementById('updateVersionModal');
+                const updateVersionModalInstance = bootstrap.Modal.getInstance(updateVersionModal);
+                if (updateVersionModalInstance) {
+                    updateVersionModalInstance.hide();
+                }
                 showSuccessModal(data.message, () => {
                     if (data.redirect) {
                         window.location.href = data.redirect;
@@ -310,7 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Xử lý nút xem chi tiết
     viewButtons.forEach(button => {
         button.addEventListener('click', () => {
             const id = button.getAttribute('data-id');
@@ -320,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const courseName = button.getAttribute('data-course-name');
             const uploadDate = button.getAttribute('data-upload-date');
             const visibility = button.getAttribute('data-visibility');
-            const tags = button.getAttribute('data-tags') ? button.getAttribute('data-tags').split(',').map(t => t.trim()) : [];
+            const tags = button.getAttribute('data-tags') ? button.getAttribute('data-tags').split(',').map(t => t.trim()).filter(t => t) : [];
             const fileName = button.getAttribute('data-file-name');
             const filePath = button.getAttribute('data-file-path');
             const fileExt = button.getAttribute('data-file-ext');
@@ -362,16 +392,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Reset trạng thái khi modal đóng và khôi phục cuộn
     function resetModalState(modalId) {
         const modal = document.getElementById(modalId);
         modal.classList.remove('show');
         modal.style.display = 'none';
         document.body.classList.remove('modal-open');
         document.body.style.overflow = 'auto';
-        const modalBackdrop = document.querySelector('.modal-backdrop');
-        if (modalBackdrop) {
-            modalBackdrop.remove();
+        // Chỉ xóa backdrop nếu không có modal nào khác đang mở
+        const openModals = document.querySelectorAll('.modal.show');
+        if (openModals.length === 0) {
+            const modalBackdrop = document.querySelector('.modal-backdrop');
+            if (modalBackdrop) {
+                modalBackdrop.remove();
+            }
         }
     }
 
@@ -401,7 +434,6 @@ document.addEventListener('DOMContentLoaded', () => {
         resetModalState('successModal');
     });
 
-    // Xử lý nút xem lịch sử phiên bản
     versionButtons.forEach(button => {
         button.addEventListener('click', () => {
             const versions = JSON.parse(button.getAttribute('data-versions'));
@@ -422,7 +454,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Hàm hiển thị file preview
     function renderPage(pageNum, container, scale = 1.0) {
         pdfDoc.getPage(pageNum).then(page => {
             const viewport = page.getViewport({ scale });
@@ -438,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
             canvas.style.marginBottom = '10px';
             container.appendChild(canvas);
             page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
-                // Đảm bảo canvas hiển thị đúng
                 canvas.style.display = 'block';
             });
         }).catch(error => {
@@ -471,7 +501,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 updatePageInfo();
                 container.scrollTop = 0;
 
-                // Xử lý nút điều hướng
                 document.getElementById('prevPage').disabled = currentPage === 1;
                 document.getElementById('nextPage').disabled = currentPage === totalPages;
             }).catch(function(error) {
@@ -561,7 +590,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Xử lý điều hướng trang
     document.getElementById('prevPage').addEventListener('click', () => {
         if (currentPage > 1) {
             currentPage--;
