@@ -662,7 +662,7 @@ class DocumentController
                 $title = trim($_POST['title'] ?? '');
                 $description = trim($_POST['description'] ?? '');
                 $category_id = (int)($_POST['category_id'] ?? 0);
-                $course_id = !empty($_POST['course_id']) ? (int)$_POST['course_id'] : null;
+                $course_id = !empty($_POST['course_id']) && $user['role'] === 'teacher' ? (int)$_POST['course_id'] : null; // Only allow course_id for teachers
                 $visibility = in_array($_POST['visibility'] ?? '', ['public', 'private']) ? $_POST['visibility'] : 'public';
                 $tags = !empty($_POST['tags']) ? array_map('trim', explode(',', $_POST['tags'])) : [];
 
@@ -690,7 +690,7 @@ class DocumentController
                 $allowed_types = ['pdf', 'docx', 'pptx'];
                 $file_ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
                 if (!in_array($file_ext, $allowed_types)) {
-                    throw new Exception('Chỉ chấp nhận các định crawl: ' . implode(', ', $allowed_types));
+                    throw new Exception('Chỉ chấp nhận các định dạng: ' . implode(', ', $allowed_types));
                 }
 
                 if ($file['size'] > 10 * 1024 * 1024) {
@@ -704,12 +704,12 @@ class DocumentController
 
                 if (!move_uploaded_file($file['tmp_name'], $absolute_file_path)) {
                     error_log("Failed to move uploaded file to: {$absolute_file_path}");
-                    throw new Exception('Lổi khi di chuyển tệp đến thư mục uploads!');
+                    throw new Exception('Lỗi khi di chuyển tệp đến thư mục uploads!');
                 }
 
                 // Thêm tài liệu vào database
                 $query = "INSERT INTO documents (title, description, file_path, account_id, category_id, course_id, visibility, upload_date) 
-                    VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
+                VALUES (:title, :description, :file_path, :account_id, :category_id, :course_id, :visibility, NOW())";
                 $stmt = $this->db->prepare($query);
                 $stmt->bindValue(':title', $title, PDO::PARAM_STR);
                 $stmt->bindValue(':description', $description, PDO::PARAM_STR);
@@ -773,15 +773,11 @@ class DocumentController
                 exit;
             }
         } else {
-            // Hiển thị form tải lên (GET)
             $categories = $this->category->getAllCategories();
             $courses = [];
             if ($user['role'] === 'teacher') {
                 $courseModel = new Course($this->db);
                 $courses = $courseModel->getCoursesByTeacher($_SESSION['account_id']);
-            } elseif ($user['role'] === 'student') {
-                $courseModel = new Course($this->db);
-                $courses = $courseModel->getCoursesByStudent($_SESSION['account_id']);
             }
 
             $tagsStmt = $this->db->prepare("SELECT tag_id, tag_name FROM tags ORDER BY tag_name");

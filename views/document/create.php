@@ -2,6 +2,7 @@
 $categories = $categories ?? [];
 $courses = $courses ?? [];
 $tags = $tags ?? [];
+$user_role = $_SESSION['role'] ?? 'student'; // Mặc định là sinh viên nếu không có role
 ?>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -43,23 +44,31 @@ $tags = $tags ?? [];
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="documentCourse" class="form-label">Khóa học</label>
-                            <select class="form-select" id="documentCourse" name="course_id">
-                                <option value="">Không chọn</option>
-                                <?php foreach ($courses as $course): ?>
-                                    <option value="<?php echo $course['course_id']; ?>">
-                                        <?php echo htmlspecialchars($course['course_name']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="documentDescription" class="form-label">Mô tả</label>
                             <textarea class="form-control" id="documentDescription" rows="4" style="height: 123px;" name="description"></textarea>
                         </div>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <?php if ($user_role === 'teacher'): ?>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="documentCourse" class="form-label">Khóa học</label>
+                                <select class="form-select" id="documentCourse" name="course_id">
+                                    <option value="">Không chọn</option>
+                                    <?php foreach ($courses as $course): ?>
+                                        <option value="<?php echo $course['course_id']; ?>">
+                                            <?php echo htmlspecialchars($course['course_name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    <div class="<?php echo $user_role === 'student' ? 'col-md-12' : 'col-md-6'; ?>">
                         <div class="mb-3">
                             <label for="documentVisibility" class="form-label">Chế độ hiển thị <span class="text-danger">*</span></label>
                             <select class="form-select" id="documentVisibility" name="visibility" required>
