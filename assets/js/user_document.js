@@ -227,11 +227,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     },
                     body: `document_id=${documentId}`
                 })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+                .then(response => response.text().then(text => ({ response, text })))
+                .then(({ response, text }) => {
+                    let json;
+                    try {
+                        json = JSON.parse(text);
+                    } catch (e) {
+                        throw new Error('Lỗi server: Không thể parse response: ' + text);
                     }
-                    return response.json();
+                    if (!response.ok) {
+                        // Nếu response không ok, sử dụng message từ server
+                        throw new Error(json.message || 'Lỗi không xác định');
+                    }
+                    return json;
                 })
                 .then(data => {
                     if (data.success) {
@@ -239,12 +247,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             location.reload();
                         });
                     } else {
+                        // Hiển thị message từ server khi success là false
                         alert(data.message || 'Lỗi không xác định khi xóa tài liệu.');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Lỗi kết nối hoặc server khi xóa tài liệu: ' + error.message);
+                    alert(error.message);
                 });
             }
         });

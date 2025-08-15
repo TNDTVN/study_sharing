@@ -1063,21 +1063,21 @@ class DocumentController
 
     public function delete()
     {
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
 
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        if (!isset($_SESSION['account_id']) || !in_array($_SESSION['role'], ['teacher', 'student(link:javascript:;student'])) {
+        if (!isset($_SESSION['account_id']) || !in_array($_SESSION['role'], ['teacher', 'student'])) {
             http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Bạn cần đăng nhập để xóa tài liệu!']);
+            echo json_encode(['success' => false, 'message' => 'Bạn cần đăng nhập để xóa tài liệu!'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!']);
+            echo json_encode(['success' => false, 'message' => 'Phương thức không hợp lệ!'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
@@ -1085,7 +1085,7 @@ class DocumentController
 
         if ($document_id <= 0) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'ID tài liệu không hợp lệ!']);
+            echo json_encode(['success' => false, 'message' => 'ID tài liệu không hợp lệ!'], JSON_UNESCAPED_UNICODE);
             exit;
         }
 
@@ -1099,7 +1099,7 @@ class DocumentController
             if (!$document) {
                 $this->db->rollBack();
                 http_response_code(404);
-                echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại hoặc bạn không có quyền xóa!']);
+                echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại hoặc bạn không có quyền xóa!'], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
@@ -1109,20 +1109,25 @@ class DocumentController
                 'rating_count' => 0
             ];
 
+            error_log("Checking counts for document_id: $document_id");
+
             $checkStmt = $this->db->prepare("SELECT COUNT(*) as count FROM comments WHERE document_id = :document_id");
             $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
             $checkStmt->execute();
             $counts['comment_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+            error_log("Comment count: " . $counts['comment_count']);
 
             $checkStmt = $this->db->prepare("SELECT COUNT(*) as count FROM downloads WHERE document_id = :document_id");
             $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
             $checkStmt->execute();
             $counts['download_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+            error_log("Download count: " . $counts['download_count']);
 
             $checkStmt = $this->db->prepare("SELECT COUNT(*) as count FROM ratings WHERE document_id = :document_id");
             $checkStmt->bindValue(':document_id', $document_id, PDO::PARAM_INT);
             $checkStmt->execute();
             $counts['rating_count'] = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'];
+            error_log("Rating count: " . $counts['rating_count']);
 
             if (
                 $counts['comment_count'] > 0 ||
@@ -1131,7 +1136,12 @@ class DocumentController
             ) {
                 $this->db->rollBack();
                 http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Không thể xóa tài liệu vì có dữ liệu liên quan (bình luận, lượt tải, hoặc đánh giá)!']);
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Không thể xóa tài liệu vì có dữ liệu liên quan (bình luận: ' . $counts['comment_count'] .
+                        ', lượt tải: ' . $counts['download_count'] .
+                        ', đánh giá: ' . $counts['rating_count'] . ')'
+                ], JSON_UNESCAPED_UNICODE);
                 exit;
             }
 
@@ -1141,15 +1151,21 @@ class DocumentController
             $versionFiles = $versionStmt->fetchAll(PDO::FETCH_ASSOC);
 
             foreach ($versionFiles as $version) {
-                $file_path = __DIR__ . '/../Uploads/' . $version['file_path'];
+                $file_path = __DIR__ . '/../uploads/' . $version['file_path'];
                 if (file_exists($file_path)) {
                     unlink($file_path);
+                    error_log("Deleted version file: $file_path");
+                } else {
+                    error_log("Version file not found: $file_path");
                 }
                 $converted_dir = __DIR__ . '/../Uploads/converted/';
                 $converted_file_name = pathinfo($version['file_path'], PATHINFO_FILENAME) . '.pdf';
                 $converted_file_path = $converted_dir . $converted_file_name;
                 if (file_exists($converted_file_path)) {
                     unlink($converted_file_path);
+                    error_log("Deleted converted file: $converted_file_path");
+                } else {
+                    error_log("Converted file not found: $converted_file_path");
                 }
             }
 
@@ -1162,6 +1178,9 @@ class DocumentController
             $file_path = __DIR__ . '/../Uploads/' . $document['file_path'];
             if (file_exists($file_path)) {
                 unlink($file_path);
+                error_log("Deleted file: $file_path");
+            } else {
+                error_log("File not found: $file_path");
             }
 
             $deleteStmt = $this->db->prepare("DELETE FROM documents WHERE document_id = :document_id");
@@ -1171,16 +1190,16 @@ class DocumentController
             $affected = $deleteStmt->rowCount();
             if ($affected > 0) {
                 $this->db->commit();
-                echo json_encode(['success' => true, 'message' => 'Xóa tài liệu thành công!']);
+                echo json_encode(['success' => true, 'message' => 'Xóa tài liệu thành công!'], JSON_UNESCAPED_UNICODE);
             } else {
                 $this->db->rollBack();
-                echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại!']);
+                echo json_encode(['success' => false, 'message' => 'Tài liệu không tồn tại!'], JSON_UNESCAPED_UNICODE);
             }
         } catch (Exception $e) {
             $this->db->rollBack();
             error_log("Delete document error: " . $e->getMessage());
             http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Lỗi server khi xóa tài liệu: ' . $e->getMessage()]);
+            echo json_encode(['success' => false, 'message' => 'Lỗi server khi xóa tài liệu: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
         }
         exit;
     }
