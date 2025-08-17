@@ -115,11 +115,11 @@ class AdminCourseController
             $offset = ($page - 1) * $this->itemsPerPage;
 
             $query = "SELECT c.*, u.full_name,
-                    (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
-                FROM courses c
-                LEFT JOIN accounts a ON c.creator_id = a.account_id
-                LEFT JOIN users u ON a.account_id = u.account_id
-                WHERE 1=1";
+                (SELECT COUNT(*) FROM course_members cm WHERE cm.course_id = c.course_id) as member_count
+            FROM courses c
+            LEFT JOIN accounts a ON c.creator_id = a.account_id
+            LEFT JOIN users u ON a.account_id = u.account_id
+            WHERE 1=1";
             $params = [];
 
             if (!empty($keyword)) {
@@ -130,10 +130,10 @@ class AdminCourseController
 
             if ($category_id > 0) {
                 $query .= " AND EXISTS (
-                    SELECT 1 FROM documents d
-                    WHERE d.course_id = c.course_id
-                    AND d.category_id = :category_id
-                )";
+                SELECT 1 FROM documents d
+                WHERE d.course_id = c.course_id
+                AND d.category_id = :category_id
+            )";
                 $params[':category_id'] = $category_id;
             }
 
@@ -151,6 +151,21 @@ class AdminCourseController
             $stmt->bindValue(':itemsPerPage', $this->itemsPerPage, PDO::PARAM_INT);
             $stmt->execute();
             $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Thêm thông tin tài liệu cho mỗi khóa học
+            foreach ($courses as &$course) {
+                $documentsStmt = $this->pdo->prepare("
+                SELECT d.document_id, d.title, d.file_path, c.category_name, u.full_name as uploader
+                FROM documents d
+                LEFT JOIN categories c ON d.category_id = c.category_id
+                LEFT JOIN users u ON d.account_id = u.account_id
+                WHERE d.course_id = :course_id
+            ");
+                $documentsStmt->bindValue(':course_id', $course['course_id'], PDO::PARAM_INT);
+                $documentsStmt->execute();
+                $course['documents'] = $documentsStmt->fetchAll(PDO::FETCH_ASSOC);
+            }
+            unset($course);
 
             $categoryStmt = $pdo->prepare("SELECT * FROM categories ORDER BY category_name");
             $categoryStmt->execute();
@@ -171,10 +186,10 @@ class AdminCourseController
 
             if ($category_id > 0) {
                 $countQuery .= " AND EXISTS (
-                    SELECT 1 FROM documents d
-                    WHERE d.course_id = courses.course_id
-                    AND d.category_id = :category_id
-                )";
+                SELECT 1 FROM documents d
+                WHERE d.course_id = courses.course_id
+                AND d.category_id = :category_id
+            )";
                 $countParams[':category_id'] = $category_id;
             }
 

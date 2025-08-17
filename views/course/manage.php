@@ -576,6 +576,77 @@ $accounts = $accountStmt->fetchAll(PDO::FETCH_ASSOC);
             })
     }
 
+    function fillEditModal(course) {
+        currentCourseData = course;
+        console.log('Course data:', course); // Debug
+        console.log('Documents:', course.documents); // Debug
+        const form = document.getElementById('editCourseForm');
+        form.classList.remove('was-validated');
+        form.reset();
+
+        document.getElementById('edit_course_id').value = course.course_id || '';
+        document.getElementById('edit_course_name').value = course.course_name || '';
+        document.getElementById('edit_description').value = course.description || '';
+        document.getElementById('edit_creator_id').value = course.creator_id || '';
+        document.getElementById('edit_max_members').value = course.max_members || 50;
+        document.getElementById('edit_learn_link').value = course.learn_link || '';
+        document.getElementById('edit_start_date').value = course.start_date || '';
+        document.getElementById('edit_end_date').value = course.end_date || '';
+        document.getElementById('edit_status').value = course.status || 'pending';
+
+        const $select = $('#edit_document_ids');
+        $select.select2({
+            placeholder: "Tìm kiếm tài liệu...",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#editCourseModal')
+        });
+
+        // Xóa các lựa chọn hiện tại
+        $select.val(null).trigger('change');
+        $select.empty();
+
+        // Lấy danh sách tài liệu từ server
+        fetch('/study_sharing/AdminCourse/getAvailableDocuments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    course_id: course.course_id
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.documents && data.documents.length > 0) {
+                    const selectedDocumentIds = course.documents ?
+                        course.documents.map(doc => doc.document_id) : [];
+                    console.log('Selected document IDs:', selectedDocumentIds); // Debug
+                    data.documents.forEach(doc => {
+                        const isSelected = selectedDocumentIds.includes(Number(doc.document_id));
+                        const option = new Option(
+                            `${doc.title} (${doc.file_path.split('/').pop()}) - ${doc.status}`,
+                            doc.document_id,
+                            isSelected,
+                            isSelected
+                        );
+                        $select.append(option);
+                    });
+                    $select.val(selectedDocumentIds).trigger('change');
+                    $select.prop('disabled', false);
+                } else {
+                    $select.empty();
+                    const option = new Option('Không có tài liệu nào', '', false, false);
+                    $select.append(option).trigger('change');
+                    $select.prop('disabled', true);
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                alert('Lỗi khi lấy danh sách tài liệu.');
+            });
+    }
+
     document.getElementById('edit-course-btn').addEventListener('click', function() {
         if (currentCourseData) {
             fillEditModal(currentCourseData);
