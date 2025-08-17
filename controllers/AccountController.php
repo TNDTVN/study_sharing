@@ -4,7 +4,7 @@ namespace App;
 
 use PDO;
 use PDOException;
-//haha
+
 class AccountController
 {
     private $pdo;
@@ -21,7 +21,6 @@ class AccountController
             session_start();
         }
 
-        // Kiểm tra quyền admin
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header('Location: /study_sharing');
             exit;
@@ -38,22 +37,21 @@ class AccountController
                 throw new PDOException("Kết nối cơ sở dữ liệu không hợp lệ");
             }
 
-            // Truy vấn danh sách người dùng
             $query = "
-            SELECT DISTINCT a.account_id, a.username, a.email, a.role, a.status,
-                            u.full_name, u.date_of_birth, u.phone_number, u.address
-            FROM accounts a
-            LEFT JOIN users u ON a.account_id = u.account_id
-            WHERE 1=1
-        ";
+                SELECT DISTINCT a.account_id, a.username, a.email, a.role, a.status,
+                               u.full_name, u.date_of_birth, u.phone_number, u.address, u.avatar
+                FROM accounts a
+                LEFT JOIN users u ON a.account_id = u.account_id
+                WHERE 1=1
+            ";
             $params = [];
 
             if (!empty($keyword)) {
                 $query .= " AND (
-                a.username LIKE :keyword1 OR
-                a.email LIKE :keyword2 OR
-                COALESCE(u.full_name, '') LIKE :keyword3
-            )";
+                    a.username LIKE :keyword1 OR
+                    a.email LIKE :keyword2 OR
+                    COALESCE(u.full_name, '') LIKE :keyword3
+                )";
                 $params[':keyword1'] = '%' . $keyword . '%';
                 $params[':keyword2'] = '%' . $keyword . '%';
                 $params[':keyword3'] = '%' . $keyword . '%';
@@ -74,20 +72,19 @@ class AccountController
             $stmt->execute();
             $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-            // Truy vấn tổng số người dùng (cho phân trang)
             $countQuery = "
-            SELECT COUNT(DISTINCT a.account_id) as total
-            FROM accounts a
-            LEFT JOIN users u ON a.account_id = u.account_id
-            WHERE 1=1
-        ";
+                SELECT COUNT(DISTINCT a.account_id) as total
+                FROM accounts a
+                LEFT JOIN users u ON a.account_id = u.account_id
+                WHERE 1=1
+            ";
 
             if (!empty($keyword)) {
                 $countQuery .= " AND (
-                a.username LIKE :keyword1 OR
-                a.email LIKE :keyword2 OR
-                COALESCE(u.full_name, '') LIKE :keyword3
-            )";
+                    a.username LIKE :keyword1 OR
+                    a.email LIKE :keyword2 OR
+                    COALESCE(u.full_name, '') LIKE :keyword3
+                )";
             }
 
             $countStmt = $this->pdo->prepare($countQuery);
@@ -102,7 +99,6 @@ class AccountController
             $totalUsers = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
             $totalPages = ceil($totalUsers / $this->itemsPerPage);
 
-            // Cảnh báo nếu không tìm thấy kết quả
             if (empty($users) && !empty($keyword)) {
                 $_SESSION['message'] = 'Không tìm thấy người dùng nào khớp với từ khóa: ' . htmlspecialchars($keyword);
                 $_SESSION['message_type'] = 'warning';
@@ -124,8 +120,6 @@ class AccountController
         exit;
     }
 
-
-
     public function addUser()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -133,7 +127,6 @@ class AccountController
                 session_start();
             }
 
-            // Kiểm tra quyền admin
             if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 $_SESSION['message'] = 'Bạn không có quyền thêm người dùng!';
                 $_SESSION['message_type'] = 'danger';
@@ -149,6 +142,7 @@ class AccountController
             $phone_number = trim($_POST['phone_number'] ?? '');
             $address = trim($_POST['address'] ?? '');
             $date_of_birth = $_POST['date_of_birth'] ?? null;
+            $avatar = 'profile.png';
 
             if (empty($username) || empty($email) || empty($password) || empty($full_name)) {
                 $_SESSION['message'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
@@ -157,8 +151,44 @@ class AccountController
                 exit;
             }
 
+            // Handle avatar upload
+            if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = __DIR__ . '/../assets/images/';
+                $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                $maxFileSize = 5 * 1024 * 1024; // 5MB
+
+                $fileType = $_FILES['avatar']['type'];
+                $fileSize = $_FILES['avatar']['size'];
+                $fileTmp = $_FILES['avatar']['tmp_name'];
+                $fileExt = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+                $newFileName = 'avatar_' . time() . '_' . rand(1000, 9999) . '.' . $fileExt;
+                $uploadPath = $uploadDir . $newFileName;
+
+                if (!in_array($fileType, $allowedTypes)) {
+                    $_SESSION['message'] = 'Định dạng file không được hỗ trợ! Chỉ chấp nhận JPEG, PNG, GIF.';
+                    $_SESSION['message_type'] = 'danger';
+                    header('Location: /study_sharing/Account/manage');
+                    exit;
+                }
+
+                if ($fileSize > $maxFileSize) {
+                    $_SESSION['message'] = 'Kích thước file quá lớn! Tối đa 5MB.';
+                    $_SESSION['message_type'] = 'danger';
+                    header('Location: /study_sharing/Account/manage');
+                    exit;
+                }
+
+                if (!move_uploaded_file($fileTmp, $uploadPath)) {
+                    $_SESSION['message'] = 'Lỗi khi tải lên avatar!';
+                    $_SESSION['message_type'] = 'danger';
+                    header('Location: /study_sharing/Account/manage');
+                    exit;
+                }
+
+                $avatar = $newFileName;
+            }
+
             try {
-                // Kiểm tra trùng username hoặc email
                 $query = "SELECT * FROM accounts WHERE username = :username OR email = :email";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindParam(':username', $username, PDO::PARAM_STR);
@@ -172,10 +202,8 @@ class AccountController
                     exit;
                 }
 
-                // Mã hóa mật khẩu
                 $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
-                // Thêm tài khoản vào bảng accounts
                 $this->pdo->beginTransaction();
                 $insertAccountQuery = "
                     INSERT INTO accounts (username, email, password, role, status)
@@ -188,13 +216,11 @@ class AccountController
                 $insertStmt->bindParam(':role', $role, PDO::PARAM_STR);
                 $insertStmt->execute();
 
-                // Lấy account_id vừa thêm
                 $account_id = $this->pdo->lastInsertId();
 
-                // Thêm thông tin người dùng vào bảng users
                 $insertUserQuery = "
-                    INSERT INTO users (account_id, full_name, phone_number, address, date_of_birth)
-                    VALUES (:account_id, :full_name, :phone_number, :address, :date_of_birth)
+                    INSERT INTO users (account_id, full_name, phone_number, address, date_of_birth, avatar)
+                    VALUES (:account_id, :full_name, :phone_number, :address, :date_of_birth, :avatar)
                 ";
                 $insertUserStmt = $this->pdo->prepare($insertUserQuery);
                 $insertUserStmt->bindParam(':account_id', $account_id, PDO::PARAM_INT);
@@ -202,6 +228,7 @@ class AccountController
                 $insertUserStmt->bindParam(':phone_number', $phone_number, PDO::PARAM_STR);
                 $insertUserStmt->bindParam(':address', $address, PDO::PARAM_STR);
                 $insertUserStmt->bindParam(':date_of_birth', $date_of_birth, $date_of_birth ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $insertUserStmt->bindParam(':avatar', $avatar, PDO::PARAM_STR);
                 $insertUserStmt->execute();
 
                 $this->pdo->commit();
@@ -227,7 +254,6 @@ class AccountController
                 session_start();
             }
 
-            // Kiểm tra quyền admin
             if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 $_SESSION['message'] = 'Bạn không có quyền cập nhật người dùng!';
                 $_SESSION['message_type'] = 'danger';
@@ -243,6 +269,8 @@ class AccountController
             $phone_number = trim($_POST['phone_number'] ?? '');
             $address = trim($_POST['address'] ?? '');
             $date_of_birth = $_POST['date_of_birth'] ?? null;
+            $password = !empty($_POST['password']) ? password_hash($_POST['password'], PASSWORD_BCRYPT) : null;
+            $avatar = $_POST['current_avatar'] ?? 'profile.png';
 
             if (empty($account_id) || empty($username) || empty($email) || empty($full_name)) {
                 $_SESSION['message'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
@@ -251,8 +279,44 @@ class AccountController
                 exit;
             }
 
+            // Handle avatar upload
+            if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = __DIR__ . '/../assets/images/';
+                $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                $maxFileSize = 5 * 1024 * 1024; // 5MB
+
+                $fileType = $_FILES['avatar']['type'];
+                $fileSize = $_FILES['avatar']['size'];
+                $fileTmp = $_FILES['avatar']['tmp_name'];
+                $fileExt = strtolower(pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION));
+                $newFileName = 'avatar_' . $account_id . '_' . time() . '.' . $fileExt;
+                $uploadPath = $uploadDir . $newFileName;
+
+                if (!in_array($fileType, $allowedTypes)) {
+                    $_SESSION['message'] = 'Định dạng file không được hỗ trợ! Chỉ chấp nhận JPEG, PNG, GIF.';
+                    $_SESSION['message_type'] = 'danger';
+                    header('Location: /study_sharing/Account/manage');
+                    exit;
+                }
+
+                if ($fileSize > $maxFileSize) {
+                    $_SESSION['message'] = 'Kích thước file quá lớn! Tối đa 5MB.';
+                    $_SESSION['message_type'] = 'danger';
+                    header('Location: /study_sharing/Account/manage');
+                    exit;
+                }
+
+                if (!move_uploaded_file($fileTmp, $uploadPath)) {
+                    $_SESSION['message'] = 'Lỗi khi tải lên avatar!';
+                    $_SESSION['message_type'] = 'danger';
+                    header('Location: /study_sharing/Account/manage');
+                    exit;
+                }
+
+                $avatar = $newFileName;
+            }
+
             try {
-                // Kiểm tra trùng username hoặc email
                 $query = "SELECT * FROM accounts WHERE (username = :username OR email = :email) AND account_id != :account_id";
                 $stmt = $this->pdo->prepare($query);
                 $stmt->bindParam(':username', $username, PDO::PARAM_STR);
@@ -267,11 +331,11 @@ class AccountController
                     exit;
                 }
 
-                // Cập nhật thông tin tài khoản
                 $this->pdo->beginTransaction();
                 $updateAccountQuery = "
                     UPDATE accounts 
                     SET username = :username, email = :email, role = :role
+                    " . ($password ? ", password = :password" : "") . "
                     WHERE account_id = :account_id
                 ";
                 $stmt = $this->pdo->prepare($updateAccountQuery);
@@ -279,12 +343,14 @@ class AccountController
                 $stmt->bindParam(':email', $email, PDO::PARAM_STR);
                 $stmt->bindParam(':role', $role, PDO::PARAM_STR);
                 $stmt->bindParam(':account_id', $account_id, PDO::PARAM_INT);
+                if ($password) {
+                    $stmt->bindParam(':password', $password, PDO::PARAM_STR);
+                }
                 $stmt->execute();
 
-                // Cập nhật thông tin người dùng
                 $updateUserQuery = "
                     UPDATE users 
-                    SET full_name = :full_name, phone_number = :phone_number, address = :address, date_of_birth = :date_of_birth
+                    SET full_name = :full_name, phone_number = :phone_number, address = :address, date_of_birth = :date_of_birth, avatar = :avatar
                     WHERE account_id = :account_id
                 ";
                 $updateUserStmt = $this->pdo->prepare($updateUserQuery);
@@ -292,6 +358,7 @@ class AccountController
                 $updateUserStmt->bindParam(':phone_number', $phone_number, PDO::PARAM_STR);
                 $updateUserStmt->bindParam(':address', $address, PDO::PARAM_STR);
                 $updateUserStmt->bindParam(':date_of_birth', $date_of_birth, $date_of_birth ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $updateUserStmt->bindParam(':avatar', $avatar, PDO::PARAM_STR);
                 $updateUserStmt->bindParam(':account_id', $account_id, PDO::PARAM_INT);
                 $updateUserStmt->execute();
 
@@ -318,7 +385,6 @@ class AccountController
                 session_start();
             }
 
-            // Kiểm tra quyền admin
             if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => 'Bạn không có quyền khóa tài khoản!']);
@@ -335,7 +401,6 @@ class AccountController
             }
 
             try {
-                // Không cho phép khóa tài khoản admin hiện tại
                 if ($account_id == $_SESSION['account_id']) {
                     header('Content-Type: application/json');
                     echo json_encode(['success' => false, 'message' => 'Không thể khóa tài khoản của chính bạn!']);
@@ -371,7 +436,6 @@ class AccountController
             session_start();
         }
 
-        // Kiểm tra quyền admin
         if (!isset($_SESSION['account_id']) || !isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
             header('Location: /study_sharing');
             exit;
@@ -380,7 +444,7 @@ class AccountController
         try {
             $query = "
                 SELECT a.account_id, a.username, a.email, a.role, a.status, a.created_at, a.updated_at,
-                    u.full_name, u.avatar, u.date_of_birth, u.phone_number, u.address
+                       u.full_name, u.avatar, u.date_of_birth, u.phone_number, u.address
                 FROM accounts a
                 LEFT JOIN users u ON a.account_id = u.account_id
                 WHERE a.account_id = :account_id
