@@ -713,10 +713,13 @@ class CourseController
             $stmt->execute();
             $courses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+            // Thêm thông tin tài liệu cho mỗi khóa học
             foreach ($courses as &$course) {
                 $documentsStmt = $this->db->prepare("
-                SELECT d.document_id, d.title, d.file_path 
+                SELECT d.document_id, d.title, d.file_path, c.category_name, u.full_name as uploader
                 FROM documents d 
+                LEFT JOIN categories c ON d.category_id = c.category_id
+                LEFT JOIN users u ON d.account_id = u.account_id
                 WHERE d.course_id = :course_id
             ");
                 $documentsStmt->bindValue(':course_id', $course['course_id'], PDO::PARAM_INT);
